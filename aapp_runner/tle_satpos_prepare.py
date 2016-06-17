@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import cmd
-from mx.DateTime.DateTime import Timestamp
-from cmd import Cmd
 
 # Copyright (c) 2015 Adam.Dybbroe
 
