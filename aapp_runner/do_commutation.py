@@ -77,6 +77,23 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])
     
+    print "decom file: ", hrpt_file
+    for sensor in sensors:
+        if str(sensor) in "amsu-a":
+            process_config['process_amsua'] = True
+        elif str(sensor) in ("amsu-b", "mhs"):
+            process_config['process_amsub'] = True
+        elif str(sensor) in ("hirs/3","hirs/4"):
+            process_config['process_hirs'] = True
+        elif str(sensor) in "avhrr/3":
+            process_config['process_avhrr'] = True
+        elif str(sensor) in "msu":
+            process_config['process_msu'] = True
+        elif str(sensor) in "dcs":
+            process_config['process_dcs'] = True
+        else:
+            LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
+
     if 'noaa' in process_config['platform']:
         print "Do the commutaion for NOAA"
         #a_tovs = "ATOVS"
@@ -88,22 +105,7 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
         #avh = 0 #avhrr
         #msu = 0 
         #dcs = 0 
-        for sensor in sensors:
-            if str(sensor) in "amsu-a":
-                process_config['process_amsua'] = True
-            elif str(sensor) in ("amsu-b", "mhs"):
-                process_config['process_amsub'] = True
-            elif str(sensor) in ("hirs/3","hirs/4"):
-                process_config['process_hirs'] = True
-            elif str(sensor) in "avhrr/3":
-                process_config['process_avhrr'] = True
-            elif str(sensor) in "msu":
-                process_config['process_msu'] = True
-            elif str(sensor) in "dcs":
-                process_config['process_dcs'] = True
-            else:
-                LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
-                
+                 
         decom_file = "decommutation.par"
         #Needs to find platform number for A/TOVS
         decom = open(decom_file, 'w')
@@ -134,7 +136,65 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
         run_shell_command(cmd)
         
     elif 'metop' in process_config['platform']:
-        print "Do the metop decommutation"
+        LOG.info("Do the metop decommutation")
+        if process_config['process_amsua']:
+            cmd="decom-amsua-metop {} {} ".format(process_config['input_amsua_file'],process_config['amsua_file'])
+            try:
+                status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-amsua-metop.log")
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+
+        if process_config['process_amsub']:
+            cmd="decom-mhs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
+                                                   process_config['input_amsub_file'],
+                                                   process_config['amsub_file'])
+            try:
+                status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-mhs-metop.log")
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+
+        if process_config['process_hirs']:
+            cmd="decom-hirs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
+                                                   process_config['input_hirs_file'],
+                                                   process_config['hirs_file'])
+            try:
+                status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-hirs-metop.log")
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+
+        if process_config['process_avhrr']:
+            cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
+                                                   process_config['input_avhrr_file'],
+                                                   process_config['avhrr_file'])
+            try:
+                status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-avhrr-metop.log")
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+
     else:
         print "Unknown platform: {}".format(process_config['platform'])
         return False

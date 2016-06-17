@@ -71,7 +71,7 @@ def do_tleing(aapp_prefix, timestamp, satellite, tle_indir=None):
         return False
     else:
         """Dont use the tle_indir because this is handleled by the tleing script"""
-        print "TLE file ok. Do the calc ... "
+        print "TLE file ok. Do the calcfor {} ... ".format(satellite)
         cmd="tleing -s {} -f {}".format(satellite,infile)
         try:
             run_shell_command(cmd)
@@ -111,7 +111,7 @@ def do_tle_satpos(timestamp, satellite, satpos_dir=None):
         """
         cmd="satpostle -o -s {} -d {:%d/%m/%y} -n 1.2".format(satellite,timestamp)
         try:
-            status, returncode = run_shell_command(cmd)
+            status, returncode, std, err = run_shell_command(cmd)
         except:
             LOG.error("Failed to run command: {}".format(cmd))
             return False
@@ -119,7 +119,7 @@ def do_tle_satpos(timestamp, satellite, satpos_dir=None):
             if returncode != 0:
                 LOG.error("cmd: {} failed with returncode: {}".format(cmd,returncode))
                 return False
-            elif not os.path.exits(file_satpos):
+            elif not os.path.exists(file_satpos):
                 LOG.error("file: {} does not exists after satpostle run.".format(file_satpos))
                 return False
     else:

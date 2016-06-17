@@ -620,6 +620,13 @@ class AappLvl1Processor(object):
                 LOG.info(
                     "Level 0 files ready: " + str(self.level0files[scene_id]))
 
+            #Need to do this here to add up all sensors for METOP
+            for (file,instr) in self.level0files[scene_id]:
+                if instr not in sensors:
+                    LOG.debug("Adding instrumet to sensors list: {}".format(instr))
+                    sensors.append(str(instr))
+                
+                
             if not self.working_dir and self.use_dyn_work_dir:
                 try:
                     self.working_dir = tempfile.mkdtemp(dir=self.aapp_workdir)
@@ -654,21 +661,6 @@ class AappLvl1Processor(object):
                 # found
                 LOG.info("Process the file " + str(self.level0_filename))
 
-                # if self.platform_name == 'NOAA-15':
-                #FIXME put this in config
-                if self.platform_name in SATS_ONLY_AVHRR:
-                    # AMSU amsubcl fails
-                    cmdseq = (self.noaa_run_script +
-                              ' -i AVHRR ' +
-                              '-Y ' + str(year) +
-                              ' -n ' + str(self.orbit) +
-                              ' ' + self.level0_filename)
-                else:
-                    cmdseq = (self.noaa_run_script +
-                              ' -Y ' + str(year) +
-                              ' -n ' + str(self.orbit) +
-                              ' ' + self.level0_filename)
-
 
                 process_config = {}
                 process_config['platform'] = SATELLITE_NAME.get(self.platform_name,self.platform_name)
@@ -687,6 +679,29 @@ class AappLvl1Processor(object):
                 process_config['avhrr_file'] = "hrpt.l1b"
                 process_config['calibration_location'] = "-c -l"
 
+                print str(self.level0files[scene_id])
+
+                if 'metop' in process_config['platform']:
+                    sensor_filename = {}
+                    for (fname, instr) in self.level0files[scene_id]:
+                        sensor_filename[instr] = fname
+
+                    for instr in sensor_filename.keys():
+                        print "instr: ",instr
+                        if instr not in SENSOR_NAMES:
+                            LOG.error("Sensor name mismatch! name = " + str(instr))
+                            return True
+
+                    if "avhrr/3" in sensor_filename:
+                        process_config['input_avhrr_file'] = sensor_filename['avhrr/3']
+                    if "amsu-a" in sensor_filename:
+                        process_config['input_amsua_file'] = sensor_filename['amsu-a']
+                    if "mhs" in sensor_filename:
+                        process_config['input_amsub_file'] = sensor_filename['mhs']
+                    if "hirs/4" in sensor_filename:
+                        process_config['input_hirs_file'] = sensor_filename['hirs/4']
+
+                print str(process_config)
                 _platform = SATELLITE_NAME.get(self.platform_name,self.platform_name)
                 #DO tle
                 do_tleing(self.aapp_prefix, self.starttime, _platform, self.tle_indir)
