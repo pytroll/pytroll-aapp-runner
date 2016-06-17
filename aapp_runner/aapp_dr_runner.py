@@ -31,10 +31,17 @@ import os
 import sys
 import logging
 from logging import handlers
+sys.path.insert(0, "trollduction/")
+sys.path.insert(0, ".")
 from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
+from aapp_runner.tle_satpos_prepare import do_tle_satpos
+from aapp_runner.do_commutation import do_decommutation
+
 import socket
 import netifaces
+from helper_functions import run_shell_command
+
 LOG = logging.getLogger(__name__)
 
 
@@ -49,6 +56,7 @@ _DEFAULT_LOG_FORMAT = '[%(levelname)s: %(asctime)s : %(name)s] %(message)s'
 # -------------------------------
 SUPPORTED_NOAA_SATELLITES = ['NOAA-19', 'NOAA-18', 'NOAA-16', 'NOAA-15']
 SUPPORTED_METOP_SATELLITES = ['Metop-B', 'Metop-A', 'Metop-C']
+SUPPORTED_SATELLITES = SUPPORTED_NOAA_SATELLITES + SUPPORTED_METOP_SATELLITES
 
 TLE_SATNAME = {'NOAA-19': 'NOAA 19', 'NOAA-18': 'NOAA 18',
                'NOAA-15': 'NOAA 15',
@@ -58,7 +66,7 @@ TLE_SATNAME = {'NOAA-19': 'NOAA 19', 'NOAA-18': 'NOAA 18',
 METOP_NAME = {'metop01': 'Metop-B', 'metop02': 'Metop-A'}
 METOP_NAME_INV = {'metopb': 'metop01', 'metopa': 'metop02'}
 SATELLITE_NAME = {'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
-                  'NOAA-15': 'noaa15',
+                  'NOAA-15': 'noaa15', 'NOAA-14': 'noaa14',
                   'Metop-A': 'metop02', 'Metop-B': 'metop01',
                   'Metop-C': 'metop03'}
 
@@ -185,7 +193,8 @@ class AappLvl1Processor(object):
         self.level0files = None
         self.lvl1_home = self.pps_out_dir
         self.job_register = {}
-
+        self.my_env = os.environ.copy()
+        
         self.initialise()
 
     def initialise(self):
@@ -624,20 +633,21 @@ class AappLvl1Processor(object):
             LOG.info("Working dir = " + str(self.working_dir))
 
             # AAPP requires ENV variables
-            my_env = os.environ.copy()
-            my_env['AAPP_PREFIX'] = self.aapp_prefix
+            #my_env = os.environ.copy()
+            #my_env['AAPP_PREFIX'] = self.aapp_prefix
             if self.use_dyn_work_dir:
-                my_env['DYN_WRK_DIR'] = self.working_dir
+                self.my_env['DYN_WRK_DIR'] = self.working_dir
 
             LOG.info(
                 "working dir: self.working_dir = " + str(self.working_dir))
             LOG.info("Using AAPP_PREFIX:" + str(self.aapp_prefix))
 
-            for envkey in my_env:
-                LOG.debug("ENV: " + str(envkey) + " " + str(my_env[envkey]))
+            for envkey in self.my_env:
+                LOG.debug("ENV: " + str(envkey) + " " + str(self.my_env[envkey]))
 
-            if self.platform_name in SUPPORTED_NOAA_SATELLITES:
-                LOG.info("This is a NOAA scene. Start the NOAA processing!")
+
+            if self.platform_name in SUPPORTED_SATELLITES:
+                LOG.info("This is a supported scene. Start the AAPP processing!")
                 # FIXME:            LOG.info("Process the scene " +
                 #                     self.platform_name + self.orbit)
                 # TypeError: coercing to Unicode: need string or buffer, int
@@ -645,6 +655,7 @@ class AappLvl1Processor(object):
                 LOG.info("Process the file " + str(self.level0_filename))
 
                 # if self.platform_name == 'NOAA-15':
+                #FIXME put this in config
                 if self.platform_name in SATS_ONLY_AVHRR:
                     # AMSU amsubcl fails
                     cmdseq = (self.noaa_run_script +
@@ -658,14 +669,56 @@ class AappLvl1Processor(object):
                               ' -n ' + str(self.orbit) +
                               ' ' + self.level0_filename)
 
-                LOG.info("Command sequence: " + str(cmdseq))
+
+                process_config = {}
+                process_config['platform'] = SATELLITE_NAME.get(self.platform_name,self.platform_name)
+                process_config['orbit_number'] = int(msg.data['orbit_number'])
+                process_config['working_directory'] = self.working_dir
+                process_config['process_amsua'] = False
+                process_config['process_amsub'] = False
+                process_config['process_hirs'] = False
+                process_config['process_avhrr'] = False
+                process_config['process_msu'] = False
+                process_config['process_dcs'] = False
+                process_config['a_tovs'] = list("ATOVS")
+                process_config['hirs_file'] = "hrsn.l1b"
+                process_config['amsua_file'] = "aman.l1b"
+                process_config['amsub_file'] = "ambm.l1b"
+                process_config['avhrr_file'] = "hrpt.l1b"
+                process_config['calibration_location'] = "-c -l"
+
+                _platform = SATELLITE_NAME.get(self.platform_name,self.platform_name)
+                #DO tle
+                do_tleing(self.aapp_prefix, self.starttime, _platform, self.tle_indir)
+ 
+                #DO tle satpos
+                do_tle_satpos(self.starttime, _platform, self.tle_indir)
+                
+                #DO decom
+                do_decommutation(process_config, sensors, self.starttime, self.level0_filename)
+
+                from do_hirs_calibration import do_hirs_calibration
+                #DO HIRS
+                do_hirs_calibration(process_config, self.starttime)
+                
+                #DO MSU
+                from do_atovs_calibration import do_atovs_calibration
+                do_atovs_calibration(process_config, self.starttime)
+                
+                #DO AVHRR
+                from do_avhrr_calibration import do_avhrr_calibration
+                do_avhrr_calibration(process_config, self.starttime)
+                #Organize output and cleanup
+                
+                
+                #LOG.info("Command sequence: " + str(cmdseq))
                 # Run the command:
                 # FIXME: shell=False https://docs.python.org/2/library/subprocess.html
                 # https://docs.python.org/2/library/subprocess.html#subprocess.Popen.communicate
-                aapplvl1_proc = Popen(shlex.split(cmdseq),
-                                      cwd=self.working_dir,
-                                      shell=False, env=my_env,
-                                      stderr=PIPE, stdout=PIPE)
+                #aapplvl1_proc = Popen(shlex.split(cmdseq),
+                #                      cwd=self.working_dir,
+                #                      shell=False, env=my_env,
+                #                     stderr=PIPE, stdout=PIPE)
 
             elif self.platform_name in SUPPORTED_METOP_SATELLITES:
                 # Metop processing needs input directory
@@ -822,14 +875,25 @@ def aapp_rolling_runner(runner_config):
     LOG.info("*** Start the NOAA/Metop HRPT AAPP runner:")
     LOG.info("-" * 50)
 
+    os.environ["AAPP_PREFIX"] = runner_config['aapp_prefix']
+    aapp_atovs_conf = runner_config['aapp_prefix'] + "/ATOVS_ENV7"
+    status, returncode, out, err = run_shell_command("bash -c \"source {}\";env".format(aapp_atovs_conf))
+    if not status:
+        print "Command failed"
+    else:
+        for line in out.splitlines():
+            if line:
+                (key,_,value) = line.partition("=")
+                os.environ[key]=value
+        
     # init
     aapp_proc = AappLvl1Processor(runner_config)
-
-    LOG.info("Do the tleing first...")
-    do_tleing(aapp_proc.aapp_prefix,
-              aapp_proc.tle_indir, aapp_proc.tle_outdir,
-              aapp_proc.tle_script)
-    LOG.info("...tleing done")
+    
+    #LOG.info("Do the tleing first...")
+    #do_tleing(aapp_proc.aapp_prefix,
+    #          aapp_proc.tle_indir, aapp_proc.tle_outdir,
+    #          aapp_proc.tle_script)
+    #LOG.info("...tleing done")
 
     with posttroll.subscriber.Subscribe('',
                                         aapp_proc.subscribe_topics,

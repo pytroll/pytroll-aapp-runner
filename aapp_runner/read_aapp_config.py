@@ -17,6 +17,7 @@ valid_config_variables = [
     'tle_indir',
     'tle_outdir',
     'tle_script',
+    'tle_timestamp_format',
     'alleph_script',
     'use_dyn_work_dir',
     'subscribe_topics',
