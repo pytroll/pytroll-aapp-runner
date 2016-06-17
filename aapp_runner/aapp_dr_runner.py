@@ -78,6 +78,15 @@ SENSOR_NAME_CONVERTER = {
 
 METOP_NUMBER = {'b': '01', 'a': '02'}
 
+"""
+These are the standard names used by the various AAPP decommutation scripts.
+If you change these, you will also have to change the decommutation scripts.
+"""
+STD_AAPP_OUTPUT_FILESNAMES = {'amsua_file':'aman.l1b',
+                              'amsub_file':'ambn.l1b',
+                              'hirs_file':'hrsn.l1b',
+                              'avhrr_file':'hrpt.l1b'
+                              }
 # FIXME! This variable should be put in the config file:
 SATS_ONLY_AVHRR = []
 
@@ -663,6 +672,19 @@ class AappLvl1Processor(object):
                 LOG.info("Process the file " + str(self.level0_filename))
 
 
+                """
+                COnfiguration for the various AAPP processing
+                
+                This dict is passed to each module doing the actual processing.
+                
+                The processing of each level is overridden by the available sensors retrived from the message
+                
+                Meaning if processing of avhrr is set to True in the configuration but is not a mandatory sensor,
+                nor contained in the sensor list, then the processing av avhrr is overridden and set to False.
+                
+                """
+                
+                
                 process_config = {}
                 process_config['platform'] = SATELLITE_NAME.get(self.platform_name,self.platform_name)
                 process_config['orbit_number'] = int(msg.data['orbit_number'])
@@ -674,10 +696,10 @@ class AappLvl1Processor(object):
                 process_config['process_msu'] = False
                 process_config['process_dcs'] = False
                 process_config['a_tovs'] = list("ATOVS")
-                process_config['hirs_file'] = "hrsn.l1b"
-                process_config['amsua_file'] = "aman.l1b"
-                process_config['amsub_file'] = "ambm.l1b"
-                process_config['avhrr_file'] = "hrpt.l1b"
+                process_config['hirs_file'] = STD_AAPP_OUTPUT_FILESNAMES['hirs_file']
+                process_config['amsua_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsua_file']
+                process_config['amsub_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsub_file']
+                process_config['avhrr_file'] = STD_AAPP_OUTPUT_FILESNAMES['avhrr_file']
                 process_config['calibration_location'] = "-c -l"
 
                 print str(self.level0files[scene_id])
@@ -702,28 +724,50 @@ class AappLvl1Processor(object):
                     if "hirs/4" in sensor_filename:
                         process_config['input_hirs_file'] = sensor_filename['hirs/4']
 
-                print str(process_config)
                 _platform = SATELLITE_NAME.get(self.platform_name,self.platform_name)
                 #DO tle
-                do_tleing(self.aapp_prefix, self.starttime, _platform, self.tle_indir)
+                if not do_tleing(self.aapp_prefix, self.starttime, _platform, self.tle_indir):
+                    LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
  
                 #DO tle satpos
-                do_tle_satpos(self.starttime, _platform, self.tle_indir)
+                if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
+                    LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
                 
                 #DO decom
-                do_decommutation(process_config, sensors, self.starttime, self.level0_filename)
+                if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
+                    LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
 
                 from do_hirs_calibration import do_hirs_calibration
                 #DO HIRS
-                do_hirs_calibration(process_config, self.starttime)
-                
+                if not do_hirs_calibration(process_config, self.starttime):
+                    LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+
                 #DO MSU
                 from do_atovs_calibration import do_atovs_calibration
-                do_atovs_calibration(process_config, self.starttime)
-                
+                if not do_atovs_calibration(process_config, self.starttime):
+                    LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+
                 #DO AVHRR
                 from do_avhrr_calibration import do_avhrr_calibration
-                do_avhrr_calibration(process_config, self.starttime)
+                if not do_avhrr_calibration(process_config, self.starttime):
+                    LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+
+                #DO IASI
+                if not do_iasi_calibration(process_config, self.starttime):
+                    LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+                
+                #DO ANA
+                if not do_ana_correction(process_config, self.starttime):
+                    LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+                                
                 #Organize output and cleanup
                 
                 
