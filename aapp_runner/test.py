@@ -29,6 +29,24 @@ def main():
     #                 "uri": "/disk1/trollduction-test/data/clear_NO18_57047_2016-06-15T07:24:48.703_790-expanded-16bit",
     #                  "platform_name": "NOAA-18", "data_processing_level": "L0"},]
 
+
+    info_dicts = [{"origin": "157.249.17.66:9093", "uid": "MHSx_HRP_00_M01_20160622071459Z_20160622072436Z_N_O_20160622071512Z", "antenna": "XL-BAND",
+                   "process_time": "2016-06-22T07:15:12", "start_time": "2016-06-22T07:14:59", "orbit_number": 19515,
+                   "uri": "file:///disk1/trollduction-test/data/MHSx_HRP_00_M01_20160622071459Z_20160622072436Z_N_O_20160622071512Z",
+                   "platform_name": "M01", "end_time": "2016-06-22T07:24:36", "pass_key": "bc67690fb42f2d219fb7fbec84a6d008", "sensor": "mhs"},
+                  {"origin": "157.249.17.66:9092", "uid": "AVHR_HRP_00_M01_20160622071505Z_20160622072446Z_N_O_20160622071509Z", "antenna": "XL-BAND",
+                   "process_time": "2016-06-22T07:15:09", "start_time": "2016-06-22T07:15:05", "orbit_number": 19515,
+                   "uri": "file:///disk1/trollduction-test/data/AVHR_HRP_00_M01_20160622071505Z_20160622072446Z_N_O_20160622071509Z",
+                   "platform_name": "M01", "end_time": "2016-06-22T07:24:46", "pass_key": "bc67690fb42f2d219fb7fbec84a6d008", "sensor": "avhrr/3"},
+                  {"origin": "157.249.17.66:9094", "uid": "AMSA_HRP_00_M01_20160622071459Z_20160622072428Z_N_O_20160622071522Z", "antenna": "XL-BAND",
+                   "process_time": "2016-06-22T07:15:22", "start_time": "2016-06-22T07:14:59", "orbit_number": 19515,
+                   "uri": "file:///disk1/trollduction-test/data/AMSA_HRP_00_M01_20160622071459Z_20160622072428Z_N_O_20160622071522Z",
+                   "platform_name": "M01", "end_time": "2016-06-22T07:24:28", "pass_key": "bc67690fb42f2d219fb7fbec84a6d008", "sensor": "amsu-a"},
+                  {"origin": "157.249.17.66:9095", "uid": "HIRS_HRP_00_M01_20160622071501Z_20160622072425Z_N_O_20160622071519Z", "antenna": "XL-BAND",
+                   "process_time": "2016-06-22T07:15:19", "start_time": "2016-06-22T07:15:01", "orbit_number": 19515,
+                   "uri": "file:///disk1/trollduction-test/data/HIRS_HRP_00_M01_20160622071501Z_20160622072425Z_N_O_20160622071519Z",
+                   "platform_name": "M01", "end_time": "2016-06-22T07:24:25", "pass_key": "bc67690fb42f2d219fb7fbec84a6d008", "sensor": "hirs/4"},]
+
     info_dicts = [{"origin": "157.249.17.66:9092", "uid": "AVHR_HRP_00_M02_20160617095302Z_20160617095954Z_N_O_20160617095305Z",
                    "antenna": "XL-BAND", "process_time": "2016-06-17T09:53:05", "start_time": "2016-06-17T09:53:02",
                    "orbit_number": 50132,

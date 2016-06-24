@@ -655,8 +655,7 @@ class AappLvl1Processor(object):
             if self.use_dyn_work_dir:
                 self.my_env['DYN_WRK_DIR'] = self.working_dir
 
-            LOG.info(
-                "working dir: self.working_dir = " + str(self.working_dir))
+            LOG.info("working dir: self.working_dir = " + str(self.working_dir))
             LOG.info("Using AAPP_PREFIX:" + str(self.aapp_prefix))
 
             for envkey in self.my_env:
@@ -726,10 +725,11 @@ class AappLvl1Processor(object):
 
                 _platform = SATELLITE_NAME.get(self.platform_name,self.platform_name)
                 #DO tle
-                if not do_tleing(self.aapp_prefix, self.starttime, _platform, self.tle_indir):
+                if not do_tleing(self.starttime, _platform, self.working_dir, self.tle_indir):
                     LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
- 
+                    return False
+                
                 #DO tle satpos
                 if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
                     LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
@@ -759,11 +759,13 @@ class AappLvl1Processor(object):
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
 
                 #DO IASI
+                from do_iasi_calibration import do_iasi_calibration
                 if not do_iasi_calibration(process_config, self.starttime):
                     LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
                 
                 #DO ANA
+                from do_ana_correction import do_ana_correction
                 if not do_ana_correction(process_config, self.starttime):
                     LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")

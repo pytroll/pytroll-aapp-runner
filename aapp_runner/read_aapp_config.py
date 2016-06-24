@@ -188,7 +188,7 @@ def check_readable_files(config, files_to_check):
     for filename in files_to_check:
         check = check_file(config[filename])
         test_results.append(check)
-#        print filename, " is ", check
+        print filename, " is ", check
 
     if all(test_results):
         return True
@@ -254,15 +254,15 @@ def read_config_file_options(filename, station, env, valid_config=None):
     try:
         config_opts = dict(config.items(env, raw=False))
     except Exception as err:
-        print " Section %s %s" % (env,
-                                  "is not defined in your" +
-                                  "aapp_runner config file!")
+        print "Section %s %s" % (env,
+                                 "is not defined in your " +
+                                 "aapp_runner config file!")
         return None
     # Read config file
     for item in mandatory_config_variables:
         try:
             configuration[item] = config_opts[item]
-#            print "Required variable: ", item
+            #print "Required variable: ", item
             if item in optional_config_variables and config_opts[item] == '':
                 #                print "This will be replaced:", item
                 new_item = optional_config_variables.get(item, item)

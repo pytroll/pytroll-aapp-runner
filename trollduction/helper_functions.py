@@ -305,7 +305,7 @@ def overlapping_timeinterval(start_end_times, timelist):
 
     return False
 
-def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, stderr_logfile=None, my_timeout=24*60*60):
+def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, stderr_logfile=None, stdin=None, my_timeout=24*60*60):
     """Run the given command as a shell and get the return code, stdout and stderr
         Returns True/False and return code.
     """
@@ -318,7 +318,7 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
     try:
         proc = Popen(myargs, 
                      cwd=my_cwd, shell=False, env=my_env,
-                     stderr=PIPE, stdout=PIPE)
+                     stderr=PIPE, stdout=PIPE, stdin=PIPE)
     except OSError as e:
         print "Popen failed for command: {} with {}".format(myargs,e)
         return False
@@ -334,16 +334,20 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
     signal.signal(signal.SIGALRM, alarm_handler)
     signal.alarm(my_timeout)
     try:
-        LOGGER.info("Before call to communicate:")
-        out, err = proc.communicate()
+        LOGGER.debug("Before call to communicate:")
+        if stdin == None:
+            out, err = proc.communicate()
+        else:
+            out, err = proc.communicate(input=stdin)
+            
         return_value = proc.returncode
         signal.alarm(0)
     except Alarm:
-        print "Command: {} took to long time(more than {}s) to complete. Terminates the job.".format(command,my_timeout)
+        LOGGER.error("Command: {} took to long time(more than {}s) to complete. Terminates the job.".format(command,my_timeout))
         proc.terminate()
         return False
         
-    LOGGER.info("communicate complete")
+    LOGGER.debug("communicate complete")
     lines = out.splitlines()
     if stdout_logfile == None:
         for line in lines:
