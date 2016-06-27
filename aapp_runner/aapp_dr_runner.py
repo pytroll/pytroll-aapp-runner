@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __builtin__ import True
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -191,7 +192,6 @@ class AappLvl1Processor(object):
         self.passlength_threshold = int(runner_config['passlength_threshold'])
 
         self.fullswath = True  # Always a full swath (never HRPT granules)
-        self.ishmf = False
         self.working_dir = None
         self.level0_filename = None
         self.starttime = None
@@ -410,6 +410,111 @@ class AappLvl1Processor(object):
 #                directories.append(sub_dir_path)
 #    return directories
 
+    def create_scene_id(self, keyname):
+        # Use sat id, start and end time as the unique identifier of the scene!
+        if keyname in self.job_register and len(self.job_register[keyname]) > 0:
+            # Go through list of start,end time tuples and see if the current
+            # scene overlaps with any:
+            status = overlapping_timeinterval((self.starttime, self.endtime),
+                                              self.job_register[keyname])
+            if status:
+                LOG.warning("Processing of scene " + keyname +
+                            " " + str(status[0]) + " " + str(status[1]) +
+                            " with overlapping time has been"
+                            " launched previously")
+                LOG.info("Skip it...")
+                return True
+            else:
+                LOG.debug(
+                    "No overlap with any recently processed scenes...")
+
+        scene_id = (str(self.platform_name) + '_' +
+                    self.starttime.strftime('%Y%m%d%H%M%S') +
+                    '_' + self.endtime.strftime('%Y%m%d%H%M%S'))
+        LOG.debug("scene_id = " + str(scene_id))
+        return scene_id
+
+    def check_scene_id(self, scene_id):
+        # Check for keys representing the same scene (slightly different
+        # start/end times):
+        LOG.debug("Level-0files = " + str(self.level0files))
+        time_thr = timedelta(seconds=30)#FIXME configure
+        for key in self.level0files:
+            pltrfn, startt, endt = key.split('_')
+            if not self.platform_name == pltrfn:
+                continue
+            t1_ = datetime.strptime(startt, '%Y%m%d%H%M%S')
+            t2_ = datetime.strptime(endt, '%Y%m%d%H%M%S')
+            # Get the relative time overlap:
+            sec_inside = (
+                min(t2_, self.endtime) - max(t1_, self.starttime)).total_seconds()
+            dsec = (t2_ - t1_).total_seconds()
+            if dsec < 0.01:
+                LOG.warning(
+                    "Something awkward with this scene: start_time = end_time!")
+                break
+            elif float(sec_inside / dsec) > 0.85:
+                # It is the same scene!
+                LOG.debug(
+                    "It is the same scene,"
+                    " though the file times may deviate a bit...")
+                scene_id = key
+                break
+
+            elif float(sec_inside / dsec) > 0.01:
+                LOG.warning("There was an overlap but probably not the " +
+                            "same scene: Time interval = " +
+                            "(%s, %s)",
+                            t1_.strftime('%Y-%m-%d %H:%M:%S'),
+                            t2_.strftime('%Y-%m-%d %H:%M:%S'))
+        return scene_id
+
+    def sensors_to_process(self, msg, sensors):
+        LOG.debug("Sensor = " + str(msg.data['sensor']))
+        LOG.debug("type: " + str(type(msg.data['sensor'])))
+        if isinstance(msg.data['sensor'], (str, unicode)):
+            sensors.append(msg.data['sensor'])
+        elif isinstance(msg.data['sensor'], (list, set, tuple)):
+            sensors.extend(msg.data['sensor'])
+        else:
+            sensors = []
+            LOG.warning('Failed interpreting sensor(s)!')
+
+        LOG.info("Sensor(s): " + str(sensors))
+        sensor_ok = False
+        for sensor in sensors:
+            if sensor in SENSOR_NAMES:
+                sensor_ok = True
+                break
+        if not sensor_ok:
+            LOG.info("No required sensors....")
+            return False
+        
+        return True
+
+    def available_sensors(self, msg, sensors, scene_id):
+        if scene_id not in self.level0files:
+            LOG.debug("Reset level-0 files: scene_id = " + str(scene_id))
+            self.level0files[scene_id] = []
+
+        for sensor in sensors:
+            item = (self.level0_filename, sensor)
+            if item not in self.level0files[scene_id]:
+                self.level0files[scene_id].append(item)
+                LOG.debug("Appending item to list: " + str(item))
+            else:
+                LOG.debug("item already in list: " + str(item))
+
+        if len(self.level0files[scene_id]) < 4 and msg.data.get("variant") != "EARS":
+            LOG.info("Not enough sensor data available yet. " +
+                     "Level-0 files = " +
+                     str(self.level0files[scene_id]))
+            return False
+        else:
+            LOG.info("Level 0 files ready: " + str(self.level0files[scene_id]))
+
+        return True
+
     def run(self, msg):
         """Start the AAPP level 1 processing on either a NOAA HRPT file or a
         set of Metop HRPT files"""
@@ -518,118 +623,26 @@ class AappLvl1Processor(object):
             LOG.debug("Keyname = " + str(keyname))
             LOG.debug("Start: job register = " + str(self.job_register))
 
-            # Use sat id, start and end time as the unique identifier of the
-            # scene!
-            if keyname in self.job_register and len(self.job_register[keyname]) > 0:
-                # Go through list of start,end time tuples and see if the current
-                # scene overlaps with any:
-                status = overlapping_timeinterval((self.starttime, self.endtime),
-                                                  self.job_register[keyname])
-                if status:
-                    LOG.warning("Processing of scene " + keyname +
-                                " " + str(status[0]) + " " + str(status[1]) +
-                                " with overlapping time has been"
-                                " launched previously")
-                    LOG.info("Skip it...")
-                    return True
-                else:
-                    LOG.debug(
-                        "No overlap with any recently processed scenes...")
-
-            scene_id = (str(self.platform_name) + '_' +
-                        self.starttime.strftime('%Y%m%d%H%M%S') +
-                        '_' + self.endtime.strftime('%Y%m%d%H%M%S'))
-            LOG.debug("scene_id = " + str(scene_id))
-
-            # Check for keys representing the same scene (slightly different
-            # start/end times):
-            LOG.debug("Level-0files = " + str(self.level0files))
-            time_thr = timedelta(seconds=30)
-            for key in self.level0files:
-                pltrfn, startt, endt = key.split('_')
-                if not self.platform_name == pltrfn:
-                    continue
-                t1_ = datetime.strptime(startt, '%Y%m%d%H%M%S')
-                t2_ = datetime.strptime(endt, '%Y%m%d%H%M%S')
-                # Get the relative time overlap:
-                sec_inside = (
-                    min(t2_, self.endtime) - max(t1_, self.starttime)).total_seconds()
-                dsec = (t2_ - t1_).total_seconds()
-                if dsec < 0.01:
-                    LOG.warning(
-                        "Something awkward with this scene: start_time = end_time!")
-                    break
-                elif float(sec_inside / dsec) > 0.85:
-                    # It is the same scene!
-                    LOG.debug(
-                        "It is the same scene,"
-                        " though the file times may deviate a bit...")
-                    scene_id = key
-                    break
-
-                elif float(sec_inside / dsec) > 0.01:
-                    LOG.warning("There was an overlap but probably not the " +
-                                "same scene: Time interval = " +
-                                "(%s, %s)",
-                                t1_.strftime('%Y-%m-%d %H:%M:%S'),
-                                t2_.strftime('%Y-%m-%d %H:%M:%S'))
+            scene_id = self.create_scene_id(keyname)
+            
+            scene_id = self.check_scene_id(scene_id)
 
             LOG.debug("scene_id = " + str(scene_id))
             if scene_id in self.level0files:
                 LOG.debug("Level-0 files = " + str(self.level0files[scene_id]))
             else:
-                LOG.debug(
-                    "scene_id = %s: No level-0 files yet...", str(scene_id))
+                LOG.debug("scene_id = %s: No level-0 files yet...", str(scene_id))
 
             self.level0_filename = urlobj.path
             dummy, fname = os.path.split(self.level0_filename)
 
-            if fname.find('.hmf') > 0:
-                self.ishmf = True
-            else:
-                LOG.info("File is not a hmf file: " + str(fname))
-
-            LOG.debug("Sensor = " + str(msg.data['sensor']))
-            LOG.debug("type: " + str(type(msg.data['sensor'])))
-            if isinstance(msg.data['sensor'], (str, unicode)):
-                sensors = [msg.data['sensor']]
-            elif isinstance(msg.data['sensor'], (list, set, tuple)):
-                sensors = msg.data['sensor']
-            else:
-                sensors = []
-                LOG.warning('Failed interpreting sensor(s)!')
-
-            LOG.info("Sensor(s): " + str(sensors))
-            sensor_ok = False
-            for sensor in sensors:
-                if sensor in SENSOR_NAMES:
-                    sensor_ok = True
-                    break
-            if not sensor_ok:
-                LOG.info("No required sensors....")
+            sensors = []
+            if not self.sensors_to_process(msg, sensors):
                 return True
-
-            if scene_id not in self.level0files:
-                LOG.debug("Reset level-0 files: scene_id = " + str(scene_id))
-                self.level0files[scene_id] = []
-
-            for sensor in sensors:
-                item = (self.level0_filename, sensor)
-                if item not in self.level0files[scene_id]:
-                    self.level0files[scene_id].append(item)
-                    LOG.debug("Appending item to list: " + str(item))
-                else:
-                    LOG.debug("item already in list: " + str(item))
-
-            if len(self.level0files[scene_id]) < 4 and msg.data.get("variant") != "EARS":
-                LOG.info("Not enough sensor data available yet. " +
-                         "Level-0 files = " +
-                         str(self.level0files[scene_id]))
+            
+            if not self.available_sensors(msg, sensors, scene_id):
                 return True
-            else:
-                LOG.info(
-                    "Level 0 files ready: " + str(self.level0files[scene_id]))
-
+            
             #Need to do this here to add up all sensors for METOP
             for (file,instr) in self.level0files[scene_id]:
                 if instr not in sensors:
@@ -773,96 +786,6 @@ class AappLvl1Processor(object):
                 #Organize output and cleanup
                 
                 
-                #LOG.info("Command sequence: " + str(cmdseq))
-                # Run the command:
-                # FIXME: shell=False https://docs.python.org/2/library/subprocess.html
-                # https://docs.python.org/2/library/subprocess.html#subprocess.Popen.communicate
-                #aapplvl1_proc = Popen(shlex.split(cmdseq),
-                #                      cwd=self.working_dir,
-                #                      shell=False, env=my_env,
-                #                     stderr=PIPE, stdout=PIPE)
-
-            elif self.platform_name in SUPPORTED_METOP_SATELLITES:
-                # Metop processing needs input directory
-                # as an argument for METOP_RUN_SCRIPT
-                metop_in_dir = os.path.dirname(self.level0_filename)
-                LOG.info("This is a Metop scene. Start the METOP processing!")
-                # FIXME:            LOG.info("Process the scene %s %s" %
-                #                     (self.platform_name, str(self.orbit)))
-                # TypeError: cannot concatenate 'str' and 'tuple' objects
-                LOG.info("Data is coming from: " + metop_in_dir)
-
-                sensor_filename = {}
-                for (fname, instr) in self.level0files[scene_id]:
-                    sensor_filename[instr] = os.path.basename(fname)
-
-                for instr in sensor_filename.keys():
-                    if instr not in SENSOR_NAMES:
-                        LOG.error("Sensor name mismatch! name = " + str(instr))
-                        return True
-
-                cmdstr = (self.metop_run_script +
-                          " -d " + metop_in_dir)
-                if "avhrr/3" in sensor_filename:
-                    cmdstr += " -a " + sensor_filename['avhrr/3']
-                if "amsu-a" in sensor_filename:
-                    cmdstr += " -u " + sensor_filename['amsu-a']
-                if "mhs" in sensor_filename:
-                    cmdstr += " -m " + sensor_filename['mhs']
-                if "hirs/4" in sensor_filename:
-                    cmdstr += " -h " + sensor_filename['hirs/4']
-
-                cmdstr += ' -n ' + \
-                    str(self.orbit) + " -o " + my_env['DYN_WRK_DIR']
-
-    #     "-d %s -a %s -u %s -m %s -h %s -o %s") %(METOP_RUN_SCRIPT,
-    #                                            metop_in_dir,
-    #                                           ensor_filename[
-    #                                                'avhrr/3'],
-    #                                           sensor_filename[
-    #                                            'amsu-a'],
-    #                                        sensor_filename[
-    #                                                  'mhs'],
-    #                                        sensor_filename[
-    #                                                'hirs/4'],
-    #                                   my_env['DYN_WRK_DIR'])
-    #                                                                 AAPP_OUT_DIR)
-                LOG.info("Command sequence: " + str(cmdstr))
-                # Run the command:
-                aapplvl1_proc = Popen(shlex.split(cmdstr),
-                                      cwd=self.working_dir,
-                                      shell=False, env=my_env,
-                                      stderr=PIPE, stdout=PIPE)
-
-            # Taking the stderr before stdout seems to be better preventing a
-            # hangup!  AD, 2013-03-07
-
-            while True:
-                line = nonblock_read(aapplvl1_proc.stderr)
-                if not line:
-                    break
-                LOG.info(line)
-
-            while True:
-                line = nonblock_read(aapplvl1_proc.stdout)
-                if not line:
-                    break
-                LOG.info(line)
-
-            aapplvl1_proc.poll()
-            dummy = aapplvl1_proc.returncode
-            LOG.info("Before call to communicate:")
-            out, err = aapplvl1_proc.communicate()
-
-            lines = out.splitlines()
-            for line in lines:
-                LOG.info(line)
-
-            lines = err.splitlines()
-            for line in lines:
-                LOG.info(line)
-
-            LOG.info("Communicate done...")
 
             # Add to job register to avoid this to be run again
             if keyname not in self.job_register.keys():
@@ -907,22 +830,6 @@ class AappLvl1Processor(object):
                     dirlist[0], msg.data['platform_name'])
 
             LOG.info("Output files: " + str(self.result_files))
-            # FIXME: if STATION == 'norrköping':
-            # statresult = aapp_stat.do_noaa_and_metop(self.level0_filename,
-            #                                         SATELLITE_NAME.get(self.platform_name,
-            #                                                            self.platform_name),
-            #                                         self.starttime)
-            # if os.path.exists(_AAPP_STAT_FILE):
-            #    fd = open(_AAPP_STAT_FILE, "r")
-            #    lines = fd.readlines()
-            #    fd.close()
-            # else:
-            #    lines = []
-
-            # lines = lines + [statresult + '\n']
-            # fd = open(_AAPP_STAT_FILE, "w")
-            # fd.writelines(lines)
-            # fd.close()
 
         except:
             LOG.exception("Failed in run...")
@@ -951,12 +858,6 @@ def aapp_rolling_runner(runner_config):
     # init
     aapp_proc = AappLvl1Processor(runner_config)
     
-    #LOG.info("Do the tleing first...")
-    #do_tleing(aapp_proc.aapp_prefix,
-    #          aapp_proc.tle_indir, aapp_proc.tle_outdir,
-    #          aapp_proc.tle_script)
-    #LOG.info("...tleing done")
-
     with posttroll.subscriber.Subscribe('',
                                         aapp_proc.subscribe_topics,
                                         True) as subscr:

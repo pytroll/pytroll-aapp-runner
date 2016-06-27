@@ -69,10 +69,17 @@ def do_hirs_calibration(process_config, timestamp):
         if os.path.exists(file_historic):
             cmd="hirs_historic_file_manage -m {} -r {} -n {} {}".format(os.getenv('HIST_SIZE_HIGH'),os.getenv('HIST_SIZE_LOW'),os.getenv('HIST_NMAX'),file_historic)
             try:
-                run_shell_command(cmd)
+                status, returncode, std, err = run_shell_command(cmd)
             except:
                 LOG.error("Command {} failed.".format(cmd))
-            
+                return False
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with returncode {}".format(cnd, returncode))
+                    LOG.error("stdout was: {}".format(std))
+                    LOG.error("stderr was: {}".format(err))
+                    return False
+                
         cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(process_config['platform'],timestamp)
         try:
             status, returncode, std, err = run_shell_command(cmd)
