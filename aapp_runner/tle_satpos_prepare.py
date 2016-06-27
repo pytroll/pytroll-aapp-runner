@@ -64,7 +64,7 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
         """This is the default directory for the tles"""
         tle_indir = os.getenv('DIR_NAVIGATION')
     else:
-        LOG.warning("Reset the already set DIR_NAVIGATION from {} to {}.".format(os.environ['DIR_NAVIGATION'], tle_indir))
+        LOG.warning("Override the env variable set in AAPP_ENV7 DIR_NAVIGATION from {} to {}.".format(os.environ['DIR_NAVIGATION'], tle_indir))
         os.environ['DIR_NAVIGATION'] = tle_indir
 
     # variables for the TLE HOME directory
@@ -85,7 +85,9 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
     tle_file_list = []
     if not select_closest_tle_file_to_data:
         if os.path.exists(TLE_INDEX):
-            tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
+            #tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
+            #_tle_file_list = glob(os.path.join(DIR_DATA_TLE,'tle*txt'))
+            tle_files = [s for s in glob(os.path.join(DIR_DATA_TLE,'tle*txt')) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
             tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE,s)))
             
             tle_index_mtime = os.path.getmtime(TLE_INDEX)
@@ -178,8 +180,8 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
                     #To avoid this, sort the index file keeping only unique lines(skipping the tle filename at the end
                     
                     #The sort options +0b -3b is guessed to be sort from column 0 to 3, but his is not documented
-                    #Could cause problems with future version of sort.
-                    cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".fromat(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                    #Could cause problems with future version of sort. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
+                    cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
                     try:
                         status, returncode, stdout, stderr = run_shell_command(cmd)
                     except:

@@ -320,7 +320,7 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
                      cwd=my_cwd, shell=False, env=my_env,
                      stderr=PIPE, stdout=PIPE, stdin=PIPE)
     except OSError as e:
-        print "Popen failed for command: {} with {}".format(myargs,e)
+        LOGGER.error("Popen failed for command: {} with {}".format(myargs,e))
         return False
              
     import signal

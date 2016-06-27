@@ -83,7 +83,7 @@ def do_hirs_calibration(process_config, timestamp):
             if returncode != 0:
                 LOG.error("Command {} failed with {}".format(cmd, returncode))
                 _hirs_file = open(hirs_err_file,"w")
-                _hirs_file.write(out)
+                _hirs_file.write(std)
                 _hirs_file.write(err)
                 _hirs_file.close()
                 return False

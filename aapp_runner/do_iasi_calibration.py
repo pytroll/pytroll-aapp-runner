@@ -32,4 +32,6 @@ from helper_functions import run_shell_command
 LOG = logging.getLogger(__name__)
 
 def do_iasi_calibration(process_config, timestamp):
-    pass
+    #Not implemented.
+    #Need the optional software OPS-LRS, not included in normal AAPP download.
+    return True
