@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import True
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -177,6 +176,7 @@ class AappLvl1Processor(object):
         self.pps_out_dir = runner_config['pps_out_dir']
         self.aapp_prefix = runner_config['aapp_prefix']
         self.aapp_workdir = runner_config['aapp_workdir']
+        self.aapp_outdir =  runner_config['aapp_outdir']
         self.use_dyn_work_dir = runner_config['use_dyn_work_dir']
         self.subscribe_topics = runner_config['subscribe_topics']
         self.publish_pps_format = runner_config['publish_pps_format']
@@ -771,6 +771,13 @@ class AappLvl1Processor(object):
                     LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
 
+                #Do Preprocessing
+                
+                from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+                if not do_atovpp_and_avh2hirs_processing(process_config, self.starttime):
+                    LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+                
                 #DO IASI
                 from do_iasi_calibration import do_iasi_calibration
                 if not do_iasi_calibration(process_config, self.starttime):
@@ -783,9 +790,37 @@ class AappLvl1Processor(object):
                     LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
                                 
-                #Organize output and cleanup
+                #FIXME
+                #Need a general check to fail run of some of the AAPP scripts fails fatal.
                 
+                #Must also have other possibilities here
+                aapp_outdir_pps_format = os.path.join(self.aapp_outdir,"{0:}_{1:%Y%m%d}_{1:%H%M}_{2:05d}"\
+                                                      .format(SATELLITE_NAME.get(self.platform_name, self.platform_name),
+                                                              self.starttime,
+                                                              int(msg.data['orbit_number'])))
                 
+                aapp_outdir_selected = aapp_outdir_pps_format
+                if not os.path.exists(aapp_outdir_selected):
+                    LOG.info("Create selected aapp_outdir: {}".format(aapp_outdir_selected))
+                    try:
+                        os.mkdir(aapp_outdir_selected)
+                    except OSError in e:
+                        LOG.error("Could not create directory: {}".format(aapp_outdir_selected))
+                        
+                else:
+                    LOG.warning("The selected AAPP outdir for this processing exists already: " + aapp_outdir_selected +". This can cause problems ....")
+
+                #Rename standard AAPP output file names to usefull ones 
+                #and move files to final location.
+                from rename_aapp_filenames import rename_aapp_filenames
+                if not rename_aapp_filenames(process_config, self.starttime, aapp_outdir_selected):
+                    LOG.warning("The rename of standard aapp filenames to practical ones failed for some reason. It might be that the processing can continue")
+                    LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        
+            else:
+                LOG.warning("This satellite: {}, is not supported.".format(self.platform_name))
+                LOG.warning("Must be one of: {}".format("".join(SUPPORTED_SATELLITES)))
+
 
             # Add to job register to avoid this to be run again
             if keyname not in self.job_register.keys():
@@ -803,31 +838,21 @@ class AappLvl1Processor(object):
                                                              self.endtime)))
             t__.start()
 
-            LOG.debug(
-                "After timer call: job register = " + str(self.job_register))
+            LOG.debug("After timer call: job register = " + str(self.job_register))
 
-            if aapplvl1_proc.returncode > 0:
-                LOG.critical("AAPP processing failed!")
-                LOG.critical(err)
-                return True
+            LOG.info("Ready with AAPP level-1 processing on NOAA scene: " + str(fname))
+            LOG.info("working dir: self.working_dir = " + str(self.working_dir))
 
-            LOG.info(
-                "Ready with AAPP level-1 processing on NOAA scene: " + str(fname))
-            LOG.info(
-                "working dir: self.working_dir = " + str(self.working_dir))
-
-            globstr = os.path.join(
-                self.working_dir,
-                str(SATELLITE_NAME.get(self.platform_name, self.platform_name)) +
-                "_*" + str(self.orbit))
+            globstr = os.path.join(self.aapp_outdir,
+                                   str(SATELLITE_NAME.get(self.platform_name, self.platform_name)) +
+                                   "_*" + str(int(msg.data['orbit_number'])))
             LOG.debug("Glob string = " + str(globstr))
             dirlist = glob(globstr)
             if len(dirlist) != 1:
                 LOG.error("Cannot find output files in working dir!")
                 self.result_files = []
             else:
-                self.result_files = get_aapp_lvl1_files(
-                    dirlist[0], msg.data['platform_name'])
+                self.result_files = get_aapp_lvl1_files(dirlist[0], msg.data['platform_name'])
 
             LOG.info("Output files: " + str(self.result_files))
 
@@ -871,6 +896,7 @@ def aapp_rolling_runner(runner_config):
                 tobj = aapp_proc.starttime
                 LOG.info("Time used in sub-dir name: " +
                          str(tobj.strftime("%Y-%m-%d %H:%M")))
+
 
                 # Site specific processing
                 LOG.info("Station = " + str(aapp_proc.station))
@@ -980,11 +1006,11 @@ def aapp_rolling_runner(runner_config):
                              aapp_proc.working_dir)
                    # aapp_proc.cleanup_aapp_workdir()
 
-                LOG.info("Do the tleing now that aapp has finished...")
-                do_tleing(aapp_proc.aapp_prefix,
-                          aapp_proc.tle_indir, aapp_proc.tle_outdir,
-                          aapp_proc.tle_script)
-                LOG.info("...tleing done")
+                #LOG.info("Do the tleing now that aapp has finished...")
+                #do_tleing(aapp_proc.aapp_prefix,
+                #          aapp_proc.tle_indir, aapp_proc.tle_outdir,
+                #          aapp_proc.tle_script)
+                #LOG.info("...tleing done")
 
     return
 

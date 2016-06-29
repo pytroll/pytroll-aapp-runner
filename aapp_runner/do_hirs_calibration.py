@@ -75,7 +75,7 @@ def do_hirs_calibration(process_config, timestamp):
                 return False
             else:
                 if returncode != 0:
-                    LOG.error("Command {} failed with returncode {}".format(cnd, returncode))
+                    LOG.error("Command {} failed with returncode {}".format(cmd, returncode))
                     LOG.error("stdout was: {}".format(std))
                     LOG.error("stderr was: {}".format(err))
                     return False
@@ -117,9 +117,11 @@ def do_hirs_calibration(process_config, timestamp):
             PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
             os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
     
-    cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,process_config['platform'],timestamp,timestamp, process_config['orbit_number'], process_config['hirs_file'])
+    cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
+                                                                    process_config['platform'],timestamp,timestamp,
+                                                                    process_config['orbit_number'], process_config['hirs_file'])
     try:
-        status, returncode, out, err = run_shell_command(cmd)
+        status, returncode, out, err = run_shell_command(cmd, stdout_logfile="{}.log".format(hirs_script), stderr_logfile="{}".format(hirs_err_file))
     except:
         import sys
         LOG.error("Command {} failed {}.".format(cmd, sys.exc_info()[0]))

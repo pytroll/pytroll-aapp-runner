@@ -12,6 +12,7 @@ supported_stations = ['kumpula', 'helsinki', 'norrkoping', 'nkp']
 valid_config_variables = [
     'aapp_prefix',
     'aapp_workdir',
+    'aapp_outdir',
     'aapp_run_noaa_script',
     'aapp_run_metop_script',
     'tle_indir',
@@ -44,6 +45,7 @@ valid_dir_permissions = [
     ('pps_out_dir', 'rw', 'publish_pps_format'),
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_workdir', 'rw', MANDATORY),
+    ('aapp_outdir', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
     ('tle_outdir', 'rw', MANDATORY),
     ('aapp_log_files_dir', 'rw', MANDATORY)

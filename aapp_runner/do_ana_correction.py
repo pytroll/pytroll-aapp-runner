@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import False
 
 # Copyright (c) 2016
 
@@ -58,7 +57,7 @@ def do_ana_correction(process_config, timestamp):
     #Find all matching landmarks
     cmd = "ana_lmk_loc -D {}".format(process_config['avhrr_file'])
     try:
-        status, returncode, std, err = run_shell_command(cmd)
+        status, returncode, std, err = run_shell_command(cmd, stdout_logfile="ana_lmk_loc.log",stderr_logfile="ana_lmk_loc.err")
     except:
         import sys
         LOG.error("Command {} failed with {}.".format(cmd,sys.exc_info()[0]))
