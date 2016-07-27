@@ -924,6 +924,18 @@ def aapp_rolling_runner(runner_config):
                 if runner_config['copy_data_directories']:
                     for dest_dir in runner_config['copy_data_directories'].split(','):
                         level1_files = aapp_proc.copy_aapplvl1_files(dest_dir, aapp_proc.out_dir_config_data)
+
+                        publish_level1(publisher,
+                                       aapp_proc.servername,
+                                       aapp_proc.station,
+                                       aapp_proc.environment,
+                                       aapp_proc.publish_pps_format,
+                                       level1_files,
+                                       aapp_proc.orbit, 
+                                       aapp_proc.starttime,
+                                       aapp_proc.endtime,
+                                       msg.data)
+
                         
                 #move data to last destination if configured
                 if runner_config['move_data_directory']:
@@ -939,6 +951,17 @@ def aapp_rolling_runner(runner_config):
 
                     LOG.debug("Move into directory: {}".format(runner_config['move_data_directory']))
                     level1_files = aapp_proc.move_lvl1dir(runner_config['move_data_directory'])
+
+                    publish_level1(publisher,
+                                   aapp_proc.servername,
+                                   aapp_proc.station,
+                                   aapp_proc.environment,
+                                   aapp_proc.publish_pps_format,
+                                   level1_files,
+                                   aapp_proc.orbit, 
+                                   aapp_proc.starttime,
+                                   aapp_proc.endtime,
+                                   msg.data)
 
                     
                 if False:
