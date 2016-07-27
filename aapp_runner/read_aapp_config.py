@@ -13,6 +13,7 @@ valid_config_variables = [
     'aapp_prefix',
     'aapp_workdir',
     'aapp_outdir',
+    'aapp_outdir_format',    
     'aapp_run_noaa_script',
     'aapp_run_metop_script',
     'tle_indir',
@@ -25,6 +26,7 @@ valid_config_variables = [
     'publish_pps_format',
     'publish_l1_format',
     'pps_out_dir',
+    'pps_out_dir_format',
     'metop_data_out_dir',
     'noaa_data_out_dir',
     'aapp_log_files_dir',
@@ -32,7 +34,9 @@ valid_config_variables = [
     'servername',
     'dataserver',
     'locktime_before_rerun',
-    'passlength_threshold'
+    'passlength_threshold',
+    'copy_data_directories',
+    'move_data_directory'
 ]
 
 #
@@ -42,7 +46,7 @@ valid_config_variables = [
 valid_dir_permissions = [
     ('noaa_data_out_dir', 'rw', 'publish_l1_format'),
     ('metop_data_out_dir', 'rw', 'publish_l1_format'),
-    ('pps_out_dir', 'rw', 'publish_pps_format'),
+    #('pps_out_dir', 'rw', 'publish_pps_format'),
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_workdir', 'rw', MANDATORY),
     ('aapp_outdir', 'rw', MANDATORY),
@@ -259,6 +263,7 @@ def read_config_file_options(filename, station, env, valid_config=None):
         print "Section %s %s" % (env,
                                  "is not defined in your " +
                                  "aapp_runner config file!")
+        print "Error was {}".format(err)
         return None
     # Read config file
     for item in mandatory_config_variables:

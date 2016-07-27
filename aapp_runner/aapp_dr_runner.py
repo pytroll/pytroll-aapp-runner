@@ -32,6 +32,8 @@ import os
 import sys
 import logging
 from logging import handlers
+from trollsift.parser import compose
+
 sys.path.insert(0, "trollduction/")
 sys.path.insert(0, ".")
 from aapp_runner.read_aapp_config import read_config_file_options
@@ -174,9 +176,13 @@ class AappLvl1Processor(object):
         self.tle_outdir = runner_config['tle_outdir']
         self.tle_script = runner_config['tle_script']
         self.pps_out_dir = runner_config['pps_out_dir']
+        self.pps_out_dir_format = runner_config['pps_out_dir_format']
         self.aapp_prefix = runner_config['aapp_prefix']
         self.aapp_workdir = runner_config['aapp_workdir']
         self.aapp_outdir =  runner_config['aapp_outdir']
+        self.aapp_outdir_format =  runner_config['aapp_outdir_format']
+        self.copy_data_directories = runner_config['copy_data_directories']
+        self.move_data_directory = runner_config['move_data_directory']
         self.use_dyn_work_dir = runner_config['use_dyn_work_dir']
         self.subscribe_topics = runner_config['subscribe_topics']
         self.publish_pps_format = runner_config['publish_pps_format']
@@ -218,6 +224,7 @@ class AappLvl1Processor(object):
         self.orbit = "00000"
         self.result_files = []
         self.level0files = {}
+        self.out_dir_config_data = []
 
     def cleanup_aapp_workdir(self):
         """Clean up the AAPP working dir after processing"""
@@ -253,7 +260,7 @@ class AappLvl1Processor(object):
  #                       self.aapp_log_files_backup)
 #        return
 
-    def copy_aapplvl1_files(self, subd):
+    def copy_aapplvl1_files(self, subd, out_dir_config_data):
         """Copy AAPP lvl1 files in to data processing level sub-directory
         e.g. metop/level1b
         Input directory is defined in config file metop_data_out_dir and
@@ -261,7 +268,7 @@ class AappLvl1Processor(object):
         Return a dictionary with destination full path filename, sensor name and
         data processing level
         """
-        return copy_aapplvl1_files(self.result_files, subd, self.satnum)
+        return copy_aapplvl1_files(self.result_files, subd, self.satnum, out_dir_config_data)
 
     def smove_lvl1dir(self):
         if len(self.result_files) == 0:
@@ -308,8 +315,8 @@ class AappLvl1Processor(object):
 
         return retv
 
-    def move_lvl1dir(self):
-        """Move sub-directory with NOAA level-1 files
+    def move_lvl1dir(self, out_dir):
+        """Move sub-directory with AAPP level-1b|c|d files
         Return a dictionary with sensor and data processing level
         for each filename """
 
@@ -321,10 +328,9 @@ class AappLvl1Processor(object):
         path = os.path.dirname(self.result_files[0])
         subd = os.path.basename(path)
         LOG.debug("path = " + str(path))
-        LOG.debug("pps_out_dir = " + self.pps_out_dir)
-#        LOG.debug("lvl1_home = " + self.lvl1_home)
+        LOG.debug("out_dir = " + out_dir)
         try:
-            shutil.move(path, self.pps_out_dir)
+            shutil.move(path, out_dir)
         except shutil.Error:
             LOG.warning("Directory already exists: " + str(subd))
 
@@ -332,9 +338,7 @@ class AappLvl1Processor(object):
             # Extract the orbit number from the sub-dir name:
             dummy, dummy, dummy, self.orbit = subd.split('_')
 
-
-#        filenames = glob(os.path.join(self.lvl1_home, subd, '*l1*'))
-        filenames = glob(os.path.join(self.pps_out_dir, subd, '*l1*'))
+        filenames = glob(os.path.join(out_dir, subd, '*l1*'))
         LOG.info(filenames)
 
         retv = {}
@@ -675,6 +679,7 @@ class AappLvl1Processor(object):
                 LOG.debug("ENV: " + str(envkey) + " " + str(self.my_env[envkey]))
 
 
+            aapp_outdir_config_format = ""
             if self.platform_name in SUPPORTED_SATELLITES:
                 LOG.info("This is a supported scene. Start the AAPP processing!")
                 # FIXME:            LOG.info("Process the scene " +
@@ -793,27 +798,43 @@ class AappLvl1Processor(object):
                 #FIXME
                 #Need a general check to fail run of some of the AAPP scripts fails fatal.
                 
-                #Must also have other possibilities here
+                #This is fallback choice if configured dir format fails
                 aapp_outdir_pps_format = os.path.join(self.aapp_outdir,"{0:}_{1:%Y%m%d}_{1:%H%M}_{2:05d}"\
                                                       .format(SATELLITE_NAME.get(self.platform_name, self.platform_name),
                                                               self.starttime,
                                                               int(msg.data['orbit_number'])))
                 
-                aapp_outdir_selected = aapp_outdir_pps_format
-                if not os.path.exists(aapp_outdir_selected):
-                    LOG.info("Create selected aapp_outdir: {}".format(aapp_outdir_selected))
+                #Make a copy of the msg.data so new needed variables can be added to this as needed
+                self.out_dir_config_data = msg.data
+                self.out_dir_config_data['satellite_name'] = SATELLITE_NAME.get(self.platform_name, self.platform_name)
+                try:
+                    aapp_outdir_config_format = compose(self.aapp_outdir_format,self.out_dir_config_data)
+                except KeyError as ke:
+                    LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(self.aapp_outdir_format))
+                    LOG.warning("Available keys are:")
+                    for key in self.out_dir_config_data:
+                        LOG.warning("{} = {}".format(key,self.out_dir_config_data[key]))
+                    LOG.warning("Will continue with directory name format as used by SAFNWC PPS...")
+                    aapp_outdir_config_format = aapp_outdir_pps_format
+                    
+                aapp_outdir_config_format = os.path.join(self.aapp_outdir,aapp_outdir_config_format)
+                LOG.info("aapp outdir config format: " + aapp_outdir_config_format)
+                
+                if not os.path.exists(aapp_outdir_config_format):
+                    LOG.info("Create selected aapp_outdir: {}".format(aapp_outdir_config_format))
                     try:
-                        os.mkdir(aapp_outdir_selected)
+                        os.mkdir(aapp_outdir_config_format)
                     except OSError in e:
-                        LOG.error("Could not create directory: {}".format(aapp_outdir_selected))
+                        LOG.error("Could not create directory: {}".format(aapp_outdir_config_format))
                         
                 else:
-                    LOG.warning("The selected AAPP outdir for this processing exists already: " + aapp_outdir_selected +". This can cause problems ....")
+                    #FIXME Should we delete this directory if exists?
+                    LOG.warning("The selected AAPP outdir for this processing exists already: " + aapp_outdir_config_format +". This can cause problems ....")
 
                 #Rename standard AAPP output file names to usefull ones 
                 #and move files to final location.
                 from rename_aapp_filenames import rename_aapp_filenames
-                if not rename_aapp_filenames(process_config, self.starttime, aapp_outdir_selected):
+                if not rename_aapp_filenames(process_config, self.starttime, aapp_outdir_config_format):
                     LOG.warning("The rename of standard aapp filenames to practical ones failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         
@@ -846,6 +867,7 @@ class AappLvl1Processor(object):
             globstr = os.path.join(self.aapp_outdir,
                                    str(SATELLITE_NAME.get(self.platform_name, self.platform_name)) +
                                    "_*" + str(int(msg.data['orbit_number'])))
+            globstr = aapp_outdir_config_format
             LOG.debug("Glob string = " + str(globstr))
             dirlist = glob(globstr)
             if len(dirlist) != 1:
@@ -897,7 +919,28 @@ def aapp_rolling_runner(runner_config):
                 LOG.info("Time used in sub-dir name: " +
                          str(tobj.strftime("%Y-%m-%d %H:%M")))
 
+                #Start internal distribution of data
+                #Copy data to destinations if configured
+                if runner_config['copy_data_directories']:
+                    for dest_dir in runner_config['copy_data_directories'].split(','):
+                        level1_files = aapp_proc.copy_aapplvl1_files(dest_dir, aapp_proc.out_dir_config_data)
+                        
+                #move data to last destination if configured
+                if runner_config['move_data_directory']:
+                    try:
+                        move_dir = compose(runner_config['move_data_directory'],aapp_proc.out_dir_config_data)
+                    except KeyError as ke:
+                        LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(runner_config['move_data_directory']))
+                        LOG.warning("Available keys are:")
+                        for key in aapp_proc-out_dir_config_data:
+                            LOG.warning("{} = {}".format(key,aapp_proc.out_dir_config_data[key]))
+                        LOG.error("Skipping this directory ... ")
+                        continue
 
+                    LOG.debug("Move into directory: {}".format(runner_config['move_data_directory']))
+                    level1_files = aapp_proc.move_lvl1dir(runner_config['move_data_directory'])
+
+                    
                 # Site specific processing
                 LOG.info("Station = " + str(aapp_proc.station))
                 if ('norrkoping' in aapp_proc.station or
@@ -1252,7 +1295,7 @@ def pack_aapplvl1_files(aappfiles, base_dir, subdir, satnum):
 #
 
 
-def copy_aapplvl1_files(aappfiles, output_data_basepath, satnum):
+def copy_aapplvl1_files(aappfiles, output_data_basepath, satnum, out_dir_config_data):
     """
     Copy AAPP lvl1 files to the sub-directories (level1b,
     level1c, level1d)
@@ -1260,6 +1303,7 @@ def copy_aapplvl1_files(aappfiles, output_data_basepath, satnum):
     and in case of Noaa data under the directory noaa_data_out
     Output format is defined in scripts AAPP_RUN_NOAA and AAPP_RUN_METOP
     """
+
     LOG.info("Start copy level1 files to directory")
     # Store the sensor name and the level corresponding to the file:
     sensor_and_level = {}
@@ -1321,8 +1365,21 @@ def copy_aapplvl1_files(aappfiles, output_data_basepath, satnum):
         level = ext.strip('l')
  #           LOG.debug("Firstname " + firstname)
 
-        sub_dir = dir_name_converter.get(ext)
-        directory = os.path.join(output_data_basepath, sub_dir)
+
+        out_dir_config_data['level_of_data'] = dir_name_converter.get(ext)
+
+        try:
+            directory = compose(output_data_basepath, out_dir_config_data)
+        except KeyError as ke:
+            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(output_data_basepath))
+            LOG.warning("Available keys are:")
+            for key in out_dir_config_data:
+                LOG.warning("{} = {}".format(key,out_dir_config_data[key]))
+            LOG.error("Skipping this directory ... ")
+            return
+
+        LOG.debug("Copy into directory: {}".format(directory))
+
         if not os.path.exists(directory):
             LOG.info("Create new directory:" + directory)
             try:
