@@ -187,6 +187,7 @@ class AappLvl1Processor(object):
         self.subscribe_topics = runner_config['subscribe_topics']
         self.publish_pps_format = runner_config['publish_pps_format']
         self.publish_l1_format = runner_config['publish_l1_format']
+        self.publish_sift_format = runner_config['publish_sift_format']
         self.aapp_log_files_dir = runner_config['aapp_log_files_dir']
         self.aapp_log_files_backup = runner_config['aapp_log_files_backup']
         self.servername = runner_config['servername']
@@ -934,7 +935,8 @@ def aapp_rolling_runner(runner_config):
                                        aapp_proc.orbit, 
                                        aapp_proc.starttime,
                                        aapp_proc.endtime,
-                                       msg.data)
+                                       msg.data,
+                                       aapp_proc.publish_sift_format)
 
                         
                 #move data to last destination if configured
@@ -961,7 +963,8 @@ def aapp_rolling_runner(runner_config):
                                    aapp_proc.orbit, 
                                    aapp_proc.starttime,
                                    aapp_proc.endtime,
-                                   msg.data)
+                                   msg.data,
+                                   aapp_proc.publish_sift_format)
 
                     
                 if False:
@@ -1089,7 +1092,7 @@ def publish_level1(publisher,
                    station,
                    publish_format,
                    result_files,
-                   orbit, start_t, end_t, mda):
+                   orbit, start_t, end_t, mda, publish_sift_format):
     """Publish the messages that AAPP lvl1 files are ready
     """
     # Now publish:
@@ -1107,11 +1110,25 @@ def publish_level1(publisher,
         to_send['data_processing_level'] = result_files[key]['level']
         LOG.debug('level in message: ' + str(to_send['data_processing_level']))
         to_send['start_time'], to_send['end_time'] = start_t, end_t
-        msg = Message('/' + str(to_send['format']) + '/' +
-                      str(to_send['data_processing_level']) +
-                      '/' + station + '/' + env +
-                      '/polar/direct_readout/',
-                      "file", to_send).encode()
+        to_send['station'] = station
+        to_send['env'] = env
+        try:
+            publish_to = compose(publish_sift_format,to_send)
+        except KeyError as ke:
+            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(publish_sift_format))
+            LOG.warning("Available keys are:")
+            for key in to_send:
+                LOG.warning("{} = {}".format(key,to_send[key]))
+            LOG.error("Can not publish these data!")
+            return
+
+        LOG.debug("Publish to:{}".format(publish_to))
+        msg = Message(publish_to, "file", to_send).encode()
+        #msg = Message('/' + str(to_send['format']) + '/' +
+        #              str(to_send['data_processing_level']) +
+        #              '/' + station + '/' + env +
+        #             '/polar/direct_readout/',
+        #              "file", to_send).encode()
         LOG.debug("sending: " + str(msg))
         publisher.send(msg)
 

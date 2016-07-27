@@ -25,6 +25,7 @@ valid_config_variables = [
     'subscribe_topics',
     'publish_pps_format',
     'publish_l1_format',
+    'publish_sift_format',
     'pps_out_dir',
     'pps_out_dir_format',
     'metop_data_out_dir',
