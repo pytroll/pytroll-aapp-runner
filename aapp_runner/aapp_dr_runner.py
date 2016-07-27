@@ -941,97 +941,99 @@ def aapp_rolling_runner(runner_config):
                     level1_files = aapp_proc.move_lvl1dir(runner_config['move_data_directory'])
 
                     
-                # Site specific processing
-                LOG.info("Station = " + str(aapp_proc.station))
-                if ('norrkoping' in aapp_proc.station or
-                        'nkp' in aapp_proc.station):
-                    if aapp_proc.platform_name.startswith('Metop'):
-                        subd = create_pps_subdirname(tobj, aapp_proc.platform_name,
-                                                     aapp_proc.orbit)
-                        LOG.info("Create sub-directory for level-1 files: " +
-                                 str(subd))
-                        level1_files = aapp_proc.smove_lvl1dir()
-                        # level1_files = aapp_proc.spack_aapplvl1_files(subd)
-                    else:
-                        LOG.info("Move sub-directory with NOAA level-1 files")
-                        LOG.debug(
-                            "Orbit BEFORE call to move_lvl1dir: " + str(aapp_proc.orbit))
-                        level1_files = aapp_proc.smove_lvl1dir()
-                        LOG.debug(
-                            "Orbit AFTER call to smove_lvl1dir: " + str(aapp_proc.orbit))
-
-                    publish_level1(publisher,
-                                   aapp_proc.servername,
-                                   aapp_proc.station,
-                                   aapp_proc.environment,
-                                   aapp_proc.publish_pps_format,
-                                   level1_files,
-                                   aapp_proc.orbit,
-                                   aapp_proc.starttime,
-                                   aapp_proc.endtime,
-                                   msg.data)
-
-                elif (aapp_proc.station == 'helsinki' or
-                        aapp_proc.station == 'kumpula'):
-                    data_out_dir = ""
-                    LOG.debug("aapp_proc.platform_name" +
-                              aapp_proc.platform_name)
-                    if (aapp_proc.platform_name.startswith('Metop') and
-                            aapp_proc.metop_data_out_dir):
-                        data_out_dir = aapp_proc.metop_data_out_dir
-
-                    if (aapp_proc.platform_name.startswith('NOAA') and
-                            aapp_proc.noaa_data_out_dir):
-                        data_out_dir = aapp_proc.noaa_data_out_dir
-
-                    LOG.debug("DATA_OUT_DIR:" + data_out_dir)
-                    if aapp_proc.pps_out_dir:
-                        subd = create_pps_subdirname(tobj,
-                                                     aapp_proc.platform_name,
-                                                     aapp_proc.orbit)
-                        LOG.info("Created PPS sub-directory "
-                                 "for level-1 files: " + str(subd))
-                        level1_files = aapp_proc.pack_aapplvl1_files(subd)
-                        if level1_files is not None:
-                            LOG.debug("PPS_OUT_DIR: level1_files: ")
-                            for file_line in level1_files:
-                                LOG.debug(str(file_line))
-
-                            publish_level1(publisher,
-                                           aapp_proc.servername,
-                                           aapp_proc.station,
-                                           aapp_proc.environment,
-                                           aapp_proc.publish_pps_format,
-                                           level1_files,
-                                           aapp_proc.orbit,
-                                           aapp_proc.starttime,
-                                           aapp_proc.endtime,
-                                           msg.data)
+                if False:
+                    # Site specific processing
+                    LOG.info("Station = " + str(aapp_proc.station))
+                    if ('norrkoping' in aapp_proc.station or
+                            'nkp' in aapp_proc.station):
+                        if aapp_proc.platform_name.startswith('Metop'):
+                            subd = create_pps_subdirname(tobj, aapp_proc.platform_name,
+                                                         aapp_proc.orbit)
+                            LOG.info("Create sub-directory for level-1 files: " +
+                                     str(subd))
+                            level1_files = aapp_proc.smove_lvl1dir()
+                            # level1_files = aapp_proc.spack_aapplvl1_files(subd)
                         else:
-                            LOG.error("No files copied to " + subd)
-
-                    # FIXED: If 'NoneType' object is not iterable
-                    #       = no files to publish!
-                    if data_out_dir:
-                        LOG.info("Copying level-1 files to " + data_out_dir)
-                        level1_files = aapp_proc.copy_aapplvl1_files(
-                            data_out_dir)
-                        if level1_files is not None:
-                            LOG.debug("aapp_proc.publish_l1_format:" +
-                                      aapp_proc.publish_l1_format)
-                            LOG.debug("level1_files: ")
-                            publish_level1(publisher,
-                                           aapp_proc.servername,
-                                           aapp_proc.station,
-                                           aapp_proc.environment,
-                                           aapp_proc.publish_l1_format,
-                                           level1_files,
-                                           aapp_proc.orbit,
-                                           aapp_proc.starttime,
-                                           aapp_proc.endtime,
-                                           msg.data)
-                        else:
-                            LOG.error("Nofile copied to " + data_out_dir)
+                            LOG.info("Move sub-directory with NOAA level-1 files")
+                            LOG.debug(
+                                "Orbit BEFORE call to move_lvl1dir: " + str(aapp_proc.orbit))
+                            level1_files = aapp_proc.smove_lvl1dir()
+                            LOG.debug(
+                                "Orbit AFTER call to smove_lvl1dir: " + str(aapp_proc.orbit))
+    
+                        publish_level1(publisher,
+                                       aapp_proc.servername,
+                                       aapp_proc.station,
+                                       aapp_proc.environment,
+                                       aapp_proc.publish_pps_format,
+                                       level1_files,
+                                       aapp_proc.orbit,
+                                       aapp_proc.starttime,
+                                       aapp_proc.endtime,
+                                       msg.data)
+    
+                    elif (aapp_proc.station == 'helsinki' or
+                            aapp_proc.station == 'kumpula'):
+                        data_out_dir = ""
+                        LOG.debug("aapp_proc.platform_name" +
+                                  aapp_proc.platform_name)
+                        if (aapp_proc.platform_name.startswith('Metop') and
+                                aapp_proc.metop_data_out_dir):
+                            data_out_dir = aapp_proc.metop_data_out_dir
+    
+                        if (aapp_proc.platform_name.startswith('NOAA') and
+                                aapp_proc.noaa_data_out_dir):
+                            data_out_dir = aapp_proc.noaa_data_out_dir
+    
+                        LOG.debug("DATA_OUT_DIR:" + data_out_dir)
+                        if aapp_proc.pps_out_dir:
+                            subd = create_pps_subdirname(tobj,
+                                                         aapp_proc.platform_name,
+                                                         aapp_proc.orbit)
+                            LOG.info("Created PPS sub-directory "
+                                     "for level-1 files: " + str(subd))
+                            level1_files = aapp_proc.pack_aapplvl1_files(subd)
+                            if level1_files is not None:
+                                LOG.debug("PPS_OUT_DIR: level1_files: ")
+                                for file_line in level1_files:
+                                    LOG.debug(str(file_line))
+    
+                                publish_level1(publisher,
+                                               aapp_proc.servername,
+                                               aapp_proc.station,
+                                               aapp_proc.environment,
+                                               aapp_proc.publish_pps_format,
+                                               level1_files,
+                                               aapp_proc.orbit,
+                                               aapp_proc.starttime,
+                                               aapp_proc.endtime,
+                                               msg.data)
+                            else:
+                                LOG.error("No files copied to " + subd)
+    
+                        # FIXED: If 'NoneType' object is not iterable
+                        #       = no files to publish!
+                        if data_out_dir:
+                            LOG.info("Copying level-1 files to " + data_out_dir)
+                            level1_files = aapp_proc.copy_aapplvl1_files(
+                                data_out_dir)
+                            if level1_files is not None:
+                                LOG.debug("aapp_proc.publish_l1_format:" +
+                                          aapp_proc.publish_l1_format)
+                                LOG.debug("level1_files: ")
+                                publish_level1(publisher,
+                                               aapp_proc.servername,
+                                               aapp_proc.station,
+                                               aapp_proc.environment,
+                                               aapp_proc.publish_l1_format,
+                                               level1_files,
+                                               aapp_proc.orbit,
+                                               aapp_proc.starttime,
+                                               aapp_proc.endtime,
+                                               msg.data)
+                            else:
+                                LOG.error("Nofile copied to " + data_out_dir)
+                #End site specific part.
 
                 if (aapp_proc.working_dir and
                         not aapp_proc.aapp_log_files_dir == ""):
