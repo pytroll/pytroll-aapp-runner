@@ -305,6 +305,19 @@ def overlapping_timeinterval(start_end_times, timelist):
 
     return False
 
+def nonblock_read(output):
+    """An attempt to catch any hangup in reading the output (stderr/stdout)
+    from subprocess"""
+    import fcntl
+    fd = output.fileno()
+
+    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
+    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+    try:
+        return output.readline()
+    except:
+        return ''
+
 def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, stderr_logfile=None, stdin=None, my_timeout=24*60*60):
     """Run the given command as a shell and get the return code, stdout and stderr
         Returns True/False and return code.
@@ -316,13 +329,35 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
     LOGGER.debug('Command sequence= ' + str(myargs))
     
     try:
-        proc = Popen(myargs, 
+        proc = Popen(myargs,
                      cwd=my_cwd, shell=False, env=my_env,
-                     stderr=PIPE, stdout=PIPE, stdin=PIPE)
+                     stderr=PIPE, stdout=PIPE, stdin=stdin, close_fds=True)
+        
+        LOGGER.debug("Process pid: {}".format(proc.pid))
     except OSError as e:
         LOGGER.error("Popen failed for command: {} with {}".format(myargs,e))
         return False
-             
+    except ValueError as e:
+        LOGGER.error("Popen called with invalid arguments.")
+        return False
+    except:
+        LOGGER.error("Popen failed for an unknown reason.")
+        return False
+
+    
+    #proc.poll
+    #LOGGER.info("Before call to communicate:")
+    #out, err = proc.communicate()
+    #return_value = proc.returncode
+
+    #lines = out.splitlines()
+    #for line in lines:
+    #    LOGGER.info(line)
+
+    #lines = err.splitlines()
+    #for line in lines:
+    #    LOGGER.info(line)
+
     import signal
     
     class Alarm(Exception):
@@ -339,7 +374,7 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
             out, err = proc.communicate()
         else:
             out, err = proc.communicate(input=stdin)
-            
+
         return_value = proc.returncode
         signal.alarm(0)
     except Alarm:
@@ -375,5 +410,5 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
         except IOError as e:
             print "IO operation to file stderr_logfile: {} failed with {}".format(stderr_logfile,e)
             return False
-        
+
     return True, return_value, out, err

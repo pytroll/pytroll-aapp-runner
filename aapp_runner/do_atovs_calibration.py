@@ -33,6 +33,12 @@ LOG = logging.getLogger(__name__)
 
 def do_atovs_calibration(process_config, timestamp):
 
+    accepted_return_codes_msucl = [0]
+    accepted_return_codes_amsuacl = [0]
+    accepted_return_codes_amsubcl = [0]
+
+    return_value = True
+    
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])
@@ -49,11 +55,11 @@ def do_atovs_calibration(process_config, timestamp):
         except:
             LOG.error("Command {} failed.".format(cmd))
         else:
-            if returncode != 0:
-                LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                return False
-            else:
+            if returncode in accepted_return_codes_msucl:
                 LOG.info("Command {} complete.".format(cmd))
+            else:
+                LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                return_value = False
                 
     elif "".join(process_config['a_tovs']) == 'ATOVS':
         if process_config['process_amsua']:
@@ -67,11 +73,11 @@ def do_atovs_calibration(process_config, timestamp):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
-                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
-                else:
+                if returncode in accepted_return_codes_amsuacl:
                     LOG.info("Command {} complete.".format(cmd))
+                else:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return_value = False
 
         if process_config['process_amsub']:
             amsub_script = "mhscl"
@@ -92,11 +98,11 @@ def do_atovs_calibration(process_config, timestamp):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
-                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
-                else:
+                if returncode in accepted_return_codes_amsubcl:
                     LOG.info("Command {} complete.".format(cmd))
+                else:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    return_value = False
 
 
     else:
@@ -107,4 +113,4 @@ def do_atovs_calibration(process_config, timestamp):
     os.chdir(current_dir)
 
     LOG.info("do_atovs_calibration complete!")
-    return True
+    return return_value

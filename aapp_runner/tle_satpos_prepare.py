@@ -153,16 +153,19 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
             return False
         else:
             """Dont use the tle_indir because this is handleled by the tleing script"""
-            tle_cmd = open("tle_commands", 'w')
-            tle_cmd.write("{}\n".format(DIR_DATA_TLE))
-            tle_cmd.write("{}\n".format(tle_file))
-            tle_cmd.write("{}\n".format(satellite))
-            tle_cmd.write("{}\n".format(TLE_INDEX))
-            tle_cmd.close()
-            LOG.info("TLE file ok. Do the calc for {} ... ".format(satellite))
+            #tle_cmd = open("tle_commands", 'w')
+            #tle_cmd.write("{}\n".format(DIR_DATA_TLE))
+            #tle_cmd.write("{}\n".format(tle_file))
+            #tle_cmd.write("{}\n".format(satellite))
+            #tle_cmd.write("{}\n".format(TLE_INDEX))
+            #tle_cmd.close()
+            #LOG.info("TLE file ok. Do the calc for {} ... ".format(satellite))
             cmd="tleing.exe"
             try:
-                status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE, tle_file, satellite, TLE_INDEX))
+                status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,
+                                                                                                           os.path.basename(tle_file),
+                                                                                                           satellite,
+                                                                                                           TLE_INDEX))
             except:
                 LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
                 LOG.error("stdout: {}".format(stdout))
@@ -173,34 +176,51 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
                     LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
                     LOG.debug("stdout: {}".format(stdout))
                     LOG.debug("stderr: {}".format(stderr))
+                elif not os.path.exists(TLE_INDEX):
+                    LOG.error("index file: {} does not exist after tleing. Something is wrong.".format(TLE_INDEX))
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
                 else:
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
 
                     #When a index file is generated above one line is added for each tle file.
                     #If several tle files contains equal TLEs each of these TLEs generate one line in the index file
                     #To avoid this, sort the index file keeping only unique lines(skipping the tle filename at the end
                     
-                    #The sort options +0b -3b is guessed to be sort from column 0 to 3, but his is not documented
-                    #Could cause problems with future version of sort. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
-                    cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
-                    try:
-                        status, returncode, stdout, stderr = run_shell_command(cmd)
-                    except:
-                        LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
-                        LOG.error("stdout: {}".format(stdout))
-                        LOG.error("stderr: {}".format(stderr))
-                        return False
-                    else:
-                        if returncode == 0:
-                            try:
-                                os.remove(os.path.join(DIR_DATA_TLE, TLE_INDEX))
-                            except OSError as e:
-                                LOG.error("Failed to remove unsorted and duplicated index file: {}".format(os.path.join(DIR_DATA_TLE, TLE_INDEX)))
-                            else:
+                    #The sort options +0b -3b is guessed to be sort from column 0 to 3, but this is not documented
+                    #Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
+                    #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                    if os.path.exists(TLE_INDEX):
+                        cmd="sort -u -o {} +0b -3b {}".format("{}.sort".format(TLE_INDEX), TLE_INDEX)
+                        try:
+                            status, returncode, stdout, stderr = run_shell_command(cmd)
+                        except:
+                            LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                            LOG.error("stdout: {}".format(stdout))
+                            LOG.error("stderr: {}".format(stderr))
+                            return False
+                        else:
+                            if returncode == 0 and os.path.exists("{}.sort".format(TLE_INDEX)):
                                 try:
-                                    os.rename(os.path.join(DIR_DATA_TLE, "{}.sort".fromat(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
-                                except:
-                                    LOG.error("Failed to rename sorted index file to original name.")
-                                        
+                                    #os.remove(os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                                    os.remove(TLE_INDEX)
+                                except OSError as e:
+                                    #LOG.error("Failed to remove unsorted and duplicated index file: {}".format(os.path.join(DIR_DATA_TLE, TLE_INDEX)))
+                                    LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
+                                else:
+                                    try:
+                                        #os.rename(os.path.join(DIR_DATA_TLE, "{}.sort".fromat(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                                        os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
+                                    except:
+                                        LOG.error("Failed to rename sorted index file to original name.")
+                            else:
+                                LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(returncode, "{}.sort".format(TLE_INDEX)))
+                    else:
+                        LOG.error("tle index file: {} does not exists after tleing before sort. This can not happen.")
+                                            
     #Change back after this is done
     os.chdir(current_dir)
 

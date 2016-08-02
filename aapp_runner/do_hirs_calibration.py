@@ -33,6 +33,9 @@ LOG = logging.getLogger(__name__)
 
 def do_hirs_calibration(process_config, timestamp):
     
+    #A list of accepted return codes for the various scripts/binaries run in this function
+    accepted_return_codes_hirs_historic_file_manage = [0]
+
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])
@@ -59,7 +62,9 @@ def do_hirs_calibration(process_config, timestamp):
     calibration_location = process_config['calibration_location']
     
     print "hirs_version_use {}".format(hirs_version_use)
-    
+
+    #pdb.set_trace()
+
     if int(hirs_version_use) > 1: # no calibration, just navigation
         calibration_location = "-l"
     elif  int(hirs_version_use) == 0 or "".join(process_config['a_tovs']) == 'TOVS':
@@ -74,7 +79,9 @@ def do_hirs_calibration(process_config, timestamp):
                 LOG.error("Command {} failed.".format(cmd))
                 return False
             else:
-                if returncode != 0:
+                if returncode in accepted_return_codes_hirs_historic_file_manage:
+                    LOG.debug("Command complete.")
+                else:
                     LOG.error("Command {} failed with returncode {}".format(cmd, returncode))
                     LOG.error("stdout was: {}".format(std))
                     LOG.error("stderr was: {}".format(err))

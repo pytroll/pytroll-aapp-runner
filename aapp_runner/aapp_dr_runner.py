@@ -35,11 +35,11 @@ from logging import handlers
 from trollsift.parser import compose
 
 sys.path.insert(0, "trollduction/")
-sys.path.insert(0, ".")
-from aapp_runner.read_aapp_config import read_config_file_options
-from aapp_runner.tle_satpos_prepare import do_tleing
-from aapp_runner.tle_satpos_prepare import do_tle_satpos
-from aapp_runner.do_commutation import do_decommutation
+sys.path.insert(0, "/home/trygveas/git/trollduction-test/aapp_runner")
+from read_aapp_config import read_config_file_options
+from tle_satpos_prepare import do_tleing
+from tle_satpos_prepare import do_tle_satpos
+from do_commutation import do_decommutation
 
 import socket
 import netifaces
@@ -211,7 +211,7 @@ class AappLvl1Processor(object):
         self.lvl1_home = self.pps_out_dir
         self.job_register = {}
         self.my_env = os.environ.copy()
-        
+        self.check_and_set_correct_orbit_number = False if runner_config['check_and_set_correct_orbit_number'] == 'False' else True
         self.initialise()
 
     def initialise(self):
@@ -585,37 +585,47 @@ class AappLvl1Processor(object):
                          pass_length.seconds / 60.0)
                 return True
 
+            
+            #Due to different ways to start the orbit counting, it might be neccessary
+            #to correct the orbit number.
+            #
+            #Default is to check and correct if neccessary
+            #Add configuration to turn it off
+            
             start_orbnum = None
-            try:
-                import pyorbital.orbital as orb
-                sat = orb.Orbital(
-                    TLE_SATNAME.get(self.platform_name, self.platform_name))
-                start_orbnum = sat.get_orbit_number(self.starttime)
-            except ImportError:
-                LOG.warning("Failed importing pyorbital, " +
-                            "cannot calculate orbit number")
-            except AttributeError:
-                LOG.warning("Failed calculating orbit number using pyorbital")
-                LOG.warning("platform name = " +
-                            str(TLE_SATNAME.get(self.platform_name,
-                                                self.platform_name)) +
-                            " " + str(self.platform_name))
+            if self.check_and_set_correct_orbit_number:
+                try:
+                    import pyorbital.orbital as orb
+                    sat = orb.Orbital(
+                        TLE_SATNAME.get(self.platform_name, self.platform_name), tle_file='')
+                    start_orbnum = sat.get_orbit_number(self.starttime)
+                except ImportError:
+                    LOG.warning("Failed importing pyorbital, " +
+                                "cannot calculate orbit number")
+                except AttributeError:
+                    LOG.warning("Failed calculating orbit number using pyorbital")
+                    LOG.warning("platform name = " +
+                                str(TLE_SATNAME.get(self.platform_name,
+                                                    self.platform_name)) +
+                                " " + str(self.platform_name))
+    
+                LOG.info(
+                    "Orbit number determined from pyorbital = " + str(start_orbnum))
 
-            LOG.info(
-                "Orbit number determined from pyorbital = " + str(start_orbnum))
             try:
                 self.orbit = int(msg.data['orbit_number'])
             except KeyError:
                 LOG.warning("No orbit_number in message! Set to none...")
                 self.orbit = None
 
-            if start_orbnum and self.orbit != start_orbnum:
-                LOG.warning("Correcting orbit number: Orbit now = " +
-                            str(start_orbnum) + " Before = " + str(self.orbit))
-                self.orbit = start_orbnum
-            else:
-                LOG.debug("Orbit number in message determined " +
-                          "to be okay and not changed...")
+            if self.check_and_set_correct_orbit_number:
+                if start_orbnum and self.orbit != start_orbnum:
+                    LOG.warning("Correcting orbit number: Orbit now = " +
+                                str(start_orbnum) + " Before = " + str(self.orbit))
+                    self.orbit = start_orbnum
+                else:
+                    LOG.debug("Orbit number in message determined " +
+                              "to be okay and not changed...")
 
             if self.platform_name in SUPPORTED_METOP_SATELLITES:
                 metop_id = SATELLITE_NAME[self.platform_name].split('metop')[1]
@@ -629,6 +639,11 @@ class AappLvl1Processor(object):
             LOG.debug("Start: job register = " + str(self.job_register))
 
             scene_id = self.create_scene_id(keyname)
+            
+            #This means(from the create_scene_id) skipping this scene_is as it is already processed within a onfigured interval
+            #See create_scene_id for detailed info
+            if scene_id == True:
+                return True
             
             scene_id = self.check_scene_id(scene_id)
 
@@ -758,19 +773,22 @@ class AappLvl1Processor(object):
                 if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
                     LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-
+                    return False
+                
                 from do_hirs_calibration import do_hirs_calibration
                 #DO HIRS
                 if not do_hirs_calibration(process_config, self.starttime):
                     LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-
+                    return False
+                
                 #DO MSU
                 from do_atovs_calibration import do_atovs_calibration
                 if not do_atovs_calibration(process_config, self.starttime):
                     LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-
+                    return False
+                
                 #DO AVHRR
                 from do_avhrr_calibration import do_avhrr_calibration
                 if not do_avhrr_calibration(process_config, self.starttime):
@@ -883,6 +901,7 @@ class AappLvl1Processor(object):
             LOG.exception("Failed in run...")
             raise
 
+        t__.cancel()
         return False
 
 
@@ -911,11 +930,17 @@ def aapp_rolling_runner(runner_config):
                                         True) as subscr:
         with Publish('aapp_runner', 0) as publisher:
             while True:
+                skip_rest = False
                 aapp_proc.initialise()
                 for msg in subscr.recv(timeout=90):
                     status = aapp_proc.run(msg)
                     if not status:
+                        #skip_rest = True
                         break  # end the loop and reinitialize!
+                if skip_rest:
+                    skip_rest = False
+                    continue
+                
                 tobj = aapp_proc.starttime
                 LOG.info("Time used in sub-dir name: " +
                          str(tobj.strftime("%Y-%m-%d %H:%M")))
@@ -1077,12 +1102,15 @@ def aapp_rolling_runner(runner_config):
                              aapp_proc.working_dir)
                    # aapp_proc.cleanup_aapp_workdir()
 
+                LOG.debug("Before return")
+                return
                 #LOG.info("Do the tleing now that aapp has finished...")
                 #do_tleing(aapp_proc.aapp_prefix,
                 #          aapp_proc.tle_indir, aapp_proc.tle_outdir,
                 #          aapp_proc.tle_script)
                 #LOG.info("...tleing done")
-
+            
+        
     return
 
 

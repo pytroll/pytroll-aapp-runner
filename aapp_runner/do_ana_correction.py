@@ -100,6 +100,7 @@ def do_ana_correction(process_config, timestamp):
                 #estatt_file_name =     lmkloc_metop02_20160617_0952_50132.txt
                 ana_loc_file = "lmkloc_{}_{:%Y%m%d_%H%M}_{:05d}.txt".format(l1bidf_list[0], l1bidf_aapp_datetime, int(l1bidf_list[3]))
                 if os.path.exists(os.path.join(ana_dir,"{:%Y-%m}".format(l1bidf_aapp_datetime),ana_loc_file)):
+                    LOG.debug("timestamp {} l1bidf_aapp_datetime: {}".format(timestamp, l1bidf_aapp_datetime))
                     from shutil import copy2
                     copy2(os.path.join(ana_dir,"{:%Y-%m}".format(timestamp),ana_loc_file),
                           os.path.join(ana_dir,"{:%Y-%m}".format(l1bidf_aapp_datetime),expected_ana_loc_file))

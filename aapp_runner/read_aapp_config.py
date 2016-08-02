@@ -37,7 +37,8 @@ valid_config_variables = [
     'locktime_before_rerun',
     'passlength_threshold',
     'copy_data_directories',
-    'move_data_directory'
+    'move_data_directory',
+    'check_and_set_correct_orbit_number'
 ]
 
 #

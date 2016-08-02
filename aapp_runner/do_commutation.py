@@ -73,6 +73,12 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
     $lu12 is the logical unit of the HRPT.l1a output file 
     """
 
+    #A list of accepted return codes for the various scripts/binaries run in this function
+    accepted_return_codes_decom_amsua_metop = [0]
+    accepted_return_codes_decom_amsub_metop = [0]
+    accepted_return_codes_decom_hirs_metop  = [0]
+    accepted_return_codes_decom_avhrr_metop = [0]
+    
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])
@@ -144,12 +150,14 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
+                if returncode in accepted_return_codes_decom_amsua_metop:
+                    LOG.info("Command {} complete.".format(cmd))
+                    if not os.path.exists(process_config['amsua_file']):
+                        LOG.warning("Decom gave OK status, but no data is produced. Something is wrong")
+                else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return False
-                else:
-                    LOG.info("Command {} complete.".format(cmd))
-
+                        
         if process_config['process_amsub']:
             cmd="decom-mhs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_amsub_file'],
@@ -159,11 +167,11 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
+                if returncode in accepted_return_codes_decom_amsub_metop:
+                    LOG.info("Command {} complete.".format(cmd))
+                else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return False
-                else:
-                    LOG.info("Command {} complete.".format(cmd))
 
         if process_config['process_hirs']:
             cmd="decom-hirs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
@@ -174,11 +182,11 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
+                if returncode in accepted_return_codes_decom_hirs_metop:
+                    LOG.info("Command {} complete.".format(cmd))
+                else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return False
-                else:
-                    LOG.info("Command {} complete.".format(cmd))
 
         if process_config['process_avhrr']:
             cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
@@ -189,17 +197,17 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
             except:
                 LOG.error("Command {} failed.".format(cmd))
             else:
-                if returncode != 0:
+                if returncode in accepted_return_codes_decom_avhrr_metop:
+                    LOG.info("Command {} complete.".format(cmd))
+                else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return False
-                else:
-                    LOG.info("Command {} complete.".format(cmd))
 
     else:
         print "Unknown platform: {}".format(process_config['platform'])
         return False
     
-    
+    print os.listdir("./")
     #Change back after this is done
     os.chdir(current_dir)
 

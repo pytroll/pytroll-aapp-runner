@@ -31,6 +31,10 @@ from helper_functions import run_shell_command
 LOG = logging.getLogger(__name__)
 
 def do_avhrr_calibration(process_config, timestamp):
+
+    accepted_return_codes_avhrcl = [0]
+
+    return_value = True
     LOG.debug("Do the avhrr calibration")        
 
     #This function relays on beeing in a working directory
@@ -49,18 +53,18 @@ def do_avhrr_calibration(process_config, timestamp):
     except:
         LOG.error("Command {} failed.".format(cmd))
     else:
-        if returncode != 0:
-            LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-            return False
-        else:
+        if returncode in accepted_return_codes_avhrcl:
             LOG.info("Command {} complete.".format(cmd))
+        else:
+            LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+            return_value = False
 
 
     #Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("do_avhrr_calibration complete!")
-    return True
+    return return_value
 
 #    # AVHRR l1b contents before AVHRR calibration/navigation
 #    if debug:
