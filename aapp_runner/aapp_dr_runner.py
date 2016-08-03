@@ -768,6 +768,7 @@ class AappLvl1Processor(object):
                 if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
                     LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+                    return False
                 
                 #DO decom
                 if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
@@ -794,26 +795,30 @@ class AappLvl1Processor(object):
                 if not do_avhrr_calibration(process_config, self.starttime):
                     LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-
+                    return False
+                
                 #Do Preprocessing
                 
                 from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
                 if not do_atovpp_and_avh2hirs_processing(process_config, self.starttime):
                     LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+                    return False
                 
                 #DO IASI
                 from do_iasi_calibration import do_iasi_calibration
                 if not do_iasi_calibration(process_config, self.starttime):
                     LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                
+                    return False
+            
                 #DO ANA
                 from do_ana_correction import do_ana_correction
                 if not do_ana_correction(process_config, self.starttime):
                     LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                                
+                    return False
+                
                 #FIXME
                 #Need a general check to fail run of some of the AAPP scripts fails fatal.
                 
@@ -871,7 +876,7 @@ class AappLvl1Processor(object):
 
             # Block any future run on this scene for time_to_block_before_rerun
             # (e.g. 10) minutes from now:
-            t__ = threading.Timer(self.locktime_before_rerun * 60.0,
+            t__ = threading.Timer(self.locktime_before_rerun,
                                   reset_job_registry, args=(self.job_register,
                                                             str(self.platform_name),
                                                             (self.starttime,
@@ -901,7 +906,6 @@ class AappLvl1Processor(object):
             LOG.exception("Failed in run...")
             raise
 
-        t__.cancel()
         return False
 
 
@@ -1102,8 +1106,6 @@ def aapp_rolling_runner(runner_config):
                              aapp_proc.working_dir)
                    # aapp_proc.cleanup_aapp_workdir()
 
-                LOG.debug("Before return")
-                return
                 #LOG.info("Do the tleing now that aapp has finished...")
                 #do_tleing(aapp_proc.aapp_prefix,
                 #          aapp_proc.tle_indir, aapp_proc.tle_outdir,
