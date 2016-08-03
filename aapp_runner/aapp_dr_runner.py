@@ -212,6 +212,7 @@ class AappLvl1Processor(object):
         self.job_register = {}
         self.my_env = os.environ.copy()
         self.check_and_set_correct_orbit_number = False if runner_config['check_and_set_correct_orbit_number'] == 'False' else True
+        self.do_ana_correction = False if runner_config['do_ana_correction'] == 'False' else True
         self.initialise()
 
     def initialise(self):
@@ -728,6 +729,7 @@ class AappLvl1Processor(object):
                 process_config['process_avhrr'] = False
                 process_config['process_msu'] = False
                 process_config['process_dcs'] = False
+                process_config['process_ana'] = self.do_ana_correction
                 process_config['a_tovs'] = list("ATOVS")
                 process_config['hirs_file'] = STD_AAPP_OUTPUT_FILESNAMES['hirs_file']
                 process_config['amsua_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsua_file']

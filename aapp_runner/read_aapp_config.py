@@ -38,7 +38,8 @@ valid_config_variables = [
     'passlength_threshold',
     'copy_data_directories',
     'move_data_directory',
-    'check_and_set_correct_orbit_number'
+    'check_and_set_correct_orbit_number',
+    'do_ana_correction'
 ]
 
 #
