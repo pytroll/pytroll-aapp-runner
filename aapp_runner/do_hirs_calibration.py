@@ -33,6 +33,8 @@ LOG = logging.getLogger(__name__)
 
 def do_hirs_calibration(process_config, timestamp):
     
+    return_status = True
+    
     #A list of accepted return codes for the various scripts/binaries run in this function
     accepted_return_codes_hirs_historic_file_manage = [0]
 
@@ -77,7 +79,7 @@ def do_hirs_calibration(process_config, timestamp):
                 status, returncode, std, err = run_shell_command(cmd)
             except:
                 LOG.error("Command {} failed.".format(cmd))
-                return False
+                return_status = False
             else:
                 if returncode in accepted_return_codes_hirs_historic_file_manage:
                     LOG.debug("Command complete.")
@@ -85,65 +87,67 @@ def do_hirs_calibration(process_config, timestamp):
                     LOG.error("Command {} failed with returncode {}".format(cmd, returncode))
                     LOG.error("stdout was: {}".format(std))
                     LOG.error("stderr was: {}".format(err))
-                    return False
-                
-        cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(process_config['platform'],timestamp)
-        try:
-            status, returncode, std, err = run_shell_command(cmd)
-        except:
-            import sys
-            LOG.error("Command {} failed with {}.".format(cmd,sys.exc_info()[0]))
-        else:
-            if returncode != 0:
-                LOG.error("Command {} failed with {}".format(cmd, returncode))
-                _hirs_file = open(hirs_err_file,"w")
-                _hirs_file.write(std)
-                _hirs_file.write(err)
-                _hirs_file.close()
-                return False
-                
-        hirs_script = "hirscl_algoV4"
-        hirs_err_file = "hirscl_algoV4.err"
-        calibration_location = "-c -l"
+                    return_status = False
+        
+        if return_status:
+            cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(process_config['platform'],timestamp)
+            try:
+                status, returncode, std, err = run_shell_command(cmd)
+            except:
+                import sys
+                LOG.error("Command {} failed with {}.".format(cmd,sys.exc_info()[0]))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with {}".format(cmd, returncode))
+                    _hirs_file = open(hirs_err_file,"w")
+                    _hirs_file.write(std)
+                    _hirs_file.write(err)
+                    _hirs_file.close()
+                    return_status = False
+                    
+            hirs_script = "hirscl_algoV4"
+            hirs_err_file = "hirscl_algoV4.err"
+            calibration_location = "-c -l"
     else:
         LOG.error("Can not figure out which hirs calibration algo version to use.")
-        return False
+        return_status = False
     
-    #Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
-    #but needed names are metop01 etc. Replace this inside the processing from now on.
-    aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
-    if process_config['platform'] not in aapp_satellite_list:
-        LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
-        LOG.warning("Platform {} not in list: {}".format(process_config['platform'],aapp_satellite_list))
-        if 'metop' in process_config['platform'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
-            LOG.info("Replace in this processing")
-            PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M02','metop02') 
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M03','metop03') 
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
-            os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
-    
-    cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
-                                                                    process_config['platform'],timestamp,timestamp,
-                                                                    process_config['orbit_number'], process_config['hirs_file'])
-    try:
-        status, returncode, out, err = run_shell_command(cmd, stdout_logfile="{}.log".format(hirs_script), stderr_logfile="{}".format(hirs_err_file))
-    except:
-        import sys
-        LOG.error("Command {} failed {}.".format(cmd, sys.exc_info()[0]))
-    else:
-        if ( returncode != 0):
-            LOG.error("Command {} failed with {}".format(cmd, returncode))
-            _hirs_file = open(hirs_err_file,"w")
-            _hirs_file.write(out)
-            _hirs_file.write(err)
-            _hirs_file.close()
-            return False
+    if return_status:
+        #Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
+        #but needed names are metop01 etc. Replace this inside the processing from now on.
+        aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
+        if process_config['platform'] not in aapp_satellite_list:
+            LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
+            LOG.warning("Platform {} not in list: {}".format(process_config['platform'],aapp_satellite_list))
+            if 'metop' in process_config['platform'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
+                LOG.info("Replace in this processing")
+                PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
+                PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
+                PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M02','metop02') 
+                PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M03','metop03') 
+                PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
+                os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
+        
+        cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
+                                                                        process_config['platform'],timestamp,timestamp,
+                                                                        process_config['orbit_number'], process_config['hirs_file'])
+        try:
+            status, returncode, out, err = run_shell_command(cmd, stdout_logfile="{}.log".format(hirs_script), stderr_logfile="{}".format(hirs_err_file))
+        except:
+            import sys
+            LOG.error("Command {} failed {}.".format(cmd, sys.exc_info()[0]))
+        else:
+            if ( returncode != 0):
+                LOG.error("Command {} failed with {}".format(cmd, returncode))
+                _hirs_file = open(hirs_err_file,"w")
+                _hirs_file.write(out)
+                _hirs_file.write(err)
+                _hirs_file.close()
+                return_status = False
 
     #Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("do_hirs_calibration complete!")
     
-    return True
+    return return_status

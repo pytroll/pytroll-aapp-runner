@@ -33,6 +33,8 @@ LOG = logging.getLogger(__name__)
 def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
     LOG.debug("Do preprocessing atovpp and avh2hirs ... ")
 
+    return_status = True
+    
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])
@@ -51,25 +53,26 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
             LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
             LOG.error(std)
             LOG.error(err)
-            return False
+            return_status = False
         else:
             LOG.info("Command {} complete.".format(cmd))
             LOG.debug(std)
             LOG.debug(err)
 
-    cmd = "atovpp -i \"{}\" -g HIRS ".format(instruments)
-    try:
-        status, returncode, std, err = run_shell_command(cmd)
-    except:
-        LOG.error("Command {} failed.".format(cmd))
-    else:
-        if returncode != 0:
-            LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-            LOG.error(std)
-            LOG.error(err)
-            return False
+    if return_status:
+        cmd = "atovpp -i \"{}\" -g HIRS ".format(instruments)
+        try:
+            status, returncode, std, err = run_shell_command(cmd)
+        except:
+            LOG.error("Command {} failed.".format(cmd))
         else:
-            LOG.info("Command {} complete.".format(cmd))
+            if returncode != 0:
+                LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                LOG.error(std)
+                LOG.error(err)
+                return_status = False
+            else:
+                LOG.info("Command {} complete.".format(cmd))
 
     #THis will not work since the avh2hirs script sources the ATOVS_CONF at start
     #and relay on WRK dir, which is a static dir
@@ -86,7 +89,7 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
                 LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                 LOG.error(std)
                 LOG.error(err)
-                return False
+                return_status = False
             else:
                 LOG.info("Command {} complete.".format(cmd))
     else:
@@ -96,4 +99,4 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
     os.chdir(current_dir)
 
     LOG.info("atovpp and avh2hirs complete!")
-    return True
+    return return_status

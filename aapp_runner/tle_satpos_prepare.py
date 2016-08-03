@@ -52,6 +52,8 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
     """Get the tle-file and copy them to the AAPP data structure 
        and run the AAPP tleing script and executable"""
     
+    return_status = True
+    
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(workdir)
@@ -150,9 +152,9 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
     for tle_file in tle_file_list:
         if not os.path.exists(os.path.join(tle_indir,'tle_db',tle_file)):
             print "Could not find the tle file: {}".format(tle_indir + "/" + tle_file)
-            return False
+            return_status = False
         else:
-            """Dont use the tle_indir because this is handleled by the tleing script"""
+            """Dont use the tle_indir because this is handeled by the tleing script"""
             #tle_cmd = open("tle_commands", 'w')
             #tle_cmd.write("{}\n".format(DIR_DATA_TLE))
             #tle_cmd.write("{}\n".format(tle_file))
@@ -170,7 +172,7 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
                 LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
                 LOG.error("stdout: {}".format(stdout))
                 LOG.error("stderr: {}".format(stderr))
-                return False
+                return_status = False
             else:
                 if returncode != 0:
                     LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
@@ -201,7 +203,7 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
                             LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
                             LOG.error("stdout: {}".format(stdout))
                             LOG.error("stderr: {}".format(stderr))
-                            return False
+                            return_status = False
                         else:
                             if returncode == 0 and os.path.exists("{}.sort".format(TLE_INDEX)):
                                 try:
@@ -224,9 +226,11 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
     #Change back after this is done
     os.chdir(current_dir)
 
-    return True
+    return return_status
 
 def do_tle_satpos(timestamp, satellite, satpos_dir=None):
+    
+    return_status = True
     
     LOG.info("satpos files is stored under the given directory/satpos")
     if satpos_dir == None:
@@ -239,11 +243,11 @@ def do_tle_satpos(timestamp, satellite, satpos_dir=None):
             os.makedirs(satpos_dir)
         except:
             LOG.error("Could not create satpos directory: {}".format(satpos_dir))
-            return False
+            return_status = False
         
     file_satpos = os.path.join(satpos_dir, "satpos_{}_{:%Y%m%d}.txt".format(satellite,timestamp))
     
-    if not os.path.exists(file_satpos) or os.stat(file_satpos).st_size == 0:
+    if (not os.path.exists(file_satpos) or os.stat(file_satpos).st_size == 0) and return_status:
         """Usage is: satpostle  [ -o] [-s satellite] [-S station] [-d start date] [-n number of days] [-i increment in seconds] [-c search criteria] 
 
         -o -s -S -d -n -i –c are optional. 
@@ -259,15 +263,15 @@ def do_tle_satpos(timestamp, satellite, satpos_dir=None):
             status, returncode, std, err = run_shell_command(cmd)
         except:
             LOG.error("Failed to run command: {}".format(cmd))
-            return False
+            return_status = False
         else:
             if returncode != 0:
                 LOG.error("cmd: {} failed with returncode: {}".format(cmd,returncode))
-                return False
+                return_status = False
             elif not os.path.exists(file_satpos):
                 LOG.error("file: {} does not exists after satpostle run.".format(file_satpos))
-                return False
+                return_status = False
     else:
         LOG.info("satpos file already there. Use this")
         
-    return True
+    return return_status

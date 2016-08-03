@@ -74,10 +74,13 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
     """
 
     #A list of accepted return codes for the various scripts/binaries run in this function
+    accepted_return_codes_decom_hrpt = [0]
     accepted_return_codes_decom_amsua_metop = [0]
     accepted_return_codes_decom_amsub_metop = [0]
     accepted_return_codes_decom_hirs_metop  = [0]
     accepted_return_codes_decom_avhrr_metop = [0]
+    
+    return_status = True
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
@@ -139,7 +142,18 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
         decom.close()
             
         cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, hrpt_file)
-        run_shell_command(cmd)
+        try:
+            status, returncode, std, err = run_shell_command(cmd)
+        except:
+            LOG.error("Command {} failed.".format(cmd))
+        else:
+            if returncode in accepted_return_codes_decom_hrpt:
+                LOG.info("Command {} complete.".format(cmd))
+                if not os.path.exists(process_config['avhrr_file']):
+                    LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['avhrr_file']))
+            else:
+                LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                return_status = False
         
     elif 'metop' in process_config['platform']:
         LOG.info("Do the metop decommutation")
@@ -156,9 +170,9 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                         LOG.warning("Decom gave OK status, but no data is produced. Something is wrong")
                 else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
+                    return_status = False
                         
-        if process_config['process_amsub']:
+        if process_config['process_amsub'] and return_status:
             cmd="decom-mhs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_amsub_file'],
                                                    process_config['amsub_file'])
@@ -171,9 +185,9 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                     LOG.info("Command {} complete.".format(cmd))
                 else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
+                    return_status = False
 
-        if process_config['process_hirs']:
+        if process_config['process_hirs'] and return_status:
             cmd="decom-hirs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_hirs_file'],
                                                    process_config['hirs_file'])
@@ -186,9 +200,9 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                     LOG.info("Command {} complete.".format(cmd))
                 else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
+                    return_status = False
 
-        if process_config['process_avhrr']:
+        if process_config['process_avhrr'] and return_status:
             cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_avhrr_file'],
                                                    process_config['avhrr_file'])
@@ -201,15 +215,15 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                     LOG.info("Command {} complete.".format(cmd))
                 else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                    return False
+                    return_status = False
 
     else:
         print "Unknown platform: {}".format(process_config['platform'])
-        return False
+        return_status = False
     
     print os.listdir("./")
     #Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("Decommutation complete.")
-    return True
+    return return_status

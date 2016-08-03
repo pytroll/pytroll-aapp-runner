@@ -79,7 +79,7 @@ def do_atovs_calibration(process_config, timestamp):
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return_value = False
 
-        if process_config['process_amsub']:
+        if process_config['process_amsub'] and return_value:
             amsub_script = "mhscl"
             try:
                 if 'noaa' in process_config['platform'] and int(process_config['platform'][:-2]) <= 17:
@@ -107,7 +107,7 @@ def do_atovs_calibration(process_config, timestamp):
 
     else:
         LOG.error("Unknown A|TOVS key string: {}".format("".join(process_config['a_tovs'])))
-        return False
+        return_value = False
 
     #Change back after this is done
     os.chdir(current_dir)
