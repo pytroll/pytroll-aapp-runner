@@ -162,6 +162,10 @@ def do_tleing(timestamp, satellite, workdir, tle_indir=None, select_closest_tle_
             #tle_cmd.write("{}\n".format(TLE_INDEX))
             #tle_cmd.close()
             #LOG.info("TLE file ok. Do the calc for {} ... ".format(satellite))
+            status = False
+            returncode = 0
+            stdout = ""
+            stderr = ""
             cmd="tleing.exe"
             try:
                 status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,

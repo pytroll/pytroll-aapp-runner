@@ -82,7 +82,7 @@ def do_atovs_calibration(process_config, timestamp):
         if process_config['process_amsub'] and return_value:
             amsub_script = "mhscl"
             try:
-                if 'noaa' in process_config['platform'] and int(process_config['platform'][:-2]) <= 17:
+                if 'noaa' in process_config['platform'] and int(process_config['platform'][-2:]) <= 17:
                     amsu_script = "amsubcl"
             except ValueError as ve:
                 LOG.warning("Could not exctract satellite number from the last two characters in the platform name: {} and convert it to a number.".format(process_config['platform']))

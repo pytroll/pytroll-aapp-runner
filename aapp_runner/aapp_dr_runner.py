@@ -720,22 +720,26 @@ class AappLvl1Processor(object):
                 
                 
                 process_config = {}
-                process_config['platform'] = SATELLITE_NAME.get(self.platform_name,self.platform_name)
-                process_config['orbit_number'] = int(msg.data['orbit_number'])
-                process_config['working_directory'] = self.working_dir
-                process_config['process_amsua'] = False
-                process_config['process_amsub'] = False
-                process_config['process_hirs'] = False
-                process_config['process_avhrr'] = False
-                process_config['process_msu'] = False
-                process_config['process_dcs'] = False
-                process_config['process_ana'] = self.do_ana_correction
-                process_config['a_tovs'] = list("ATOVS")
-                process_config['hirs_file'] = STD_AAPP_OUTPUT_FILESNAMES['hirs_file']
-                process_config['amsua_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsua_file']
-                process_config['amsub_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsub_file']
-                process_config['avhrr_file'] = STD_AAPP_OUTPUT_FILESNAMES['avhrr_file']
-                process_config['calibration_location'] = "-c -l"
+                try:
+                    process_config['platform'] = SATELLITE_NAME.get(self.platform_name,self.platform_name)
+                    process_config['orbit_number'] = int(msg.data['orbit_number'])
+                    process_config['working_directory'] = self.working_dir
+                    process_config['process_amsua'] = False
+                    process_config['process_amsub'] = False
+                    process_config['process_hirs'] = False
+                    process_config['process_avhrr'] = False
+                    process_config['process_msu'] = False
+                    process_config['process_dcs'] = False
+                    process_config['process_ana'] = self.do_ana_correction
+                    process_config['a_tovs'] = list("ATOVS")
+                    process_config['hirs_file'] = STD_AAPP_OUTPUT_FILESNAMES['hirs_file']
+                    process_config['amsua_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsua_file']
+                    process_config['amsub_file'] = STD_AAPP_OUTPUT_FILESNAMES['amsub_file']
+                    process_config['avhrr_file'] = STD_AAPP_OUTPUT_FILESNAMES['avhrr_file']
+                    process_config['calibration_location'] = "-c -l"
+                except KeyError as ke:
+                    LOG.error("Could not initialize one or more process config parameters: {}.".format(ke))
+                    return True #Meaning: can not process this.
 
                 print str(self.level0files[scene_id])
 
@@ -761,65 +765,74 @@ class AappLvl1Processor(object):
 
                 _platform = SATELLITE_NAME.get(self.platform_name,self.platform_name)
                 #DO tle
+                tle_proc_ok = True
                 if not do_tleing(self.starttime, _platform, self.working_dir, self.tle_indir):
                     LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    tle_proc_ok = False
                 
                 #DO tle satpos
+                satpos_proc_ok = True
                 if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
                     LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    satpos_proc_ok = False
                 
                 #DO decom
+                decom_proc_ok = True
                 if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
                     LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    decom_proc_ok = False
+                    return True #Meaning can not complete this and skip the rest of the processing
                 
-                from do_hirs_calibration import do_hirs_calibration
                 #DO HIRS
+                hirs_proc_ok = True
+                from do_hirs_calibration import do_hirs_calibration
                 if not do_hirs_calibration(process_config, self.starttime):
                     LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    hirs_proc_ok = False
                 
-                #DO MSU
+                #DO ATOVS
+                atovs_proc_ok = True
                 from do_atovs_calibration import do_atovs_calibration
                 if not do_atovs_calibration(process_config, self.starttime):
                     LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    atovs_proc_ok = False
                 
                 #DO AVHRR
+                avhrr_proc_ok = True
                 from do_avhrr_calibration import do_avhrr_calibration
                 if not do_avhrr_calibration(process_config, self.starttime):
                     LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    avhrr_proc_ok = False
                 
                 #Do Preprocessing
-                
+                atovpp_proc_ok = True
                 from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
                 if not do_atovpp_and_avh2hirs_processing(process_config, self.starttime):
                     LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    atovpp_proc_ok = False
                 
                 #DO IASI
+                iasi_proc_ok = True
                 from do_iasi_calibration import do_iasi_calibration
                 if not do_iasi_calibration(process_config, self.starttime):
                     LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    iasi_proc_ok = False
             
                 #DO ANA
+                ana_proc_ok = True
                 from do_ana_correction import do_ana_correction
                 if not do_ana_correction(process_config, self.starttime):
                     LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-                    return False
+                    ana_proc_ok = False
                 
                 #FIXME
                 #Need a general check to fail run of some of the AAPP scripts fails fatal.
@@ -833,6 +846,7 @@ class AappLvl1Processor(object):
                 #Make a copy of the msg.data so new needed variables can be added to this as needed
                 self.out_dir_config_data = msg.data
                 self.out_dir_config_data['satellite_name'] = SATELLITE_NAME.get(self.platform_name, self.platform_name)
+                self.out_dir_config_data['orbit_number'] = int(msg.data['orbit_number'])
                 try:
                     aapp_outdir_config_format = compose(self.aapp_outdir_format,self.out_dir_config_data)
                 except KeyError as ke:
@@ -842,7 +856,11 @@ class AappLvl1Processor(object):
                         LOG.warning("{} = {}".format(key,self.out_dir_config_data[key]))
                     LOG.warning("Will continue with directory name format as used by SAFNWC PPS...")
                     aapp_outdir_config_format = aapp_outdir_pps_format
-                    
+                except ValueError as ve:
+                    LOG.warning("value error        : {}".format(ve))
+                    LOG.warning("aapp_outdir_format : {}".format(self.aapp_outdir_format))
+                    LOG.warning("out_dir_config_data: {}".format(self.out_dir_config_data))
+
                 aapp_outdir_config_format = os.path.join(self.aapp_outdir,aapp_outdir_config_format)
                 LOG.info("aapp outdir config format: " + aapp_outdir_config_format)
                 
@@ -850,8 +868,8 @@ class AappLvl1Processor(object):
                     LOG.info("Create selected aapp_outdir: {}".format(aapp_outdir_config_format))
                     try:
                         os.mkdir(aapp_outdir_config_format)
-                    except OSError in e:
-                        LOG.error("Could not create directory: {}".format(aapp_outdir_config_format))
+                    except OSError as oe:
+                        LOG.error("Could not create directory: {} with {}".format(aapp_outdir_config_format,oe))
                         
                 else:
                     #FIXME Should we delete this directory if exists?
@@ -981,6 +999,8 @@ def aapp_rolling_runner(runner_config):
                             LOG.warning("{} = {}".format(key,aapp_proc.out_dir_config_data[key]))
                         LOG.error("Skipping this directory ... ")
                         continue
+                    except TypeError as te:
+                        LOG.error("Type Error: {}".format(te))
 
                     LOG.debug("Move into directory: {}".format(runner_config['move_data_directory']))
                     level1_files = aapp_proc.move_lvl1dir(runner_config['move_data_directory'])
@@ -1134,12 +1154,13 @@ def publish_level1(publisher,
         filename = os.path.split(resultfile)[1]
         to_send = mda.copy()
         to_send['uri'] = ('ssh://%s%s' % (server, resultfile))
+        to_send['filename'] = filename
         to_send['uid'] = filename
         to_send['sensor'] = result_files[key]['sensor']
         to_send['orbit_number'] = int(orbit)
         to_send['format'] = publish_format
         to_send['type'] = 'Binary'
-        to_send['data_processing_level'] = result_files[key]['level']
+        to_send['data_processing_level'] = result_files[key]['level'].upper()
         LOG.debug('level in message: ' + str(to_send['data_processing_level']))
         to_send['start_time'], to_send['end_time'] = start_t, end_t
         to_send['station'] = station
@@ -1152,6 +1173,9 @@ def publish_level1(publisher,
             for key in to_send:
                 LOG.warning("{} = {}".format(key,to_send[key]))
             LOG.error("Can not publish these data!")
+            return
+        except ValueError as ve:
+            LOG.error("Value Error: {}".format(ve))
             return
 
         LOG.debug("Publish to:{}".format(publish_to))

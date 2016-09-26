@@ -331,7 +331,7 @@ def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, st
     try:
         proc = Popen(myargs,
                      cwd=my_cwd, shell=False, env=my_env,
-                     stderr=PIPE, stdout=PIPE, stdin=stdin, close_fds=True)
+                     stderr=PIPE, stdout=PIPE, stdin=PIPE, close_fds=True)
         
         LOGGER.debug("Process pid: {}".format(proc.pid))
     except OSError as e:

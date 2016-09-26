@@ -42,6 +42,8 @@ def do_ana_correction(process_config, timestamp):
     This needs to be copied/installed here by the user 
     """
 
+    if not process_config['process_ana']:
+        return True
 
     return_status = True
     

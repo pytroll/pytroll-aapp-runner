@@ -143,9 +143,8 @@ def check_dir(directory, test):
                 test = open(filename, "w")
                 test.close()
                 os.remove(filename)
-            except IOError:
-                print ("ERROR: Cannot write to directory! " +
-                       directory)
+            except IOError as ioe:
+                print ("ERROR: Cannot write to directory! {}:{}".format(directory,ioe))
                 return False
     else:
         print "ERROR: Unknown test."

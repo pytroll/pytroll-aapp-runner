@@ -134,7 +134,9 @@ def rename_aapp_filenames(process_config, timestamp, aapp_outdir_selected=".", f
         #    LOG.error("Excpected file {} does not exists. Please check previous processing.".format('aman.l1d'))
 
     if process_config['process_amsub']:
-        if 'noaa' in process_config['platform'] and int(process_config['platform'][:-2]) <= 17:
+        LOG.debug("process_config platform: {} ".format(process_config['platform']))
+        LOG.debug("process_config platform: {} ".format(process_config['platform'][-2:]))
+        if ('noaa' in process_config['platform']) and int(process_config['platform'][-2:]) <= 17:
             if os.path.exists(process_config['amsub_file']):
                 new_name = "{0:}_{1:}_{2:%Y%m%d}_{2:%H%M}_{3:5d}.l1b".format("amsubl1b",
                                                                              process_config['platform'],
