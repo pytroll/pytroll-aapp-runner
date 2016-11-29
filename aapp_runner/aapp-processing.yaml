@@ -1,0 +1,74 @@
+logging:
+  log_rotation_days: 1
+  log_rotation_backup: 30
+  logging_mode: DEBUG
+
+aapp_static_configuration:
+  decommutation_files:
+    hirs: hrsn.l1b
+    amsua: aman.l1b
+    amsub: ambn.l1b
+    avhrr: hrpt.l1b
+
+  supported_noaa-satellites:
+    - NOAA-15
+    - NOAA-18
+    - NOAA-19
+
+  supported_metop_satellites:
+    - Metop-B
+    - Metop-A
+
+aapp_processes:
+- xl-band:
+    description: bladibludi
+    name: xl-band
+    subscribe_topics:
+      - /XLBANDANTENNA/HRPT/L0
+      - /XLBANDANTENNA/METOP-AVHRR/L0
+      - /XLBANDANTENNA/METOP-MHS/L0
+      - /XLBANDANTENNA/METOP-AMSUA/L0
+      - /XLBANDANTENNA/METOP-HIRS/L0
+
+    tle_indir: test
+    tle_outdir: test
+
+    locktime_before_rerun: test
+
+    publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
+
+    aapp_prefix: /software/polsatproc/3party-v2014/aapp_run_7.7/
+    aapp_base3workdir: /run/shm/aapp-workdir
+    aapp_outdir: /data/trollduction/data/aapp-outdir-xl
+    custom_aapp_dir_navigation: /data/aapp-dir-navigation/orbelems
+    aapp_outdir_format: '{satellite_name:s}_{start_time:%%Y%%m%%d}_{start_time:%%H%%M}_{orbit_number:05d}'
+    passlength_threshold: 5
+    use_dyn_work_dir: False
+
+    #Must change
+    pps_out_dir: /data/trollduction/safnwc/pps/data-xl/import/PPS_data/source
+    pps_out_dir_format: '{satellite_name:s}_{start_time:%%Y%%m%%d}_{start_time:%%H%%M}_{orbit_number:05d}'
+    copy_data_directories: [] 
+    move_data_directory: /data/trollduction/safnwc/pps/data-xl/import/PPS_data/source
+    aapp_log_files_dir: /data/trollduction/log_files/
+    aapp_log_files_archive_length: '1 days' # '72 hours'
+    message_providing_server: satproc2.met.no
+    do_ana_correction: True
+
+    instrument_skipped_in_processing:
+      - NOAA-15:
+        - hirs
+        - amsu-a
+        - amsu-b
+      - DUMMY-test:
+        - bladi
+        - bludi
+        - blidi
+
+    monitor_message:
+      send: True
+      topic: 'some fantastic topic'
+
+- trollcast:
+    name: trollcast
+    subscribe_topics: []

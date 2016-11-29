@@ -305,3 +305,10 @@ def read_config_file_options(filename, station, env, valid_config=None):
         return None
 
     return configuration
+
+if __name__ == "__main__":
+    station_name = ""
+    environment = "xl-band"
+    run_options = read_config_file_options("aapp-processing.yaml",
+                                           station_name, environment)
+    
