@@ -20,7 +20,7 @@ aapp_static_configuration:
     - Metop-A
 
 aapp_processes:
-- xl-band:
+  xl-band:
     description: bladibludi
     name: xl-band
     subscribe_topics:
@@ -69,6 +69,6 @@ aapp_processes:
       send: True
       topic: 'some fantastic topic'
 
-- trollcast:
+  trollcast:
     name: trollcast
     subscribe_topics: []
