@@ -1,6 +1,9 @@
 mandatory-config-settings:
   name1: default_value
   name2: ''
+  aapp_prefix:
+    permissions: 'r'
+    
  
 optional-config-settings:
   process-ana: False
