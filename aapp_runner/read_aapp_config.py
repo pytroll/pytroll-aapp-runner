@@ -246,8 +246,20 @@ def read_config_file_options(filename, station, env, valid_config=None):
     Read and checks config file
     If ok, return configuration dictionary
     """
-    config = SafeConfigParser()
 
+    #config = SafeConfigParser()
+    import yaml
+    with open(filename, 'r') as stream:
+        try:
+            config = yaml.load(stream)
+            import pprint
+            print type(config)
+            pp = pprint.PrettyPrinter(indent=4)
+            pp.pprint(config)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    
     if valid_config == None:
         valid_config = VALID_CONFIGURATION
 
@@ -258,15 +270,16 @@ def read_config_file_options(filename, station, env, valid_config=None):
     configuration = {}
     configuration['station'] = station
     configuration['environment'] = env
-    config.read(filename)
-    try:
-        config_opts = dict(config.items(env, raw=False))
-    except Exception as err:
-        print "Section %s %s" % (env,
-                                 "is not defined in your " +
-                                 "aapp_runner config file!")
-        print "Error was {}".format(err)
-        return None
+    #config.read(filename)
+    #try:
+    #    config_opts = dict(config.items(env, raw=False))
+    #except Exception as err:
+    #    print "Section %s %s" % (env,
+    #                             "is not defined in your " +
+    #                             "aapp_runner config file!")
+    #    print "Error was {}".format(err)
+    #    return None
+    
     # Read config file
     for item in mandatory_config_variables:
         try:
