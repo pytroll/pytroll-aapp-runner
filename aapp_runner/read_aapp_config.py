@@ -4,6 +4,7 @@ import os
 from socket import gethostname, gethostbyaddr, gaierror
 
 from ConfigParser import SafeConfigParser
+from apt_pkg import config
 
 MANDATORY = 'm'
 
@@ -259,6 +260,10 @@ def read_config_file_options(filename, station, env, valid_config=None):
         except yaml.YAMLError as exc:
             print(exc)
 
+    return config
+
+    #FIXME
+    #Need to implement checking of the now config
     
     if valid_config == None:
         valid_config = VALID_CONFIGURATION

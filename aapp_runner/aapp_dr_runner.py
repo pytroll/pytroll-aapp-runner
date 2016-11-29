@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from apt_pkg import config
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -1627,47 +1628,27 @@ def delete_old_dirs(dir_path, older_than_days):
                 LOG.debug("Deleting folder " + folder)
                 # folders.remove(folder)
 
-if __name__ == "__main__":
+def setup_logging(config, log_file):
+        # Logging
+    #config.read(config_filename)
+    #logging_cfg = dict(config.items("logging"))
+    #print "----------------------------------------\n"
+    #print logging_cfg
 
-    # Read config file
-    #
-    # pylint: disable=C0103
-    # C0103: Invalid name "%s" (should match %s)
-    # Used when the name doesn't match the regular expression
-    # associated to its type (constant, variable, class...).
-
-    config = RawConfigParser()
-
-    (station_name, environment, config_filename, log_file) = read_arguments()
-
-    if not os.path.isfile(config_filename):
-        #        config.read(config_filename)
-        #    else:
-        print "ERROR: ", config_filename, ": No such config file."
-        sys.exit()
-
-    run_options = read_config_file_options(config_filename,
-                                           station_name, environment)
-    if not isinstance(run_options, dict):
-        print "Reading config file failed: ", config_filename
-        sys.exit()
-
-    # Logging
-    config.read(config_filename)
-    logging_cfg = dict(config.items("logging"))
-    print "----------------------------------------\n"
-    print logging_cfg
+    """
+    Init and setup logging
+    """
 
     if log_file is not None:
         try:
-            ndays = int(logging_cfg["log_rotation_days"])
-            ncount = int(logging_cfg["log_rotation_backup"])
+            ndays = int(config['logging']["log_rotation_days"])
+            ncount = int(config['logging']["log_rotation_backup"])
         except KeyError as err:
             print err.args, \
-                "is missing. Please, check your config file",\
-                config_filename
-
-            raise IOError("Log file was given but doesn't " +
+                "is missing. Please, check your config ",\
+                config
+            #FIXME Make the errorhandeling better
+            raise IOError("Config was given but doesn't " +
                           "know how to backup and rotate")
 
         handler = handlers.TimedRotatingFileHandler(log_file,
@@ -1682,8 +1663,8 @@ if __name__ == "__main__":
     else:
         handler = logging.StreamHandler(sys.stderr)
 
-    if (logging_cfg["logging_mode"] and
-            logging_cfg["logging_mode"] == "DEBUG"):
+    if (config['logging']["logging_mode"] and
+            config['logging']["logging_mode"] == "DEBUG"):
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
@@ -1698,11 +1679,38 @@ if __name__ == "__main__":
     logging.getLogger('posttroll').setLevel(logging.INFO)
 
     LOG = logging.getLogger('aapp_runner')
+    
+    return LOG
+        
+if __name__ == "__main__":
 
-    if run_options['pps_out_dir'] == '':
-        LOG.warning("No pps_out_dir specified.")
+    # Read config file
+    #
+    # pylint: disable=C0103
+    # C0103: Invalid name "%s" (should match %s)
+    # Used when the name doesn't match the regular expression
+    # associated to its type (constant, variable, class...).
 
-    for key in run_options:
-        print key, "=", run_options[key]
+    (station_name, environment, config_filename, log_file) = read_arguments()
 
+    if not os.path.isfile(config_filename):
+        #        config.read(config_filename)
+        #    else:
+        print "ERROR: ", config_filename, ": No such config file."
+        sys.exit()
+
+    config = read_config_file_options(config_filename,
+                                           station_name, environment)
+    if not isinstance(run_options, dict):
+        print "Reading config file failed: ", config_filename
+        sys.exit()
+
+    #Set up logging
+    try:
+        LOG = setup_logging(config, log_file)
+    except:
+        print "Logging setup failed. Check your config"
+        #TODO
+        #Better error handeling for logginf setup
+        
     aapp_rolling_runner(run_options)
