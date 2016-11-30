@@ -168,7 +168,8 @@ class AappL1Config(object):
         self.config = config
         self.process_name = process_name
         self.job_register = {}
-        
+        self.local_env = {}
+
     def __getitem__(self, key):
         return self.config[key]
 
@@ -180,6 +181,8 @@ class AappL1Config(object):
         Clear/reset dynamic configuration
         """
         self.config = self.orig_config
+        self.local_env = {}
+        self.local_env = os.environ.copy()
         
     def add_process_config_paramenter(self, config_key, config_value):
         """
@@ -1818,14 +1821,116 @@ def create_and_check_scene_id(msg, config):
     LOG.debug("scene_id = " + str(scene_id))
     return scene_id
     
-def setup_aapp_processing():
+def setup_aapp_processing(config):
     """
     Setup various env variables needed for the aapp processing
     and set eg working dir
     """
+
+    if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name]:
+        try:
+            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
+            LOG.debug("working dir set based on aapp_oarkdir and tmp " + str(config['aapp_processes'][config.process_name]['working_dir']))
+        except OSError:
+            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp()
+        finally:
+            LOG.info("Create new working dir...")
+    elif not 'working_dir' in config['aapp_processes'][config.process_name]:
+        config['aapp_processes'][config.process_name]['working_dir'] = config['aapp_processes'][config.process_name]['aapp_workdir']
+
+    LOG.info("Working dir = " + str(config['aapp_processes'][config.process_name]['working_dir']))
+
+    os.environ["AAPP_PREFIX"] = config['aapp_processes'][config.process_name]['aapp_prefix']
     
+    aapp_atovs_conf = os.path.join(os.environ["AAPP_PREFIX"],config['aapp_processes'][config.process_name]['aapp_environment_file'])
+    status, returncode, out, err = run_shell_command("bash -c \"source {}\";env".format(aapp_atovs_conf))
+    if not status:
+        LOG.error("Failed to run the bash source env command for " +str(aapp_atovs_conf))
+        return False
+    else:
+        for line in out.splitlines():
+            if line:
+                (key,_,value) = line.partition("=")
+                os.environ[key]=value
+
     return True
 
+def process_aapp(msg, config):
+    """
+    Do the various processing steps of aapp for each instruments
+    """
+    
+    #DO tle
+    tle_proc_ok = True
+    if not do_tleing(self.starttime, _platform, self.working_dir, self.tle_indir):
+        LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        tle_proc_ok = False
+    
+    #DO tle satpos
+    satpos_proc_ok = True
+    if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
+        LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        satpos_proc_ok = False
+    
+    #DO decom
+    decom_proc_ok = True
+    if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
+        LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        decom_proc_ok = False
+        return True #Meaning can not complete this and skip the rest of the processing
+    
+    #DO HIRS
+    hirs_proc_ok = True
+    from do_hirs_calibration import do_hirs_calibration
+    if not do_hirs_calibration(process_config, self.starttime):
+        LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        hirs_proc_ok = False
+    
+    #DO ATOVS
+    atovs_proc_ok = True
+    from do_atovs_calibration import do_atovs_calibration
+    if not do_atovs_calibration(process_config, self.starttime):
+        LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        atovs_proc_ok = False
+    
+    #DO AVHRR
+    avhrr_proc_ok = True
+    from do_avhrr_calibration import do_avhrr_calibration
+    if not do_avhrr_calibration(process_config, self.starttime):
+        LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        avhrr_proc_ok = False
+    
+    #Do Preprocessing
+    atovpp_proc_ok = True
+    from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+    if not do_atovpp_and_avh2hirs_processing(process_config, self.starttime):
+        LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        atovpp_proc_ok = False
+    
+    #DO IASI
+    iasi_proc_ok = True
+    from do_iasi_calibration import do_iasi_calibration
+    if not do_iasi_calibration(process_config, self.starttime):
+        LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        iasi_proc_ok = False
+
+    #DO ANA
+    ana_proc_ok = True
+    from do_ana_correction import do_ana_correction
+    if not do_ana_correction(process_config, self.starttime):
+        LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
+        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+        ana_proc_ok = False
+
+    return True
 if __name__ == "__main__":
 
     # Read config file
@@ -1882,14 +1987,20 @@ if __name__ == "__main__":
                     if not scene_id:
                         continue
                     
-                    setup_aapp_processing()
+                    if not setup_aapp_processing(aapp_config):
+                        continue
                     
-                    status = aapp_proc.run(msg)
-                    if not status:
-                        break  # end the loop and reinitialize!
+                    try:
+                        process_aapp(msg, config)
+                    except Exception,err:
+                        LOG.error("Process aapp failed ...")
+                        
+                    #status = aapp_proc.run(msg)
+                    #if not status:
+                    #    break  # end the loop and reinitialize!
                 
                 tobj = aapp_proc.starttime
                 LOG.info("Time used in sub-dir name: " +
                          str(tobj.strftime("%Y-%m-%d %H:%M")))
     
-    aapp_rolling_runner(run_options)
+    #aapp_rolling_runner(run_options)
