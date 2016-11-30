@@ -56,8 +56,9 @@ aapp_processes:
 
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
 
-    aapp_prefix: /software/polsatproc/3party-v2014/aapp_run_7.7/
-    aapp_base3workdir: /run/shm/aapp-workdir
+    aapp_prefix: /disk1/AAPP
+    aapp_environment_file: ATOVS_ENV7
+    aapp_workdir: /run/shm/aapp-workdir
     aapp_outdir: /data/trollduction/data/aapp-outdir-xl
     custom_aapp_dir_navigation: /data/aapp-dir-navigation/orbelems
     aapp_outdir_format: '{satellite_name:s}_{start_time:%%Y%%m%%d}_{start_time:%%H%%M}_{orbit_number:05d}'
