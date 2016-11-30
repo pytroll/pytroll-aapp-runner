@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from apt_pkg import config
+from defer import return_value
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -35,8 +36,6 @@ import logging
 from logging import handlers
 from trollsift.parser import compose
 
-sys.path.insert(0, "trollduction/")
-sys.path.insert(0, "/home/trygveas/git/trollduction-test/aapp_runner")
 from read_aapp_config import read_config_file_options
 from tle_satpos_prepare import do_tleing
 from tle_satpos_prepare import do_tle_satpos
@@ -157,7 +156,34 @@ def reset_job_registry(objdict, key, start_end_times):
                 str(key))
     return
 
+class AappL1Config(object):
+    """
+    Container for the configuration for AAPP
+    """
 
+    def __init__(self, config, process_name):
+        """
+        Init the config
+        """
+        self.orig_config = config
+        self.config = config
+        self.process_name = process_name
+        
+    def reset(self):
+        """
+        Clear/reset dynamic configuration
+        """
+        self.config = self.orig_config
+        
+    def add_process_config_paramenter(self, config_key, config_value):
+        """
+        Add a config parameter to the running config
+        """
+        self.config['aapp_processes'][self.process_name][config_key] = config_value
+    
+    def get_parameter(self, key):
+        return self.config['aapp_processes'][self.process_name][key]
+         
 class AappLvl1Processor(object):
 
     """
@@ -1682,6 +1708,27 @@ def setup_logging(config, log_file):
     
     return LOG
         
+def check_message(msg, server):
+    """
+    Check the message for neccessary stuff:
+    message type
+    providing server
+    """
+    
+    if msg is None or ( msg.type != 'file' and msg.type != 'collection' ):
+        LOG.warning("Message type is not a file or collection",msg.type)
+        return False
+    else:
+        urlobj = urlparse(msg.data['uri'])
+        url_ip = socket.gethostbyname(urlobj.netloc)
+        if urlobj.netloc and (url_ip not in get_local_ips()):
+            LOG.warning("Server %s not the current one: %s",
+                        str(urlobj.netloc),
+                        socket.gethostname())
+            return False
+
+    return True
+
 if __name__ == "__main__":
 
     # Read config file
@@ -1701,9 +1748,9 @@ if __name__ == "__main__":
 
     config = read_config_file_options(config_filename,
                                            station_name, environment)
-    if not isinstance(run_options, dict):
-        print "Reading config file failed: ", config_filename
-        sys.exit()
+    #if not isinstance(run_options, dict):
+    #    print "Reading config file failed: ", config_filename
+    #    sys.exit()
 
     #Set up logging
     try:
@@ -1712,5 +1759,25 @@ if __name__ == "__main__":
         print "Logging setup failed. Check your config"
         #TODO
         #Better error handeling for logginf setup
-        
+    
+    aapp_config = AappL1Config(config, environment)    
+
+    with posttroll.subscriber.Subscribe('',
+                                        aapp_config.get_parameter('subscribe_topics'),
+                                        True) as subscr:
+        with Publish('aapp_runner', 0) as publisher:
+            while True:
+                aapp_config.reset()
+                for msg in subscr.recv(timeout=90):
+                    if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
+                        continue
+                        
+                    status = aapp_proc.run(msg)
+                    if not status:
+                        break  # end the loop and reinitialize!
+                
+                tobj = aapp_proc.starttime
+                LOG.info("Time used in sub-dir name: " +
+                         str(tobj.strftime("%Y-%m-%d %H:%M")))
+    
     aapp_rolling_runner(run_options)
