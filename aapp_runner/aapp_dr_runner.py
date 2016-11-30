@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from apt_pkg import config
-from defer import return_value
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -169,6 +167,9 @@ class AappL1Config(object):
         self.config = config
         self.process_name = process_name
         
+    def __getitem__(self, key):
+        return self.config[key]
+
     def reset(self):
         """
         Clear/reset dynamic configuration
@@ -1729,6 +1730,23 @@ def check_message(msg, server):
 
     return True
 
+def check_satellite(msg, config):
+    """
+    Check if the satellite in message is a valid satellite for this processing
+    """
+    try:
+        if (msg.data['platform_name'] not in config['aapp_static_configuration']['supported_noaa_satellites'] and
+            msg.data['platform_name'] not in config['aapp_static_configuration']['supported_metop_satellites']):
+                LOG.info("Not a NOAA/Metop scene: " + str(msg.data['platform_name']) + ". Continue...")
+                return False
+                # FIXME:
+    except Exception, err:
+        LOG.warning(str(err))
+        return False
+    
+    LOG.debug("Accepting satellite: " + str(msg.data['platform_name']) + " as valid platform.")
+    return True
+
 if __name__ == "__main__":
 
     # Read config file
@@ -1772,6 +1790,9 @@ if __name__ == "__main__":
                     if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
                         continue
                         
+                    if not check_satellite(msg, aapp_config):
+                        continue
+                    
                     status = aapp_proc.run(msg)
                     if not status:
                         break  # end the loop and reinitialize!
