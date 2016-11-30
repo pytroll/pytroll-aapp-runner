@@ -10,7 +10,7 @@ aapp_static_configuration:
     amsub: ambn.l1b
     avhrr: hrpt.l1b
 
-  supported_noaa-satellites:
+  supported_noaa_satellites:
     - NOAA-15
     - NOAA-18
     - NOAA-19
@@ -18,6 +18,25 @@ aapp_static_configuration:
   supported_metop_satellites:
     - Metop-B
     - Metop-A
+    
+  satellite_name_aliases:
+    NOAA-19: noaa19
+    NOAA-18: noaa18
+    NOAA-17: noaa17
+    NOAA-16: noaa16
+    NOAA-15: noaa15
+    Metop-A: metop02
+    Metop-B: metop01
+    Metop-C: metop03
+    
+  satellite_sensor_name_aliases:
+    'amsua': 'amsu-a'
+    'amsub': 'amsu-b'
+    'hirs': 'hirs/4'
+    'mhs': 'mhs'
+    'avhrr': 'avhrt/3'
+
+
 
 aapp_processes:
   xl-band:
