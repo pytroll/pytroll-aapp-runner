@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from apt_pkg import config
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -166,9 +167,13 @@ class AappL1Config(object):
         self.orig_config = config
         self.config = config
         self.process_name = process_name
+        self.job_register = {}
         
     def __getitem__(self, key):
         return self.config[key]
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
 
     def reset(self):
         """
@@ -1716,7 +1721,9 @@ def check_message(msg, server):
     providing server
     """
     
-    if msg is None or ( msg.type != 'file' and msg.type != 'collection' ):
+    if msg is None:
+        LOG.debug("Message is None.")
+    elif ( msg.type != 'file' and msg.type != 'collection' ):
         LOG.warning("Message type is not a file or collection",msg.type)
         return False
     else:
@@ -1745,6 +1752,78 @@ def check_satellite(msg, config):
         return False
     
     LOG.debug("Accepting satellite: " + str(msg.data['platform_name']) + " as valid platform.")
+    return True
+
+def check_pass_length(msg,config):
+    """
+    Check if start and end time is ok
+    And check if passlength is ok
+    """
+    config['starttime'] = msg.data['start_time']
+
+    try:
+        config['endtime'] = msg.data['end_time']
+    except KeyError:
+        #TODO Can we handle this better?
+        LOG.warning("No end_time in message! Guessing start_time + 14 minutes...")
+        config['endtime'] = msg.data['start_time'] + timedelta(seconds=60 * 14)
+
+    # Test if the scene is longer than minimum required:
+    pass_length = config['endtime'] - config['starttime']
+    if pass_length < timedelta(seconds=60 * config['aapp_processes'][config.process_name]['passlength_threshold']):
+        LOG.info("Pass is too short: Length in minutes = %6.1f", pass_length.seconds / 60.0)
+        return False
+
+    LOG.debug("Start and end time ok, and passlength is longer than treshold")
+    return True
+
+def generate_process_config(msg, config):
+    """
+    Check sensors to process and setup config for this
+    
+    Need to check if it is a collection or file message. Then get sensor information from this.
+    """
+    config['process_amsua'] = False
+    config['process_amsub'] = False
+    config['process_hirs'] = False
+    config['process_avhrr'] = False
+    config['process_msu'] = False
+    config['process_dcs'] = False
+
+    
+    return True
+
+def create_and_check_scene_id(msg, config):
+    """
+    Create a scene specific ID to identify the scene process for later
+    """
+    # Use sat id, start and end time as the unique identifier of the scene!
+    if msg.data['platform_name'] in config.job_register and len(config.job_register[msg.data['platform_name']]) > 0:
+        # Go through list of start,end time tuples and see if the current
+        # scene overlaps with any:
+        status = overlapping_timeinterval((config['starttime'], config['endtime']), config.job_register[msg.data['platform_name']])
+        if status:
+            LOG.warning("Processing of scene " + msg.data['platform_name'] +
+                        " " + str(status[0]) + " " + str(status[1]) +
+                        " with overlapping time has been"
+                        " launched previously")
+            LOG.info("Skip it...")
+            return False
+        else:
+            LOG.debug("No overlap with any recently processed scenes...")
+
+    scene_id = (str(msg.data['platform_name']) + '_' +
+                config['starttime'].strftime('%Y%m%d%H%M%S') +
+                '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
+    LOG.debug("scene_id = " + str(scene_id))
+    return scene_id
+    
+def setup_aapp_processing():
+    """
+    Setup various env variables needed for the aapp processing
+    and set eg working dir
+    """
+    
     return True
 
 if __name__ == "__main__":
@@ -1792,6 +1871,18 @@ if __name__ == "__main__":
                         
                     if not check_satellite(msg, aapp_config):
                         continue
+                    
+                    if not check_pass_length(msg, aapp_config):
+                        continue
+                    
+                    if not generate_process_config(msg, aapp_config):
+                        continue
+                    
+                    scene_id =  create_and_check_scene_id(msg, aapp_config)
+                    if not scene_id:
+                        continue
+                    
+                    setup_aapp_processing()
                     
                     status = aapp_proc.run(msg)
                     if not status:
