@@ -845,7 +845,7 @@ class AappLvl1Processor(object):
                     LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
                     LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
                     avhrr_proc_ok = False
-                
+
                 #Do Preprocessing
                 atovpp_proc_ok = True
                 from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
@@ -1789,11 +1789,13 @@ def generate_process_config(msg, config):
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False
-    config['process_avhrr'] = False
+    config['process_avhrr'] = True
     config['process_msu'] = False
     config['process_dcs'] = False
 
-    
+    config['calibration_location'] = "-c -l"
+    config['a_tovs'] = list("ATOVS")
+    config['orbit_number'] = msg.data['orbit_number']
     return True
 
 def create_and_check_scene_id(msg, config):
@@ -1859,24 +1861,29 @@ def process_aapp(msg, config):
     """
     Do the various processing steps of aapp for each instruments
     """
+
+    starttime = config['starttime']
+    platform_name = msg.data['platform_name']
+    working_dir = config['aapp_processes'][config.process_name]['working_dir']
+    tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
     
     #DO tle
     tle_proc_ok = True
-    if not do_tleing(self.starttime, _platform, self.working_dir, self.tle_indir):
+    if not do_tleing(starttime, platform_name, working_dir, tle_indir):
         LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         tle_proc_ok = False
     
     #DO tle satpos
     satpos_proc_ok = True
-    if not do_tle_satpos(self.starttime, _platform, self.tle_indir):
+    if not do_tle_satpos(starttime, platform_name, tle_indir):
         LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         satpos_proc_ok = False
     
     #DO decom
     decom_proc_ok = True
-    if not do_decommutation(process_config, sensors, self.starttime, self.level0_filename):
+    if not do_decommutation(config, msg, starttime):
         LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         decom_proc_ok = False
@@ -1885,7 +1892,7 @@ def process_aapp(msg, config):
     #DO HIRS
     hirs_proc_ok = True
     from do_hirs_calibration import do_hirs_calibration
-    if not do_hirs_calibration(process_config, self.starttime):
+    if not do_hirs_calibration(config, msg, starttime):
         LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         hirs_proc_ok = False
@@ -1893,7 +1900,7 @@ def process_aapp(msg, config):
     #DO ATOVS
     atovs_proc_ok = True
     from do_atovs_calibration import do_atovs_calibration
-    if not do_atovs_calibration(process_config, self.starttime):
+    if not do_atovs_calibration(config, starttime):
         LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         atovs_proc_ok = False
@@ -1901,7 +1908,7 @@ def process_aapp(msg, config):
     #DO AVHRR
     avhrr_proc_ok = True
     from do_avhrr_calibration import do_avhrr_calibration
-    if not do_avhrr_calibration(process_config, self.starttime):
+    if not do_avhrr_calibration(config, msg, starttime):
         LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         avhrr_proc_ok = False
@@ -1909,28 +1916,22 @@ def process_aapp(msg, config):
     #Do Preprocessing
     atovpp_proc_ok = True
     from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
-    if not do_atovpp_and_avh2hirs_processing(process_config, self.starttime):
+    if not do_atovpp_and_avh2hirs_processing(config, starttime):
         LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         atovpp_proc_ok = False
     
-    #DO IASI
-    iasi_proc_ok = True
-    from do_iasi_calibration import do_iasi_calibration
-    if not do_iasi_calibration(process_config, self.starttime):
-        LOG.warning("The iasi calibration and location failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        iasi_proc_ok = False
-
     #DO ANA
     ana_proc_ok = True
     from do_ana_correction import do_ana_correction
-    if not do_ana_correction(process_config, self.starttime):
+    if not do_ana_correction(config, starttime):
         LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         ana_proc_ok = False
 
     return True
+
+
 if __name__ == "__main__":
 
     # Read config file
@@ -1991,10 +1992,11 @@ if __name__ == "__main__":
                         continue
                     
                     try:
-                        process_aapp(msg, config)
+                        process_aapp(msg, aapp_config)
                     except Exception,err:
                         LOG.error("Process aapp failed ...")
-                        
+                    finally:
+                        LOG.info("AAPP processing complete.")
                     #status = aapp_proc.run(msg)
                     #if not status:
                     #    break  # end the loop and reinitialize!

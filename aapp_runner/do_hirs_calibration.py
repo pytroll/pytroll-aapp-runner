@@ -31,17 +31,19 @@ from helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
-def do_hirs_calibration(process_config, timestamp):
+def do_hirs_calibration(process_config, msg, timestamp):
     
     return_status = True
-    
+
+    if not process_config['process_hirs']:
+        return True
+        
     #A list of accepted return codes for the various scripts/binaries run in this function
     accepted_return_codes_hirs_historic_file_manage = [0]
 
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
-
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
     hirs_version_use = None
     hirs_version = os.getenv('HIRSCL_VERSION',0)
     hirs_version_list = hirs_version.split()
@@ -49,7 +51,7 @@ def do_hirs_calibration(process_config, timestamp):
     hirs_sat_list = hirs_sats.split() 
     index = 0
     for sat in hirs_sat_list:
-        if sat in process_config['platform']:
+        if sat in msg.data['platform_name']:
             hirs_version_use = hirs_version_list[index]
         else:
             hirs_version_def = hirs_version_list[index]
@@ -72,7 +74,7 @@ def do_hirs_calibration(process_config, timestamp):
     elif  int(hirs_version_use) == 0 or "".join(process_config['a_tovs']) == 'TOVS':
         calibration_location = "-c -l"
     elif int(hirs_version_use) == 1:
-        file_historic = os.path.join(os.getenv('PAR_CALIBRATION_MONITOR'), process_config['platform'],"hirs_historic.txt")
+        file_historic = os.path.join(os.getenv('PAR_CALIBRATION_MONITOR'), msg.data['platform_name'],"hirs_historic.txt")
         if os.path.exists(file_historic):
             cmd="hirs_historic_file_manage -m {} -r {} -n {} {}".format(os.getenv('HIST_SIZE_HIGH'),os.getenv('HIST_SIZE_LOW'),os.getenv('HIST_NMAX'),file_historic)
             try:
@@ -90,7 +92,7 @@ def do_hirs_calibration(process_config, timestamp):
                     return_status = False
         
         if return_status:
-            cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(process_config['platform'],timestamp)
+            cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(msg.data['platform_name'],timestamp)
             try:
                 status, returncode, std, err = run_shell_command(cmd)
             except:

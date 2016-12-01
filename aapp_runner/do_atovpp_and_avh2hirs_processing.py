@@ -34,7 +34,8 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
     LOG.debug("Do preprocessing atovpp and avh2hirs ... ")
 
     return_status = True
-    
+    return True
+
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['working_directory'])

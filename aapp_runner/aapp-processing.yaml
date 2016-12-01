@@ -5,10 +5,10 @@ logging:
 
 aapp_static_configuration:
   decommutation_files:
-    hirs: hrsn.l1b
-    amsua: aman.l1b
-    amsub: ambn.l1b
-    avhrr: hrpt.l1b
+    hirs_file: hrsn.l1b
+    amsua_file: aman.l1b
+    amsub_file: ambn.l1b
+    avhrr_file: hrpt.l1b
 
   supported_noaa_satellites:
     - NOAA-15
@@ -49,7 +49,7 @@ aapp_processes:
       - /XLBANDANTENNA/METOP-AMSUA/L0
       - /XLBANDANTENNA/METOP-HIRS/L0
 
-    tle_indir: test
+    tle_indir: /disk1/AAPP/orbelems
     tle_outdir: test
 
     locktime_before_rerun: test
@@ -73,7 +73,7 @@ aapp_processes:
     aapp_log_files_dir: /data/trollduction/log_files/
     aapp_log_files_archive_length: '1 days' # '72 hours'
     message_providing_server: satproc2.met.no
-    do_ana_correction: True
+    do_ana_correction: False
 
     instrument_skipped_in_processing:
       - NOAA-15:
@@ -85,6 +85,23 @@ aapp_processes:
         - bludi
         - blidi
 
+    rename_aapp_files:
+      avhrr_l1b: 'hrpt_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      hirs_l1b:  'hirsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      hirs_l1c:  'hirsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
+      hirs_l1d:  'hirsl1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1d'
+      amsua_l1b: 'amsual1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      amsua_l1c: 'amsual1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
+      amsua_l1d: 'amsual1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1d'
+      amsub_l1b: 'amsubl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      amsub_l1c: 'amsubl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
+      mhs_l1b:   'mhsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      mhs_l1c:   'mhsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
+      msu_l1b:   'msul1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      msu_l1c:   'msul1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
+      dcs_l1b:   'dcsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      
+      
     monitor_message:
       send: True
       topic: 'some fantastic topic'

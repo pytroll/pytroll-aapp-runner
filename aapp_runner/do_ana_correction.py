@@ -42,9 +42,14 @@ def do_ana_correction(process_config, timestamp):
     This needs to be copied/installed here by the user 
     """
 
-    if not process_config['process_ana']:
-        return True
+    try:
+        if 'do_ana_correction' in process_config['aapp_processes'][process_config.process_name]:
+            if not process_config['aapp_processes'][process_config.process_name]['do_ana_correction']:
+                return True
+    except Exception, err:
+        print str(err)
 
+    return True
     return_status = True
     
     #This function relays on beeing in a working directory

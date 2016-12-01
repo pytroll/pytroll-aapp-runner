@@ -25,13 +25,14 @@ Relay on several other steps before this can be DONE
 """
 import logging
 import os
+from urlparse import urlparse
 
 from helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
 
-def do_decommutation(process_config, sensors, timestamp, hrpt_file):
+def do_decommutation(process_config, msg, timestamp):
     """    
     decommutation ${A_TOVS}  decommutation.par  ${FILE} 
     
@@ -84,26 +85,26 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
     
-    print "decom file: ", hrpt_file
-    for sensor in sensors:
-        if str(sensor) in "amsu-a":
-            process_config['process_amsua'] = True
-        elif str(sensor) in ("amsu-b", "mhs"):
-            process_config['process_amsub'] = True
-        elif str(sensor) in ("hirs/3","hirs/4"):
-            process_config['process_hirs'] = True
-        elif str(sensor) in "avhrr/3":
-            process_config['process_avhrr'] = True
-        elif str(sensor) in "msu":
-            process_config['process_msu'] = True
-        elif str(sensor) in "dcs":
-            process_config['process_dcs'] = True
-        else:
-            LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
+    print "decom file: ", urlparse(msg.data['uri']).path
+    #for sensor in sensors:
+    #    if str(sensor) in "amsu-a":
+    #        process_config['process_amsua'] = True
+    #    elif str(sensor) in ("amsu-b", "mhs"):
+    #        process_config['process_amsub'] = True
+    #   elif str(sensor) in ("hirs/3","hirs/4"):
+    #       process_config['process_hirs'] = True
+    #    elif str(sensor) in "avhrr/3":
+    #        process_config['process_avhrr'] = True
+    #    elif str(sensor) in "msu":
+    #        process_config['process_msu'] = True
+    #    elif str(sensor) in "dcs":
+    #        process_config['process_dcs'] = True
+    #    else:
+    #        LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
 
-    if 'noaa' in process_config['platform']:
+    if 'noaa' in msg.data['platform_name']:
         print "Do the commutaion for NOAA"
         #a_tovs = "ATOVS"
         
@@ -119,7 +120,7 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
         #Needs to find platform number for A/TOVS
         decom = open(decom_file, 'w')
 
-        if int(process_config['platform'][4:6]) <= 14:
+        if int(msg.data['platform_name'][4:6]) <= 14:
             del process_config['a_tovs'][0]
         
             decom.write("1,0,0,0,0,{},{},{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
@@ -155,7 +156,7 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                 LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                 return_status = False
         
-    elif 'metop' in process_config['platform']:
+    elif 'METOP' in msg.data['platform_name'].upper():
         LOG.info("Do the metop decommutation")
         if process_config['process_amsua']:
             cmd="decom-amsua-metop {} {} ".format(process_config['input_amsua_file'],process_config['amsua_file'])
@@ -204,8 +205,8 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
 
         if process_config['process_avhrr'] and return_status:
             cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
-                                                   process_config['input_avhrr_file'],
-                                                   process_config['avhrr_file'])
+                                                     urlparse(msg.data['uri']).path,
+                                                   process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-avhrr-metop.log")
             except:
@@ -218,7 +219,7 @@ def do_decommutation(process_config, sensors, timestamp, hrpt_file):
                     return_status = False
 
     else:
-        print "Unknown platform: {}".format(process_config['platform'])
+        print "Unknown platform: {}".format(msg.data['platform_name'])
         return_status = False
     
     print os.listdir("./")

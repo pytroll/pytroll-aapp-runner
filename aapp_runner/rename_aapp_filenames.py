@@ -173,8 +173,8 @@ def rename_aapp_filenames(process_config, timestamp, aapp_outdir_selected=".", f
                 except OSError as e:
                     LOG.error("Failed to rename {} to {}. {}".format(process_config['amsub_file'], os.path.join(aapp_outdir_selected,new_name),e))
                     LOG.error("Please check previous processing")
-            else:
-                LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config['amsub_file']))
+                else:
+                    LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config['amsub_file']))
     
             if os.path.exists('ambn.l1c'):
                 new_name = "{0:}_{1:}_{2:%Y%m%d}_{2:%H%M}_{3:5d}.l1c".format("mhsl1c",

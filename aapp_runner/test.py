@@ -88,7 +88,7 @@ def main():
 
     info_dicts = [{"origin": "157.249.17.66:9092", "uid": "AVHR_HRP_00_M02_20160617095302Z_20160617095954Z_N_O_20160617095305Z",
                    "antenna": "XL-BAND", "process_time": "2016-06-17T09:53:05", "start_time": "2016-06-17T09:53:02",
-                   #"orbit_number": 50132,
+                   "orbit_number": 50132,
                    "uri": "file://157.249.116.173/disk1/testdata/AVHR_HRP_00_M02_20160617095302Z_20160617095954Z_N_O_20160617095305Z",
                    "platform_name": "Metop-A", "end_time": "2016-06-17T09:59:54",
                    "pass_key": "65913dde99d8537bb959453e23eb296f", "sensor": "avhrr/3"},

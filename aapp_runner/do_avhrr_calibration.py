@@ -30,7 +30,7 @@ from helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
-def do_avhrr_calibration(process_config, timestamp):
+def do_avhrr_calibration(process_config, msg, timestamp):
 
     accepted_return_codes_avhrcl = [0]
 
@@ -39,16 +39,22 @@ def do_avhrr_calibration(process_config, timestamp):
 
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #calibration_location = "-c -l"
-
-    cmd = "avhrcl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
-                                                                              process_config['platform'],
-                                                                              timestamp,
-                                                                              process_config['orbit_number'],
-                                                                              process_config['avhrr_file'])
+    print "her"
+    
     try:
+        cmd = "avhrcl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
+                                                                                  msg.data['platform_name'],
+                                                                                  timestamp,
+                                                                                  process_config['orbit_number'],
+                                                                                  process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
+    except Exception, err:
+        print str(err)
+        
+    try:
+        print "her"
         status, returncode, std, err = run_shell_command(cmd)
     except:
         LOG.error("Command {} failed.".format(cmd))

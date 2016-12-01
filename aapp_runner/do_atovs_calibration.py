@@ -33,6 +33,10 @@ LOG = logging.getLogger(__name__)
 
 def do_atovs_calibration(process_config, timestamp):
 
+    if not process_config['process_amsua'] and not process_config['process_amsub'] and not process_config['process_msu']:
+        LOG.debug("Skipping atovs processing")
+        return True
+    
     accepted_return_codes_msucl = [0]
     accepted_return_codes_amsuacl = [0]
     accepted_return_codes_amsubcl = [0]
