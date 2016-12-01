@@ -42,7 +42,6 @@ def do_avhrr_calibration(process_config, msg, timestamp):
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #calibration_location = "-c -l"
-    print "her"
     
     try:
         cmd = "avhrcl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
@@ -54,7 +53,6 @@ def do_avhrr_calibration(process_config, msg, timestamp):
         print str(err)
         
     try:
-        print "her"
         status, returncode, std, err = run_shell_command(cmd)
     except:
         LOG.error("Command {} failed.".format(cmd))

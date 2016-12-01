@@ -1791,11 +1791,15 @@ def generate_process_config(msg, config):
     config['process_hirs'] = False
     config['process_avhrr'] = True
     config['process_msu'] = False
+    config['process_mhs'] = False
     config['process_dcs'] = False
 
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
     config['orbit_number'] = msg.data['orbit_number']
+    config['satellite_name'] = msg.data['platform_name']
+    config['start_time'] = msg.data['start_time']
+    
     return True
 
 def create_and_check_scene_id(msg, config):
@@ -1997,6 +2001,14 @@ if __name__ == "__main__":
                         LOG.error("Process aapp failed ...")
                     finally:
                         LOG.info("AAPP processing complete.")
+
+                    #Rename standard AAPP output file names to usefull ones 
+                    #and move files to final location.
+                    from rename_aapp_filenames import rename_aapp_filenames
+                    if not rename_aapp_filenames(aapp_config):
+                        LOG.warning("The rename of standard aapp filenames to practical ones failed for some reason. It might be that the processing can continue")
+                        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+
                     #status = aapp_proc.run(msg)
                     #if not status:
                     #    break  # end the loop and reinitialize!

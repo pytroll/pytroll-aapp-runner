@@ -34,7 +34,7 @@ aapp_static_configuration:
     'amsub': 'amsu-b'
     'hirs': 'hirs/4'
     'mhs': 'mhs'
-    'avhrr': 'avhrt/3'
+    'avhrr': 'avhrr/3'
 
 
 
@@ -59,9 +59,10 @@ aapp_processes:
     aapp_prefix: /disk1/AAPP
     aapp_environment_file: ATOVS_ENV7
     aapp_workdir: /run/shm/aapp-workdir
-    aapp_outdir: /data/trollduction/data/aapp-outdir-xl
+    aapp_outdir_base: /disk1/aapp-runner-data
+    aapp_outdir_format: '{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:05d}'
+
     custom_aapp_dir_navigation: /data/aapp-dir-navigation/orbelems
-    aapp_outdir_format: '{satellite_name:s}_{start_time:%%Y%%m%%d}_{start_time:%%H%%M}_{orbit_number:05d}'
     passlength_threshold: 5
     use_dyn_work_dir: False
 
@@ -85,21 +86,44 @@ aapp_processes:
         - bludi
         - blidi
 
+    rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
     rename_aapp_files:
-      avhrr_l1b: 'hrpt_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      hirs_l1b:  'hirsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      hirs_l1c:  'hirsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
-      hirs_l1d:  'hirsl1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1d'
-      amsua_l1b: 'amsual1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      amsua_l1c: 'amsual1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
-      amsua_l1d: 'amsual1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1d'
-      amsub_l1b: 'amsubl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      amsub_l1c: 'amsubl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
-      mhs_l1b:   'mhsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      mhs_l1c:   'mhsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
-      msu_l1b:   'msul1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
-      msu_l1c:   'msul1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1c'
-      dcs_l1b:   'dcsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_name:5d}.l1b'
+      avhrr:
+        hrpt: l1b
+      hirs:
+        hirsl1b: l1b
+        hirsl1c: l1c
+        hirsl1d: l1d
+      amsua:
+        amsual1b: l1b
+        amsual1c: l1c
+        amsual1d: l1d
+      amsub:
+        amsubl1b: l1b
+        amsubl1c: l1c
+      mhs:
+        mhsl1b: l1b
+        mhsl1c: l1c
+      msu:
+        msul1b: l1b
+        msul1c: l1c
+      dcs:
+        dcsl1b: l1b
+        
+#      avhrr_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hrpt_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      hirs_l1b:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      hirs_l1c:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
+#      hirs_l1d:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1d'
+#      amsua_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      amsua_l1c: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
+#      amsua_l1d: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1d'
+#      amsub_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsubl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      amsub_l1c: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsubl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
+#      mhs_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/mhsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      mhs_l1c:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/mhsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
+#      msu_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/msul1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
+#      msu_l1c:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/msul1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
+#      dcs_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/dcsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
       
       
     monitor_message:
