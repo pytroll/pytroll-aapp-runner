@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from apt_pkg import config
+from distutils import filelist
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -1174,57 +1175,6 @@ def aapp_rolling_runner(runner_config):
     return
 
 
-def publish_level1(publisher,
-                   server,
-                   env,
-                   station,
-                   publish_format,
-                   result_files,
-                   orbit, start_t, end_t, mda, publish_sift_format):
-    """Publish the messages that AAPP lvl1 files are ready
-    """
-    # Now publish:
-    for key in result_files:
-        resultfile = key
-        LOG.debug("File: " + str(os.path.basename(resultfile)))
-        filename = os.path.split(resultfile)[1]
-        to_send = mda.copy()
-        to_send['uri'] = ('ssh://%s%s' % (server, resultfile))
-        to_send['filename'] = filename
-        to_send['uid'] = filename
-        to_send['sensor'] = result_files[key]['sensor']
-        to_send['orbit_number'] = int(orbit)
-        to_send['format'] = publish_format
-        to_send['type'] = 'Binary'
-        to_send['data_processing_level'] = result_files[key]['level'].upper()
-        LOG.debug('level in message: ' + str(to_send['data_processing_level']))
-        to_send['start_time'], to_send['end_time'] = start_t, end_t
-        to_send['station'] = station
-        to_send['env'] = env
-        try:
-            publish_to = compose(publish_sift_format,to_send)
-        except KeyError as ke:
-            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(publish_sift_format))
-            LOG.warning("Available keys are:")
-            for key in to_send:
-                LOG.warning("{} = {}".format(key,to_send[key]))
-            LOG.error("Can not publish these data!")
-            return
-        except ValueError as ve:
-            LOG.error("Value Error: {}".format(ve))
-            return
-
-        LOG.debug("Publish to:{}".format(publish_to))
-        msg = Message(publish_to, "file", to_send).encode()
-        #msg = Message('/' + str(to_send['format']) + '/' +
-        #              str(to_send['data_processing_level']) +
-        #              '/' + station + '/' + env +
-        #             '/polar/direct_readout/',
-        #              "file", to_send).encode()
-        LOG.debug("sending: " + str(msg))
-        publisher.send(msg)
-
-
 def get_aapp_lvl1_files(level1_dir, satid):
     """Get the aapp level-1 filenames for the NOAA/Metop direct readout
     swath"""
@@ -1935,6 +1885,71 @@ def process_aapp(msg, config):
 
     return True
 
+def publish_level1(publisher, config, msg, filelist):
+    """
+    Send a publish message, one message per file in the filelist
+    """
+    
+    for file in filelist:
+        msg_to_send = msg.data.copy()
+        msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][config.process_name]['message_providing_server'], file)
+
+        to_send['filename'] = os.path.basename(file)
+        to_send['uid'] = os.path.basename(file)
+        
+    return True
+
+
+
+def publish_level1(publisher,
+                   server,
+                   env,
+                   station,
+                   publish_format,
+                   result_files,
+                   orbit, start_t, end_t, mda, publish_sift_format):
+    """Publish the messages that AAPP lvl1 files are ready
+    """
+    # Now publish:
+    for key in result_files:
+        resultfile = key
+        LOG.debug("File: " + str(os.path.basename(resultfile)))
+        filename = os.path.split(resultfile)[1]
+        to_send = mda.copy()
+        to_send['uri'] = ('ssh://%s%s' % (server, resultfile))
+        to_send['filename'] = filename
+        to_send['uid'] = filename
+        to_send['sensor'] = result_files[key]['sensor']
+        to_send['orbit_number'] = int(orbit)
+        to_send['format'] = publish_format
+        to_send['type'] = 'Binary'
+        to_send['data_processing_level'] = result_files[key]['level'].upper()
+        LOG.debug('level in message: ' + str(to_send['data_processing_level']))
+        to_send['start_time'], to_send['end_time'] = start_t, end_t
+        to_send['station'] = station
+        to_send['env'] = env
+        try:
+            publish_to = compose(publish_sift_format,to_send)
+        except KeyError as ke:
+            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(publish_sift_format))
+            LOG.warning("Available keys are:")
+            for key in to_send:
+                LOG.warning("{} = {}".format(key,to_send[key]))
+            LOG.error("Can not publish these data!")
+            return
+        except ValueError as ve:
+            LOG.error("Value Error: {}".format(ve))
+            return
+
+        LOG.debug("Publish to:{}".format(publish_to))
+        msg = Message(publish_to, "file", to_send).encode()
+        #msg = Message('/' + str(to_send['format']) + '/' +
+        #              str(to_send['data_processing_level']) +
+        #              '/' + station + '/' + env +
+        #             '/polar/direct_readout/',
+        #              "file", to_send).encode()
+        LOG.debug("sending: " + str(msg))
+        publisher.send(msg)
 
 if __name__ == "__main__":
 
@@ -2005,10 +2020,13 @@ if __name__ == "__main__":
                     #Rename standard AAPP output file names to usefull ones 
                     #and move files to final location.
                     from rename_aapp_filenames import rename_aapp_filenames
-                    if not rename_aapp_filenames(aapp_config):
-                        LOG.warning("The rename of standard aapp filenames to practical ones failed for some reason. It might be that the processing can continue")
-                        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-
+                    renamed_files = rename_aapp_filenames(aapp_config) 
+                    if not renamed_files:
+                        LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
+                        LOG.warning("This means there are no files to publish")
+                    else:_
+                        publish_level1(publisher, aapp_config, msg, rename_files)
+                    
                     #status = aapp_proc.run(msg)
                     #if not status:
                     #    break  # end the loop and reinitialize!

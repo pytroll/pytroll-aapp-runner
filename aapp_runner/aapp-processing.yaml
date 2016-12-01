@@ -66,11 +66,6 @@ aapp_processes:
     passlength_threshold: 5
     use_dyn_work_dir: False
 
-    #Must change
-    pps_out_dir: /data/trollduction/safnwc/pps/data-xl/import/PPS_data/source
-    pps_out_dir_format: '{satellite_name:s}_{start_time:%%Y%%m%%d}_{start_time:%%H%%M}_{orbit_number:05d}'
-    copy_data_directories: [] 
-    move_data_directory: /data/trollduction/safnwc/pps/data-xl/import/PPS_data/source
     aapp_log_files_dir: /data/trollduction/log_files/
     aapp_log_files_archive_length: '1 days' # '72 hours'
     message_providing_server: satproc2.met.no

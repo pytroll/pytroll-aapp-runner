@@ -94,7 +94,7 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
             LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config[inputfile]))
             return False
         
-    return True
+    return new_file
 
 def rename_aapp_filenames(process_config):
     LOG.debug("Rename AAPP filenames ... ")
@@ -103,7 +103,7 @@ def rename_aapp_filenames(process_config):
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
-    
+    files = []
     for instrument,value in process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'].iteritems():
         #print instrument,value
         for data_type, data_level in value.iteritems():
@@ -111,15 +111,15 @@ def rename_aapp_filenames(process_config):
             process_instrument = "process_{}".format(instrument)
             process_file = "{}_file".format(instrument)
             
-            rename_file(process_config,
-                        process_instrument,
-                        process_file,
-                        data_type,
-                        data_level)
+            file = rename_file(process_config,
+                               process_instrument,
+                               process_file,
+                               data_type,
+                               data_level)
     
     #Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("Rename aapp files complete!")
 
-    return True
+    return files
