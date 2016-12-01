@@ -116,6 +116,7 @@ def rename_aapp_filenames(process_config):
                                process_file,
                                data_type,
                                data_level)
+            
     
     #Change back after this is done
     os.chdir(current_dir)
