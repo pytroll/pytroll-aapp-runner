@@ -59,7 +59,8 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
     #for key, value in tmp_process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'].iteritems():
     #    #print key,value
         
-        
+    new_name = ""
+    
     if process_config[process_file]:
         if os.path.exists(process_config['aapp_static_configuration']['decommutation_files'][inputfile]):
             try:
@@ -94,7 +95,7 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
             LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config[inputfile]))
             return False
         
-    return new_file
+    return new_name
 
 def rename_aapp_filenames(process_config):
     LOG.debug("Rename AAPP filenames ... ")
@@ -117,7 +118,14 @@ def rename_aapp_filenames(process_config):
                                data_type,
                                data_level)
             
-    
+            if file:
+                _tmp = {}
+                _tmp['file'] = file
+                _tmp['sensor'] = instrument
+                _tmp['level'] = data_level
+                files.append(_tmp)
+
+            
     #Change back after this is done
     os.chdir(current_dir)
 
