@@ -169,56 +169,106 @@ class AappL1Config(object):
         return self.config['aapp_processes'][self.process_name][key]
          
 
+def cleanup_aapp_logfiles_archive(config):
+    """
+    Loop over the aapp log files directories and remove expired directories accordingly
+    """
 
-def cleanup_aapp_workdir(self):
+    try:
+        directory_list = glob('%s/*' % config['aapp_processes'][config.process_name]['aapp_log_files_archive_dir'])
+        dummy = [delete_old_dirs(s,config['aapp_processes'][config.process_name]['aapp_log_files_archive_length']) for s in directory_list if os.path.isdir(s)]
+    except Exception as err:
+        LOG.error("Failed with: {}".format(err))
+        return False
+    
+    return True
+
+def delete_old_dirs(dir_path, older_than_days):
+    """
+    Delete old directories
+    """
+    try:
+        older_than = int(older_than_days) * 86400  # convert days to seconds
+        time_now = _time()
+        if (time_now - os.path.getmtime(dir_path)) > older_than:
+            LOG.debug("Removing: {} and all its content.".format(dir_path))
+            shutil.rmtree(dir_path)
+    except ValueError as ve:
+        LOG.error("Failed to handle value {} as int: {}".format(older_than_days,ve))
+        LOG.error("Will NOT clean the directory: {}".format(dir_path))
+        return False
+    except Exception as err:
+        LOG.error("Failed with {}".format(err))
+        return False
+    
+    return True
+    
+def cleanup_aapp_workdir(config):
     """Clean up the AAPP working dir after processing"""
 
-    filelist = glob('%s/*' % self.working_dir)
-    dummy = [os.remove(s) for s in filelist if os.path.isfile(s)]
-    filelist = glob('%s/*' % self.working_dir)
-    LOG.info("Number of items left after cleaning working dir = " +
-             str(len(filelist)))
-    LOG.debug("Files: " + str(filelist))
-    shutil.rmtree(self.working_dir)
-    return
+    try:
+        filelist = glob('%s/*' % config['aapp_processes'][config.process_name]['working_dir'])
+        dummy = [os.remove(s) for s in filelist if os.path.isfile(s)]
+        #filelist = glob('%s/*' % self.working_dir)
+        #LOG.info("Number of items left after cleaning working dir = " +
+        #          str(len(filelist)))
+        #LOG.debug("Files: " + str(filelist))
+        shutil.rmtree(config['aapp_processes'][config.process_name]['working_dir'])
+    except Exception as err:
+        LOG.warning("Failed to cleanup working dir: {}".format(err))
+        return False
+        
+    return True
 
 
-def move_aapp_log_files(self):
+def move_aapp_log_files(config):
     """ Move AAPP processing log files from AAPP working directory
-    in to sub-directory (PPS format).
+    in to sub-directory.
     The directory path is defined in config file (aapp_log_files)
     """
     try:
-        filelist = glob('%s/*.log' % self.working_dir)
-        subd = create_pps_subdirname(self.starttime,
-                                     self.platform_name,
-                                     self.orbit)
-        destination = os.path.join(self.aapp_log_files_dir, subd)
+        filelist = glob('%s/*.log' % config['aapp_processes'][config.process_name]['working_dir'])
+        
+        try:
+            tmp_config = config.config.copy()
+            tmp_config.update(tmp_config['aapp_processes'][config.process_name])
+
+            _outdir = compose(tmp_config['aapp_outdir_format'],tmp_config)
+            destination = os.path.join(tmp_config['aapp_log_files_archive_dir'], _outdir)
+        except KeyError as err:
+            LOG.error("Failed to compose log files dir: {}. Missing key:{}".format(config['aapp_processes'][config.process_name]['aapp_outdir_format'],err))
+            return False
+        except Exception as err:
+            LOG.error("Failed to compose log files dir: {}. Error:{}".format(config['aapp_processes'][config.process_name]['aapp_outdir_format'],err))
+            return False
+
         LOG.debug("move_aapp_log_files destination: " + destination)
 
         if not os.path.exists(destination):
             try:
                 os.makedirs(destination)
-            except OSError:
-                LOG.warning("Can't create directory!")
+            except OSError as err:
+                LOG.error("Can't create directory: {} because: {}".format(destination, err))
                 return False  # FIXME: Check!
-        LOG.debug(
-            "Created new directory for AAPP log files:" + destination)
+            else:
+                LOG.debug("Created new directory for AAPP log files:" + destination)
 
         for file_name in filelist:
-            LOG.debug("File_name: " + file_name)
-            base_filename = os.path.basename(file_name)
-            dst = os.path.join(destination, base_filename)
-            LOG.debug("dst: " + dst)
-            shutil.move(file_name, dst)
+            try:
+                base_filename = os.path.basename(file_name)
+                dst = os.path.join(destination, base_filename)
+                shutil.move(file_name, dst)
+            except Exception as err:
+                LOG.warning("Failed to move log file: {} to: {}".format(file_name, dst))
+            else:
+                LOG.debug("Moved {} to {}".format(file_name,dst))
+
     except OSError as err:
-        LOG.error("Moving AAPP log files to " +
-                  destination + " failed ", err)
+        LOG.error("Moving AAPP log files to " + destination + " failed ", err)
 
     LOG.info("AAPP log files saved in to " + destination)
 
-    return
-
+    return True
 
 def check_scene_id(self, scene_id):
     # Check for keys representing the same scene (slightly different
@@ -419,22 +469,6 @@ def cleanup(number_of_days, path):
                 remove(root)
 
 
-def delete_old_dirs(dir_path, older_than_days):
-    """
-    Delete old directories
-    """
-    LOG.debug("delete_old_dirs in progress..." + older_than_days)
-    older_than = older_than_days * 86400  # convert days to seconds
-    time_now = _time()
-    LOG.debug("after: " + dir_path)
-    for path, folders, files in os.walk(dir_path):
-        LOG.debug("path, folders, files:" + path + folders + files)
-        for folder in folders[:]:
-            folder_path = os.path.join(path, folder)
-            if (time_now - os.path.getmtime(folder_path)) > older_than:
-                yield folder_path
-                LOG.debug("Deleting folder " + folder)
-                # folders.remove(folder)
 
 def setup_logging(config, log_file):
     """
@@ -751,26 +785,19 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
 if __name__ == "__main__":
 
-    # Read config file
-    #
-    # pylint: disable=C0103
-    # C0103: Invalid name "%s" (should match %s)
-    # Used when the name doesn't match the regular expression
-    # associated to its type (constant, variable, class...).
-
+    """
+    Call the various functions that make up the parts of the AAPP processing
+    """
+    
+    #Read the command line argument
     (station_name, environment, config_filename, log_file) = read_arguments()
 
     if not os.path.isfile(config_filename):
-        #        config.read(config_filename)
-        #    else:
-        print "ERROR: ", config_filename, ": No such config file."
+        print "ERROR! Can not find config file: {}".format(config_filename)
+        print "Exits!"
         sys.exit()
 
-    config = read_config_file_options(config_filename,
-                                           station_name, environment)
-    #if not isinstance(run_options, dict):
-    #    print "Reading config file failed: ", config_filename
-    #    sys.exit()
+    config = read_config_file_options(config_filename, station_name, environment)
 
     #Set up logging
     try:
@@ -778,56 +805,64 @@ if __name__ == "__main__":
     except:
         print "Logging setup failed. Check your config"
         #TODO
-        #Better error handeling for logginf setup
+        #Better error handeling for logging setup
     
-    aapp_config = AappL1Config(config, environment)    
+    try:
+        aapp_config = AappL1Config(config, environment)
+    except Exception as err:
+        LOG.error("Failed to init AAPP L1 Config object: {}".format(err))
+        sys.exit()    
 
-    with posttroll.subscriber.Subscribe('',
-                                        aapp_config.get_parameter('subscribe_topics'),
-                                        True) as subscr:
-        with Publish('aapp_runner', 0) as publisher:
-            while True:
-                aapp_config.reset()
-                for msg in subscr.recv(timeout=90):
-                    if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
-                        continue
+    try:
+        with posttroll.subscriber.Subscribe('',
+                                            aapp_config.get_parameter('subscribe_topics'),
+                                            True) as subscr:
+            with Publish('aapp_runner', 0) as publisher:
+                while True:
+                    aapp_config.reset()
+                    for msg in subscr.recv(timeout=90):
+                        if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
+                            continue
                         
-                    if not check_satellite(msg, aapp_config):
-                        continue
+                        if not check_satellite(msg, aapp_config):
+                            continue
                     
-                    if not check_pass_length(msg, aapp_config):
-                        continue
+                        if not check_pass_length(msg, aapp_config):
+                            continue
                     
-                    if not generate_process_config(msg, aapp_config):
-                        continue
+                        if not generate_process_config(msg, aapp_config):
+                            continue
                     
-                    scene_id =  create_and_check_scene_id(msg, aapp_config)
-                    if not scene_id:
-                        continue
+                        scene_id =  create_and_check_scene_id(msg, aapp_config)
+                        if not scene_id:
+                            continue
                     
-                    if not setup_aapp_processing(aapp_config):
-                        continue
+                        if not setup_aapp_processing(aapp_config):
+                            continue
                     
-                    try:
-                        process_aapp(msg, aapp_config)
-                    except Exception,err:
-                        LOG.error("Process aapp failed ...")
-                    finally:
-                        LOG.info("AAPP processing complete.")
+                        try:
+                            process_aapp(msg, aapp_config)
+                        except Exception,err:
+                            LOG.error("Process aapp failed ...")
+                        finally:
+                            LOG.info("AAPP processing complete.")
 
-                    #Rename standard AAPP output file names to usefull ones 
-                    #and move files to final location.
-                    from rename_aapp_filenames import rename_aapp_filenames
-                    renamed_files = rename_aapp_filenames(aapp_config) 
-                    if not renamed_files:
-                        LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
-                        LOG.warning("This means there are no files to publish")
-                    else:
-                        print renamed_files
-                        publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
+                        #Rename standard AAPP output file names to usefull ones 
+                        #and move files to final location.
+                        from rename_aapp_filenames import rename_aapp_filenames
+                        renamed_files = rename_aapp_filenames(aapp_config) 
+                        if not renamed_files:
+                            LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
+                            LOG.warning("This means there are no files to publish")
+                        else:
+                            publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
                     
-                
-                tobj = aapp_proc.starttime
-                LOG.info("Time used in sub-dir name: " +
-                         str(tobj.strftime("%Y-%m-%d %H:%M")))
-    
+                        move_aapp_log_files(aapp_config)
+                        cleanup_aapp_logfiles_archive(aapp_config)
+                    
+                        cleanup_aapp_workdir(aapp_config)
+                    
+    except KeyboardInterrupt as ki:
+        LOG.info("Received keyboard interrupt. Shutting down")
+    finally:
+        LOG.info("Exiting AAPP runner. See ya")

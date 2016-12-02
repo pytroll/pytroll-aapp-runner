@@ -66,9 +66,11 @@ aapp_processes:
     passlength_threshold: 5
     use_dyn_work_dir: False
 
-    aapp_log_files_dir: /data/trollduction/log_files/
-    aapp_log_files_archive_length: '1 days' # '72 hours'
+    aapp_log_files_archive_dir: /disk1/aapp-runner-log
+    aapp_log_files_archive_length: 1
+
     message_providing_server: satproc2.met.no
+
     do_ana_correction: False
 
     instrument_skipped_in_processing:
