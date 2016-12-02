@@ -44,10 +44,7 @@ aapp_processes:
     name: xl-band
     subscribe_topics:
       - /XLBANDANTENNA/HRPT/L0
-      - /XLBANDANTENNA/METOP-AVHRR/L0
-      - /XLBANDANTENNA/METOP-MHS/L0
-      - /XLBANDANTENNA/METOP-AMSUA/L0
-      - /XLBANDANTENNA/METOP-HIRS/L0
+      - /XLBANDANTENNA/METOP/L0
 
     tle_indir: /disk1/AAPP/orbelems
     tle_outdir: test

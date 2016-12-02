@@ -93,8 +93,28 @@ def main():
                    "platform_name": "Metop-A", "end_time": "2016-06-17T09:59:54",
                    "pass_key": "65913dde99d8537bb959453e23eb296f", "sensor": "avhrr/3"},
                   ]
+    
     topic = "/XLBANDANTENNA/METOP-AVHRR/L0"
     
+    topic = "/XLBANDANTENNA/METOP/L0"
+    
+    info_dicts = [{"origin": "157.249.17.66:9103",
+                   "sensor": ["a", "m", "s", "u", "-", "v", "h", "r", "/", "3", "i", "4"],
+                   "antenna": "XL-BAND", "processing_time": "2016-12-02T11:04:25", "process_time": "2016-12-02T11:04:25",
+                   "start_time": "2016-12-02T11:04:03",
+                   "orbit_number": 21833,
+                   "dataset": [{"uri": "file:///disk1/testdata/AMSA_HRP_00_M01_20161202110403Z_20161202111652Z_N_O_20161202110425Z",
+                                "uid": "AMSA_HRP_00_M01_20161202110403Z_20161202111652Z_N_O_20161202110425Z"},
+                               {"uri": "file:///disk1/testdata/AVHR_HRP_00_M01_20161202110414Z_20161202111708Z_N_O_20161202110417Z",
+                                "uid": "AVHR_HRP_00_M01_20161202110414Z_20161202111708Z_N_O_20161202110417Z"},
+                               {"uri": "file:///disk1/testdata/HIRS_HRP_00_M01_20161202110410Z_20161202111652Z_N_O_20161202110430Z",
+                                "uid": "HIRS_HRP_00_M01_20161202110410Z_20161202111652Z_N_O_20161202110430Z"},
+                               {"uri": "file:///disk1/testdata/MHSx_HRP_00_M01_20161202110406Z_20161202111658Z_N_O_20161202110419Z",
+                                "uid": "MHSx_HRP_00_M01_20161202110406Z_20161202111658Z_N_O_20161202110419Z"}],
+                   "platform_name": "Metop-B",
+                   "end_time": "2016-12-02T11:16:52", "orig_platform_name": "M01",
+                   "pass_key": "e613c5becfde7b0d96a4829c184ea197"},
+                  ]
     #info_dicts = [{"format": "HRPT", "sensor": ["avhrr/3", "mhs", "amsu-b", "amsu-a", "hirs/3", "hirs/4"],
     #                "start_time": "2016-06-16T02:43:43", "orbit_number": "37899",
     #                 "uri": "/disk1/trollduction-test/data/clear_NO19_37899_2016-06-16T02:43:43.827_951-expanded-16bit",
@@ -109,6 +129,7 @@ def main():
 
     message_type = 'collection'
     message_type = 'file'
+    message_type = 'dataset'
 
     for info_dict in info_dicts:
         send_message(topic, info_dict, message_type)

@@ -536,17 +536,27 @@ def check_message(msg, server):
     
     if msg is None:
         LOG.debug("Message is None.")
-    elif ( msg.type != 'file' and msg.type != 'collection' ):
-        LOG.warning("Message type is not a file or collection",msg.type)
+    elif ( msg.type != 'file' and msg.type != 'dataset' ):
+        LOG.warning("Message type is not a file or collection {}".format(msg.type))
         return False
     else:
-        urlobj = urlparse(msg.data['uri'])
-        url_ip = socket.gethostbyname(urlobj.netloc)
-        if urlobj.netloc and (url_ip not in get_local_ips()):
-            LOG.warning("Server %s not the current one: %s",
-                        str(urlobj.netloc),
-                        socket.gethostname())
-            return False
+        try:
+            urlobj = []
+            if 'uri' in msg.data:
+                urlobj.append(urlparse(msg.data['uri']))
+            elif 'dataset' in msg.data:
+                for file in msg.data['dataset']:
+                    urlobj.append(urlparse(file['uri']))                     
+        except KeyError as ke:
+            LOG.error("Key error: {}".format(ke))
+                
+        for obj in urlobj:
+            url_ip = socket.gethostbyname(obj.netloc)
+            if obj.netloc and (url_ip not in get_local_ips()):
+                LOG.warning("Server %s not the current one: %s",
+                            str(obj.netloc),
+                            socket.gethostname())
+                return False
 
     return True
 
