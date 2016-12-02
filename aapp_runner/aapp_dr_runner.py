@@ -606,6 +606,9 @@ def generate_process_config(msg, config):
     
     Need to check if it is a collection or file message. Then get sensor information from this.
     """
+    
+    if 'dataset' in msg.data:
+        
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False
