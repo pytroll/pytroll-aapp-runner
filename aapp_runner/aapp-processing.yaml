@@ -52,7 +52,7 @@ aapp_processes:
     tle_indir: /disk1/AAPP/orbelems
     tle_outdir: test
 
-    locktime_before_rerun: test
+    locktime_before_rerun: 10
 
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
 

@@ -43,6 +43,8 @@ import socket
 import netifaces
 from helper_functions import run_shell_command
 
+import copy
+
 LOG = logging.getLogger(__name__)
 
 
@@ -108,9 +110,6 @@ def get_local_ips():
                 ips.append(add['addr'])
     return ips
 
-
-
-
 def reset_job_registry(objdict, key, start_end_times):
     """Remove job key from registry"""
 
@@ -139,7 +138,7 @@ class AappL1Config(object):
         """
         Init the config
         """
-        self.orig_config = config
+        self.orig_config = copy.deepcopy(config)
         self.config = config
         self.process_name = process_name
         self.job_register = {}
@@ -155,7 +154,8 @@ class AappL1Config(object):
         """
         Clear/reset dynamic configuration
         """
-        self.config = self.orig_config
+        self.config = {}
+        self.config = copy.deepcopy(self.orig_config)
         self.local_env = {}
         self.local_env = os.environ.copy()
         
@@ -352,26 +352,35 @@ def available_sensors(self, msg, sensors, scene_id):
     return True
 
 
-#            # Block any future run on this scene for time_to_block_before_rerun
-#            # (e.g. 10) minutes from now:
-#            t__ = threading.Timer(self.locktime_before_rerun,
-#                                  reset_job_registry, args=(self.job_register,
-#                                                            str(self.platform_name),
-#                                                            (self.starttime,
-#                                                             self.endtime)))
-#            t__.start()
-#
-#            LOG.debug("After timer call: job register = " + str(self.job_register))
-#
-#            LOG.info("Ready with AAPP level-1 processing on NOAA scene: " + str(fname))
-#            LOG.info("working dir: self.working_dir = " + str(self.working_dir))
+def block_before_rerun(config, msg):
+    """
+    Add run to registry to block this from rerun if that is configured
+    """
 
+    if msg.data['platform_name'] not in config.job_register.keys():
+        config.job_register[msg.data['platform_name']] = []
 
+    config.job_register[msg.data['platform_name']].append((config['starttime'], config['endtime']))
+    LOG.debug("End: job register = " + str(config.job_register))
 
+    try:
+        # Block any future run on this scene for time_to_block_before_rerun
+        # (e.g. 10) minutes from now:
+        t__ = threading.Timer(config['aapp_processes'][config.process_name]['locktime_before_rerun'],
+                              reset_job_registry, args=(config.job_register,
+                                                        msg.data['platform_name'],
+                                                        (config['starttime'],
+                                                         config['endtime'])))
+        t__.start()
 
+        LOG.debug("After timer call: job register = " + str(config.job_register))
 
-
-
+        #LOG.info("Ready with AAPP level-1 processing on NOAA scene: " + str(fname))
+        #LOG.info("working dir: self.working_dir = " + str(config['aapp_processes'][config.process_name]['working_dir']))
+    except Exception as err:
+        LOG.error("Failed because of: {}".format(err))
+        
+    return True
 
 def read_arguments():
     """
@@ -755,8 +764,8 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
             msg_to_send['type'] = 'Binary'
             msg_to_send['data_processing_level'] = file['level'].upper()
             LOG.debug('level in message: ' + str(msg_to_send['data_processing_level']))
-            msg_to_send['start_time'] = config['start_time']
-            msg_to_send['end_time'] = config['end_time']
+            msg_to_send['start_time'] = config['starttime']
+            msg_to_send['end_time'] = config['endtime']
             msg_to_send['station'] = station_name
             msg_to_send['env'] = environment
         except KeyError as ke:
@@ -819,8 +828,8 @@ if __name__ == "__main__":
                                             True) as subscr:
             with Publish('aapp_runner', 0) as publisher:
                 while True:
-                    aapp_config.reset()
                     for msg in subscr.recv(timeout=90):
+                        aapp_config.reset()
                         if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
                             continue
                         
@@ -843,8 +852,9 @@ if __name__ == "__main__":
                         try:
                             process_aapp(msg, aapp_config)
                         except Exception,err:
-                            LOG.error("Process aapp failed ...")
-                        finally:
+                            LOG.error("Process aapp failed: {}".format(err))
+                            continue
+                        else:
                             LOG.info("AAPP processing complete.")
 
                         #Rename standard AAPP output file names to usefull ones 
@@ -861,6 +871,8 @@ if __name__ == "__main__":
                         cleanup_aapp_logfiles_archive(aapp_config)
                     
                         cleanup_aapp_workdir(aapp_config)
+
+                        block_before_rerun(aapp_config, msg)
                     
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")
