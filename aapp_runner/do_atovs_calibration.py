@@ -45,15 +45,15 @@ def do_atovs_calibration(process_config, timestamp):
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #calibration_location = "-c -l"
     if "".join(process_config['a_tovs']) == 'TOVS':
         cmd = "msucl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
-                                                                                 process_config['platform'],
+                                                                                 process_config['platform_name'],
                                                                                  timestamp,
                                                                                  process_config['orbit_number'],
-                                                                                 process_config['msun_file'])
+                                                                                 process_config['aapp_static_configuration']['decommutation_files']['msun_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
@@ -68,10 +68,10 @@ def do_atovs_calibration(process_config, timestamp):
     elif "".join(process_config['a_tovs']) == 'ATOVS':
         if process_config['process_amsua']:
             cmd = "amsuacl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
-                                                                                       process_config['platform'],
+                                                                                       process_config['platform_name'],
                                                                                        timestamp,
                                                                                        process_config['orbit_number'],
-                                                                                       process_config['amsua_file'])
+                                                                                       process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)
             except:
@@ -86,17 +86,17 @@ def do_atovs_calibration(process_config, timestamp):
         if process_config['process_amsub'] and return_value:
             amsub_script = "mhscl"
             try:
-                if 'noaa' in process_config['platform'] and int(process_config['platform'][-2:]) <= 17:
+                if 'noaa' in process_config['platform_name'] and int(process_config['platform_name'][-2:]) <= 17:
                     amsu_script = "amsubcl"
             except ValueError as ve:
-                LOG.warning("Could not exctract satellite number from the last two characters in the platform name: {} and convert it to a number.".format(process_config['platform']))
+                LOG.warning("Could not exctract satellite number from the last two characters in the platform name: {} and convert it to a number.".format(process_config['platform_name']))
                 
             cmd = "{0} {1} -s {2} -d {3:%Y%m%d} -h {3:%H%M} -n {4:05d} {5}".format(amsub_script,
                                                                                    process_config['calibration_location'],
-                                                                                   process_config['platform'],
+                                                                                   process_config['platform_name'],
                                                                                    timestamp,
                                                                                    process_config['orbit_number'],
-                                                                                   process_config['amsub_file'])
+                                                                                   process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)
             except:

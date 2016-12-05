@@ -39,6 +39,7 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
     Do the actual renaming and checking
     """
     
+    print process_file, inputfile, data_type, data_level
     try:
         process_config[process_file]
     except KeyError as err:
@@ -92,7 +93,7 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
                 LOG.error("Please check previous processing")
                 return False
         else:
-            LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config[inputfile]))
+            LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config['aapp_static_configuration']['decommutation_files'][inputfile]))
             return False
         
     return new_name
@@ -106,9 +107,9 @@ def rename_aapp_filenames(process_config):
 
     files = []
     for instrument,value in process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'].iteritems():
-        #print instrument,value
+        print "Main: ",instrument,value
         for data_type, data_level in value.iteritems():
-            #print data_type, data_level
+            print "INNER: ",data_type, data_level
             process_instrument = "process_{}".format(instrument)
             process_file = "{}_file".format(instrument)
             

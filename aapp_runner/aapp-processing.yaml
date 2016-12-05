@@ -8,6 +8,7 @@ aapp_static_configuration:
     hirs_file: hrsn.l1b
     amsua_file: aman.l1b
     amsub_file: ambn.l1b
+    mhs_file: ambn.l1b
     avhrr_file: hrpt.l1b
 
   supported_noaa_satellites:

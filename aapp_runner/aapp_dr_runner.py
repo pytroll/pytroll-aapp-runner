@@ -639,6 +639,12 @@ def generate_process_config(msg, config):
         print urlparse(sensor_filename['uri']).path
         config[input_file_name] = urlparse(sensor_filename['uri']).path
  
+    #Processing of MHS is done as amsub
+    #If process_mhs is true, then also amsub
+    if config['process_mhs']:
+        config['process_amsub'] = config['process_mhs']
+        config['input_amsub_file'] = config['input_mhs_file'] 
+ 
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
     config['orbit_number'] = msg.data['orbit_number']
@@ -924,7 +930,7 @@ if __name__ == "__main__":
                         move_aapp_log_files(aapp_config)
                         cleanup_aapp_logfiles_archive(aapp_config)
                     
-                        cleanup_aapp_workdir(aapp_config)
+                        #cleanup_aapp_workdir(aapp_config)
 
                         block_before_rerun(aapp_config, msg)
                     
