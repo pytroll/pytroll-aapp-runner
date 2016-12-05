@@ -87,7 +87,7 @@ def do_decommutation(process_config, msg, timestamp):
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
     
-    print "decom file: ", urlparse(msg.data['uri']).path
+    #print "decom file: ", urlparse(msg.data['uri']).path
     #for sensor in sensors:
     #    if str(sensor) in "amsu-a":
     #        process_config['process_amsua'] = True
@@ -159,7 +159,8 @@ def do_decommutation(process_config, msg, timestamp):
     elif 'METOP' in msg.data['platform_name'].upper():
         LOG.info("Do the metop decommutation")
         if process_config['process_amsua']:
-            cmd="decom-amsua-metop {} {} ".format(process_config['input_amsua_file'],process_config['amsua_file'])
+            cmd="decom-amsua-metop {} {} ".format(process_config['input_amsua_file'],
+                                                  process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-amsua-metop.log")
             except:
@@ -167,7 +168,7 @@ def do_decommutation(process_config, msg, timestamp):
             else:
                 if returncode in accepted_return_codes_decom_amsua_metop:
                     LOG.info("Command {} complete.".format(cmd))
-                    if not os.path.exists(process_config['amsua_file']):
+                    if not os.path.exists(process_config['aapp_static_configuration']['decommutation_files']['amsua_file']):
                         LOG.warning("Decom gave OK status, but no data is produced. Something is wrong")
                 else:
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
@@ -176,7 +177,7 @@ def do_decommutation(process_config, msg, timestamp):
         if process_config['process_amsub'] and return_status:
             cmd="decom-mhs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_amsub_file'],
-                                                   process_config['amsub_file'])
+                                                   process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-mhs-metop.log")
             except:
@@ -191,7 +192,7 @@ def do_decommutation(process_config, msg, timestamp):
         if process_config['process_hirs'] and return_status:
             cmd="decom-hirs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
                                                    process_config['input_hirs_file'],
-                                                   process_config['hirs_file'])
+                                                   process_config['aapp_static_configuration']['decommutation_files']['hirs_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-hirs-metop.log")
             except:
@@ -204,8 +205,9 @@ def do_decommutation(process_config, msg, timestamp):
                     return_status = False
 
         if process_config['process_avhrr'] and return_status:
-            cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
-                                                     urlparse(msg.data['uri']).path,
+            cmd="decom-avhrr-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr",
+                                                     process_config['input_avhrr_file'], 
+                                                     #urlparse(msg.data['uri']).path,
                                                    process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-avhrr-metop.log")
@@ -226,5 +228,5 @@ def do_decommutation(process_config, msg, timestamp):
     #Change back after this is done
     os.chdir(current_dir)
 
-    LOG.info("Decommutation complete.")
+    LOG.info("All decommutations complete.")
     return return_status

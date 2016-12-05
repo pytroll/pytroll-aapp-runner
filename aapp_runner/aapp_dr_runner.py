@@ -95,7 +95,7 @@ from urlparse import urlparse
 import posttroll.subscriber
 from posttroll.publisher import Publish
 from posttroll.message import Message
-from trollduction.helper_functions import overlapping_timeinterval
+from helper_functions import overlapping_timeinterval
 
 import tempfile
 from glob import glob
@@ -617,22 +617,27 @@ def generate_process_config(msg, config):
     Need to check if it is a collection or file message. Then get sensor information from this.
     """
     
-    for sensor in msg.data['sensor']:
-        process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
-        config[process_name] = True
-        
-    #Need to match instrument and filename into a dictionary
-    #loop over sensors and fetch one filename each time
-    #Should also match scene id. This is done earlier!
-    
+    #All possble instruments to process initialized to false.
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False
-    config['process_avhrr'] = True
+    config['process_avhrr'] = False
     config['process_msu'] = False
     config['process_mhs'] = False
     config['process_dcs'] = False
 
+    #Check sensors and file as given in the incomming message
+    #Note: zip iterates two list at the same time
+    for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
+        print sensor, sensor_filename['uri']
+        process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+        config[process_name] = True
+
+        #Name of the input file for given instrument
+        input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+        print urlparse(sensor_filename['uri']).path
+        config[input_file_name] = urlparse(sensor_filename['uri']).path
+ 
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
     config['orbit_number'] = msg.data['orbit_number']
@@ -880,6 +885,9 @@ if __name__ == "__main__":
                     
                         try:
                             process_aapp(msg, aapp_config)
+                        except KeyError as ke:
+                            LOG.error("Process aapp failed: {}".format(ke))
+                            continue                            
                         except Exception,err:
                             LOG.error("Process aapp failed: {}".format(err))
                             continue

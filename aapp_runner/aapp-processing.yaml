@@ -46,24 +46,24 @@ aapp_processes:
       - /XLBANDANTENNA/HRPT/L0
       - /XLBANDANTENNA/METOP/L0
 
-    tle_indir: /disk1/AAPP/orbelems
+    tle_indir: /disk2/AAPP/orbelems
     tle_outdir: test
 
     locktime_before_rerun: 10
 
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
 
-    aapp_prefix: /disk1/AAPP
+    aapp_prefix: /disk2/AAPP
     aapp_environment_file: ATOVS_ENV7
     aapp_workdir: /run/shm/aapp-workdir
-    aapp_outdir_base: /disk1/aapp-runner-data
+    aapp_outdir_base: /disk2/aapp-runner-data
     aapp_outdir_format: '{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:05d}'
 
     custom_aapp_dir_navigation: /data/aapp-dir-navigation/orbelems
     passlength_threshold: 5
     use_dyn_work_dir: False
 
-    aapp_log_files_archive_dir: /disk1/aapp-runner-log
+    aapp_log_files_archive_dir: /disk2/aapp-runner-log
     aapp_log_files_archive_length: 1
 
     message_providing_server: satproc2.met.no
