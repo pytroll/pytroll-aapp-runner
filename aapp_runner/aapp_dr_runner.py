@@ -70,9 +70,19 @@ SATELLITE_NAME = {'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
                   'Metop-C': 'metop03'}
 
 SENSOR_NAMES = ['amsu-a', 'amsu-b', 'mhs', 'avhrr/3', 'hirs/4']
+
 SENSOR_NAME_CONVERTER = {
-    'amsua': 'amsu-a', 'amsub': 'amsu-b', 'hirs': 'hirs/4',
-    'mhs': 'mhs', 'avhrr': 'avhrt/3'}
+    'amsua': 'amsu-a',
+    'amsub': 'amsu-b',
+    'hirs': 'hirs/4',
+    'mhs': 'mhs',
+    'avhrr': 'avhrr/3',
+    
+    'amsu-a': 'amsua',
+    'amsu-b': 'amsub',
+    'hirs/4': 'hirs',
+    'mhs': 'mhs',
+    'avhrr/3': 'avhrr'}
 
 METOP_NUMBER = {'b': '01', 'a': '02'}
 
@@ -607,8 +617,14 @@ def generate_process_config(msg, config):
     Need to check if it is a collection or file message. Then get sensor information from this.
     """
     
-    if 'dataset' in msg.data:
+    for sensor in msg.data['sensor']:
+        process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+        config[process_name] = True
         
+    #Need to match instrument and filename into a dictionary
+    #loop over sensors and fetch one filename each time
+    #Should also match scene id. This is done earlier!
+    
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False

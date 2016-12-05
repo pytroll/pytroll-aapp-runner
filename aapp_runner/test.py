@@ -99,7 +99,7 @@ def main():
     topic = "/XLBANDANTENNA/METOP/L0"
     
     info_dicts = [{"origin": "157.249.17.66:9103",
-                   "sensor": ["a", "m", "s", "u", "-", "v", "h", "r", "/", "3", "i", "4"],
+                   "sensor": ["amsu-a", "avhrr/3", "hirs/4", "mhs"],
                    "antenna": "XL-BAND", "processing_time": "2016-12-02T11:04:25", "process_time": "2016-12-02T11:04:25",
                    "start_time": "2016-12-02T11:04:03",
                    "orbit_number": 21833,
