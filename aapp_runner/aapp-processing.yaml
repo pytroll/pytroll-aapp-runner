@@ -19,7 +19,7 @@ aapp_static_configuration:
     - Metop-B
     - Metop-A
     
-  satellite_name_aliases:
+  platform_name_aliases:
     NOAA-19: noaa19
     NOAA-18: noaa18
     NOAA-17: noaa17
@@ -28,6 +28,15 @@ aapp_static_configuration:
     Metop-A: metop02
     Metop-B: metop01
     Metop-C: metop03
+    METOP-A: metop02
+    METOP-B: metop01
+    METOP-C: metop03
+    'METOP A': metop02
+    'METOP B': metop01
+    'METOP C': metop03
+    M01: metop01
+    M02: metop02
+    M03: metop03
     
   satellite_sensor_name_aliases:
     'amsua': 'amsu-a'

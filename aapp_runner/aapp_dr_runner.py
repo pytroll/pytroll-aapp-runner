@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __builtin__ import False
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -367,10 +368,10 @@ def block_before_rerun(config, msg):
     Add run to registry to block this from rerun if that is configured
     """
 
-    if msg.data['platform_name'] not in config.job_register.keys():
-        config.job_register[msg.data['platform_name']] = []
+    if config['platform_name'] not in config.job_register.keys():
+        config.job_register[config['platform_name']] = []
 
-    config.job_register[msg.data['platform_name']].append((config['starttime'], config['endtime']))
+    config.job_register[config['platform_name']].append((config['starttime'], config['endtime']))
     LOG.debug("End: job register = " + str(config.job_register))
 
     try:
@@ -378,7 +379,7 @@ def block_before_rerun(config, msg):
         # (e.g. 10) minutes from now:
         t__ = threading.Timer(config['aapp_processes'][config.process_name]['locktime_before_rerun'],
                               reset_job_registry, args=(config.job_register,
-                                                        msg.data['platform_name'],
+                                                        config['platform_name'],
                                                         (config['starttime'],
                                                          config['endtime'])))
         t__.start()
@@ -641,7 +642,23 @@ def generate_process_config(msg, config):
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
     config['orbit_number'] = msg.data['orbit_number']
-    config['satellite_name'] = msg.data['platform_name']
+    #How to give the platform name?
+    #Which format?
+    #Used are for Metop:
+    #Metop-A/'Metop A'/'METOP A'
+    #M02
+    #metop02
+    #Throughout this processing the last convention is used!
+    if msg.data['platform_name'] in config['aapp_static_configuration']['platform_name_aliases']:
+        config['platform_name'] = config['aapp_static_configuration']['platform_name_aliases'][msg.data['platform_name']]
+        print config['platform_name']
+        #TODO Should not use satellite_name
+        
+        config['satellite_name'] = config['platform_name']
+    else:
+        LOG.error("Failed to replace platform_name: {}. Can not continue.".format(msg.data['platform_name']))
+        return False
+    
     config['start_time'] = msg.data['start_time']
     
     return True
@@ -651,12 +668,12 @@ def create_and_check_scene_id(msg, config):
     Create a scene specific ID to identify the scene process for later
     """
     # Use sat id, start and end time as the unique identifier of the scene!
-    if msg.data['platform_name'] in config.job_register and len(config.job_register[msg.data['platform_name']]) > 0:
+    if config['platform_name'] in config.job_register and len(config.job_register[config['platform_name']]) > 0:
         # Go through list of start,end time tuples and see if the current
         # scene overlaps with any:
-        status = overlapping_timeinterval((config['starttime'], config['endtime']), config.job_register[msg.data['platform_name']])
+        status = overlapping_timeinterval((config['starttime'], config['endtime']), config.job_register[config['platform_name']])
         if status:
-            LOG.warning("Processing of scene " + msg.data['platform_name'] +
+            LOG.warning("Processing of scene " + config['platform_name'] +
                         " " + str(status[0]) + " " + str(status[1]) +
                         " with overlapping time has been"
                         " launched previously")
@@ -665,7 +682,7 @@ def create_and_check_scene_id(msg, config):
         else:
             LOG.debug("No overlap with any recently processed scenes...")
 
-    scene_id = (str(msg.data['platform_name']) + '_' +
+    scene_id = (str(config['platform_name']) + '_' +
                 config['starttime'].strftime('%Y%m%d%H%M%S') +
                 '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
     LOG.debug("scene_id = " + str(scene_id))
@@ -711,7 +728,7 @@ def process_aapp(msg, config):
     """
 
     starttime = config['starttime']
-    platform_name = msg.data['platform_name']
+    platform_name = config['platform_name']
     working_dir = config['aapp_processes'][config.process_name]['working_dir']
     tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
     

@@ -51,7 +51,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
     hirs_sat_list = hirs_sats.split() 
     index = 0
     for sat in hirs_sat_list:
-        if sat in msg.data['platform_name']:
+        if sat in process_config['platform_name']:
             hirs_version_use = hirs_version_list[index]
         else:
             hirs_version_def = hirs_version_list[index]
@@ -74,7 +74,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
     elif  int(hirs_version_use) == 0 or "".join(process_config['a_tovs']) == 'TOVS':
         calibration_location = "-c -l"
     elif int(hirs_version_use) == 1:
-        file_historic = os.path.join(os.getenv('PAR_CALIBRATION_MONITOR'), msg.data['platform_name'],"hirs_historic.txt")
+        file_historic = os.path.join(os.getenv('PAR_CALIBRATION_MONITOR'), process_config['platform_name'],"hirs_historic.txt")
         if os.path.exists(file_historic):
             cmd="hirs_historic_file_manage -m {} -r {} -n {} {}".format(os.getenv('HIST_SIZE_HIGH'),os.getenv('HIST_SIZE_LOW'),os.getenv('HIST_NMAX'),file_historic)
             try:
@@ -92,7 +92,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
                     return_status = False
         
         if return_status:
-            cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(msg.data['platform_name'],timestamp)
+            cmd = "hcalcb1_algoV4 -s {0} -y {1:%Y} -m {1:%m} -d {1:%d} -h {1:%H} -n {1:%M}".format(process_config['platform_name'],timestamp)
             try:
                 status, returncode, std, err = run_shell_command(cmd)
             except:
@@ -118,10 +118,10 @@ def do_hirs_calibration(process_config, msg, timestamp):
         #Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
         #but needed names are metop01 etc. Replace this inside the processing from now on.
         aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
-        if process_config['platform'] not in aapp_satellite_list:
+        if process_config['platform_name'] not in aapp_satellite_list:
             LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
-            LOG.warning("Platform {} not in list: {}".format(process_config['platform'],aapp_satellite_list))
-            if 'metop' in process_config['platform'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
+            LOG.warning("Platform {} not in list: {}".format(process_config['platform_name'],aapp_satellite_list))
+            if 'metop' in process_config['platform_name'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
                 LOG.info("Replace in this processing")
                 PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
                 PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
@@ -129,10 +129,17 @@ def do_hirs_calibration(process_config, msg, timestamp):
                 PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M03','metop03') 
                 PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
                 os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
+                LOG.debug("New LISTESAT: {}".format(os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
         
-        cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
-                                                                        process_config['platform'],timestamp,timestamp,
-                                                                        process_config['orbit_number'], process_config['hirs_file'])
+        try:
+            cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
+                                                                            process_config['platform_name'],
+                                                                            timestamp,timestamp,
+                                                                            process_config['orbit_number'],
+                                                                            process_config['aapp_static_configuration']['decommutation_files']['hirs_file'])
+        except KeyError as ke:
+            LOG.error("Building command string failed with key error: {}".format(ke))
+            
         try:
             status, returncode, out, err = run_shell_command(cmd, stdout_logfile="{}.log".format(hirs_script), stderr_logfile="{}".format(hirs_err_file))
         except:

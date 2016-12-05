@@ -104,7 +104,7 @@ def do_decommutation(process_config, msg, timestamp):
     #    else:
     #        LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
 
-    if 'noaa' in msg.data['platform_name']:
+    if 'noaa' in process_config['platform_name']:
         print "Do the commutaion for NOAA"
         #a_tovs = "ATOVS"
         
@@ -120,7 +120,7 @@ def do_decommutation(process_config, msg, timestamp):
         #Needs to find platform number for A/TOVS
         decom = open(decom_file, 'w')
 
-        if int(msg.data['platform_name'][4:6]) <= 14:
+        if int(process_config['platform_name'][4:6]) <= 14:
             del process_config['a_tovs'][0]
         
             decom.write("1,0,0,0,0,{},{},{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
@@ -156,7 +156,7 @@ def do_decommutation(process_config, msg, timestamp):
                 LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                 return_status = False
         
-    elif 'METOP' in msg.data['platform_name'].upper():
+    elif 'METOP' in process_config['platform_name'].upper():
         LOG.info("Do the metop decommutation")
         if process_config['process_amsua']:
             cmd="decom-amsua-metop {} {} ".format(process_config['input_amsua_file'],
@@ -221,7 +221,7 @@ def do_decommutation(process_config, msg, timestamp):
                     return_status = False
 
     else:
-        print "Unknown platform: {}".format(msg.data['platform_name'])
+        print "Unknown platform: {}".format(process_config['platform_name'])
         return_status = False
     
     print os.listdir("./")
