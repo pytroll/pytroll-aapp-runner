@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from reportlab.lib.testutils import outputfile
-from telnetlib import TM
+from __builtin__ import False
 
 # Copyright (c) 2016
 
@@ -34,12 +33,13 @@ from trollsift.parser import compose
 
 LOG = logging.getLogger(__name__)
 
-def rename_file(process_config, process_file, inputfile, data_type, data_level):
+def rename_file(process_config, values):
     """
     Do the actual renaming and checking
     """
     
-    print process_file, inputfile, data_type, data_level
+    sensor = values.iterkeys().next()
+    process_file = "process_{}".format(sensor)
     try:
         process_config[process_file]
     except KeyError as err:
@@ -53,9 +53,9 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
         #print key,value
     #    tmp_process_config[key] = value
 
-    tmp_process_config.update(tmp_process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'])
-    tmp_process_config['data_type'] = data_type
-    tmp_process_config['data_level'] = data_level
+    #tmp_process_config.update(tmp_process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'])
+    tmp_process_config['data_type'] = values[sensor]['data_type']
+    tmp_process_config['data_level'] = values[sensor]['data_level']
     
     #for key, value in tmp_process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'].iteritems():
     #    #print key,value
@@ -63,7 +63,7 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
     new_name = ""
     
     if process_config[process_file]:
-        if os.path.exists(process_config['aapp_static_configuration']['decommutation_files'][inputfile]):
+        if os.path.exists(values[sensor]['aapp_file']):
             try:
                 _outdir = compose(tmp_process_config['aapp_outdir_format'],tmp_process_config)
                 dir = os.path.join(tmp_process_config['aapp_outdir_base'], _outdir)
@@ -86,17 +86,26 @@ def rename_file(process_config, process_file, inputfile, data_type, data_level):
                 return False
    
             try:
-                shutil.move(process_config['aapp_static_configuration']['decommutation_files'][inputfile],new_name)
-                LOG.debug("Renamed: {} to {}".format(process_config['aapp_static_configuration']['decommutation_files'][inputfile], new_name))
+                #shutil.move(process_config['aapp_static_configuration']['decommutation_files'][inputfile],new_name)
+                shutil.move(values[sensor]['aapp_file'], new_name)
+                #LOG.debug("Renamed: {} to {}".format(process_config['aapp_static_configuration']['decommutation_files'][inputfile], new_name))
+                LOG.debug("Renamed: {} to {}".format(values[sensor]['aapp_file'], new_name))
             except OSError as e:
                 LOG.error("Failed to rename {} to {}. {}".format(process_config[inputfile],new_name,e))
                 LOG.error("Please check previous processing")
                 return False
         else:
-            LOG.error("Excpected file {} does not exists. Please check previous processing.".format(process_config['aapp_static_configuration']['decommutation_files'][inputfile]))
+            LOG.error("Excpected file {} does not exists. Please check previous processing.".format(values[sensor]['aapp_file']))
             return False
-        
-    return new_name
+    else:
+        return False
+    
+    _tmp = {}
+    _tmp['file'] = new_name
+    _tmp['sensor'] = sensor
+    _tmp['level'] = tmp_process_config['data_level']
+
+    return _tmp
 
 def rename_aapp_filenames(process_config):
     LOG.debug("Rename AAPP filenames ... ")
@@ -106,30 +115,22 @@ def rename_aapp_filenames(process_config):
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     files = []
-    for instrument,value in process_config['aapp_processes'][process_config.process_name]['rename_aapp_files'].iteritems():
-        print "Main: ",instrument,value
-        for data_type, data_level in value.iteritems():
-            print "INNER: ",data_type, data_level
-            process_instrument = "process_{}".format(instrument)
-            process_file = "{}_file".format(instrument)
+    for values in process_config['aapp_processes'][process_config.process_name]['rename_aapp_files']:
+        #print values
+        #for data_type, data_level in value.iteritems():
+        #    print "INNER: ",data_type, data_level
+        #    process_instrument = "process_{}".format(instrument)
+        #    process_file = "{}_file".format(instrument)
             
-            file = rename_file(process_config,
-                               process_instrument,
-                               process_file,
-                               data_type,
-                               data_level)
+        file = rename_file(process_config, values)
             
-            if file:
-                _tmp = {}
-                _tmp['file'] = file
-                _tmp['sensor'] = instrument
-                _tmp['level'] = data_level
-                files.append(_tmp)
+        if file:
+            files.append(file)
 
             
     #Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("Rename aapp files complete!")
-
+    print files
     return files

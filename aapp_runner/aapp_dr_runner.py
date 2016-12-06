@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __builtin__ import False
+from Cython.Compiler.Errors import message
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -546,7 +547,8 @@ def check_message(msg, server):
     """
     
     if msg is None:
-        LOG.debug("Message is None.")
+        #LOG.debug("Message is None.")
+        return False
     elif ( msg.type != 'file' and msg.type != 'dataset' ):
         LOG.warning("Message type is not a file or collection {}".format(msg.type))
         return False
@@ -618,7 +620,7 @@ def generate_process_config(msg, config):
     Need to check if it is a collection or file message. Then get sensor information from this.
     """
     
-    #All possble instruments to process initialized to false.
+    #All possible instruments to process initialized to false.
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False
@@ -641,9 +643,9 @@ def generate_process_config(msg, config):
  
     #Processing of MHS is done as amsub
     #If process_mhs is true, then also amsub
-    if config['process_mhs']:
-        config['process_amsub'] = config['process_mhs']
-        config['input_amsub_file'] = config['input_mhs_file'] 
+    #if config['process_mhs']:
+    #    config['process_amsub'] = config['process_mhs']
+    #   config['input_amsub_file'] = config['input_mhs_file'] 
  
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
@@ -808,9 +810,13 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
     """
     
     for file in filelist:
+        print file
         msg_to_send = {}
         try:
             msg_to_send = msg.data.copy()
+            if 'dataset' in msg_to_send:
+                del msg_to_send['dataset']
+                
             msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][config.process_name]['message_providing_server'], file['file'])
 
             msg_to_send['filename'] = os.path.basename(file['file'])
@@ -845,9 +851,9 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
             return
 
         LOG.debug("Publish to:{}".format(publish_to))
-        msg = Message(publish_to, "file", msg_to_send).encode()
-        LOG.debug("sending: " + str(msg))
-        publisher.send(msg)
+        message = Message(publish_to, "file", msg_to_send).encode()
+        LOG.debug("sending: " + str(message))
+        publisher.send(message)
 
 if __name__ == "__main__":
 

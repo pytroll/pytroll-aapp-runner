@@ -174,10 +174,10 @@ def do_decommutation(process_config, msg, timestamp):
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return_status = False
                         
-        if process_config['process_amsub'] and return_status:
+        if process_config['process_mhs'] and return_status:
             cmd="decom-mhs-metop {} {} {} ".format("-ignore_degraded_inst_mdr -ignore_degraded_proc_mdr", 
-                                                   process_config['input_amsub_file'],
-                                                   process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
+                                                   process_config['input_mhs_file'],
+                                                   process_config['aapp_static_configuration']['decommutation_files']['mhs_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd,stdout_logfile="decom-mhs-metop.log")
             except:

@@ -92,28 +92,21 @@ aapp_processes:
 
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
     rename_aapp_files:
-      avhrr:
-        hrpt: l1b
-      hirs:
-        hirsl1b: l1b
-        hirsl1c: l1c
-        hirsl1d: l1d
-      amsua:
-        amsual1b: l1b
-        amsual1c: l1c
-        amsual1d: l1d
-      amsub:
-        amsubl1b: l1b
-        amsubl1c: l1c
-      mhs:
-        mhsl1b: l1b
-        mhsl1c: l1c
-      msu:
-        msul1b: l1b
-        msul1c: l1c
-      dcs:
-        dcsl1b: l1b
-        
+      - avhrr: {aapp_file: hrpt.l1b, data_type: avhrr, data_level: l1b}
+      - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
+      - hirs: {aapp_file: hrsn.l1c, data_type: hirsl1c, data_level: l1c}
+      - hirs: {aapp_file: hrsn.l1d, data_type: hirsl1d, data_level: l1d}
+      - amsua: {aapp_file: aman.l1b, data_type: amsual1b, data_level: l1b}
+      - amsua: {aapp_file: aman.l1c, data_type: amsual1c, data_level: l1c}
+      - amsua: {aapp_file: aman.l1d, data_type: amsual1d, data_level: l1d}
+      - amsub: {aapp_file: ambn.l1b, data_type: amsubl1b, data_level: l1b}        
+      - amsub: {aapp_file: ambn.l1c, data_type: amsubl1c, data_level: l1c}        
+      - mhs: {aapp_file: ambn.l1b, data_type: mhsl1b, data_level: l1b}
+      - mhs: {aapp_file: ambn.l1c, data_type: mhsl1c, data_level: l1c}
+      - msu: {aapp_file: msu.l1b, data_type: msul1b, data_level: l1b}
+      - msu: {aapp_file: msu.l1c, data_type: msul1c, data_level: l1c}
+      - dcs: {aapp_file: dcs.l1b, data_type: dcsl1b, data_level: l1b}
+
 #      avhrr_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hrpt_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
 #      hirs_l1b:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
 #      hirs_l1c:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
