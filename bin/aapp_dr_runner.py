@@ -34,14 +34,14 @@ import logging
 from logging import handlers
 from trollsift.parser import compose
 
-from read_aapp_config import read_config_file_options
-from tle_satpos_prepare import do_tleing
-from tle_satpos_prepare import do_tle_satpos
-from do_commutation import do_decommutation
+from aapp_runner.read_aapp_config import read_config_file_options
+from aapp_runner.tle_satpos_prepare import do_tleing
+from aapp_runner.tle_satpos_prepare import do_tle_satpos
+from aapp_runner.do_commutation import do_decommutation
 
 import socket
 import netifaces
-from helper_functions import run_shell_command
+from aapp_runner.helper_functions import run_shell_command
 
 import copy
 
@@ -96,7 +96,7 @@ from urlparse import urlparse
 import posttroll.subscriber
 from posttroll.publisher import Publish
 from posttroll.message import Message
-from helper_functions import overlapping_timeinterval
+from aapp_runner.helper_functions import overlapping_timeinterval
 
 import tempfile
 from glob import glob
@@ -768,7 +768,7 @@ def process_aapp(msg, config):
     
     #DO HIRS
     hirs_proc_ok = True
-    from do_hirs_calibration import do_hirs_calibration
+    from aapp_runner.do_hirs_calibration import do_hirs_calibration
     if not do_hirs_calibration(config, msg, starttime):
         LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
@@ -776,7 +776,7 @@ def process_aapp(msg, config):
     
     #DO ATOVS
     atovs_proc_ok = True
-    from do_atovs_calibration import do_atovs_calibration
+    from aapp_runner.do_atovs_calibration import do_atovs_calibration
     if not do_atovs_calibration(config, starttime):
         LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
@@ -784,7 +784,7 @@ def process_aapp(msg, config):
     
     #DO AVHRR
     avhrr_proc_ok = True
-    from do_avhrr_calibration import do_avhrr_calibration
+    from aapp_runner.do_avhrr_calibration import do_avhrr_calibration
     if not do_avhrr_calibration(config, msg, starttime):
         LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
@@ -792,7 +792,7 @@ def process_aapp(msg, config):
     
     #Do Preprocessing
     atovpp_proc_ok = True
-    from do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+    from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
     if not do_atovpp_and_avh2hirs_processing(config, starttime):
         LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
@@ -800,7 +800,7 @@ def process_aapp(msg, config):
     
     #DO ANA
     ana_proc_ok = True
-    from do_ana_correction import do_ana_correction
+    from aapp_runner.do_ana_correction import do_ana_correction
     if not do_ana_correction(config, starttime):
         LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
@@ -929,7 +929,7 @@ if __name__ == "__main__":
 
                         #Rename standard AAPP output file names to usefull ones 
                         #and move files to final location.
-                        from rename_aapp_filenames import rename_aapp_filenames
+                        from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
                         renamed_files = rename_aapp_filenames(aapp_config) 
                         if not renamed_files:
                             LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
