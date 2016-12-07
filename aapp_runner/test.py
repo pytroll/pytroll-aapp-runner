@@ -116,15 +116,15 @@ def main():
                    "pass_key": "e613c5becfde7b0d96a4829c184ea197"},
                   ]
 
-    #topic = "/XLBANDANTENNA/HRPT/L0"
+    topic = "/XLBANDANTENNA/HRPT/L0"
 
-    #info_dicts = [{"format": "HRPT",
-    #               "sensor": ["avhrr/3", "mhs", "amsu-b", "amsu-a", "hirs/3", "hirs/4"],
-    #               "start_time": "2016-11-30T12:50:55",
-    #               "orbit_number": "40262",
-    #               "uri": "/disk2/testdata/clear_NO19_40262_2016-11-30T12:50:55.289_160-expanded-16bit",
-    #               "platform_name": "NOAA-19",
-    #               "data_processing_level": "L0"},]
+    info_dicts = [{"format": "HRPT",
+                   "sensor": ["avhrr/3", "mhs", "amsu-b", "amsu-a", "hirs/3", "hirs/4"],
+                   "start_time": "2016-11-30T12:50:55",
+                   "orbit_number": "40262",
+                   "uri": "/disk2/testdata/clear_NO19_40262_2016-11-30T12:50:55.289_160-expanded-16bit",
+                   "platform_name": "NOAA-19",
+                   "data_processing_level": "L0"},]
     
     #info_dicts = [{"format": "HRPT", "sensor": ["avhrr/3", "mhs", "amsu-b", "amsu-a", "hirs/3", "hirs/4"],
     #                "start_time": "2016-06-16T02:43:43", "orbit_number": "37899",
@@ -140,7 +140,7 @@ def main():
 
     message_type = 'collection'
     message_type = 'file'
-    message_type = 'dataset'
+    #message_type = 'dataset'
 
     for info_dict in info_dicts:
         send_message(topic, info_dict, message_type)
