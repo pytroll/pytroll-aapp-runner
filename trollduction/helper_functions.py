@@ -318,19 +318,22 @@ def nonblock_read(output):
     except:
         return ''
 
-def run_shell_command(command, my_cwd=None, my_env=None, stdout_logfile=None, stderr_logfile=None, stdin=None, my_timeout=24*60*60):
+def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None, my_env=None, stdout_logfile=None, stderr_logfile=None, stdin=None, my_timeout=24*60*60):
     """Run the given command as a shell and get the return code, stdout and stderr
         Returns True/False and return code.
     """
     from subprocess import Popen, PIPE
     
-    import shlex
-    myargs = shlex.split(str(command))
-    LOGGER.debug('Command sequence= ' + str(myargs))
+    if use_shlex:
+        import shlex
+        myargs = shlex.split(str(command))
+        LOGGER.debug('Command sequence= ' + str(myargs))
+    else:
+        myargs = command
     
     try:
         proc = Popen(myargs,
-                     cwd=my_cwd, shell=False, env=my_env,
+                     cwd=my_cwd, shell=use_shell, env=my_env,
                      stderr=PIPE, stdout=PIPE, stdin=PIPE, close_fds=True)
         
         LOGGER.debug("Process pid: {}".format(proc.pid))
