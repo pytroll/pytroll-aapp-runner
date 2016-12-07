@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import False
-from Cython.Compiler.Errors import message
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
