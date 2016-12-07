@@ -78,7 +78,7 @@ aapp_processes:
 
     message_providing_server: satproc2.met.no
 
-    do_ana_correction: False
+    do_ana_correction: True
 
     instrument_skipped_in_processing:
       - NOAA-15:
@@ -106,22 +106,6 @@ aapp_processes:
       - msu: {aapp_file: msu.l1b, data_type: msul1b, data_level: l1b}
       - msu: {aapp_file: msu.l1c, data_type: msul1c, data_level: l1c}
       - dcs: {aapp_file: dcs.l1b, data_type: dcsl1b, data_level: l1b}
-
-#      avhrr_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hrpt_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      hirs_l1b:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      hirs_l1c:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
-#      hirs_l1d:  '{aapp_outdir_base:s}/{aapp_outdir_format:s}/hirsl1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1d'
-#      amsua_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      amsua_l1c: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
-#      amsua_l1d: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsual1d_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1d'
-#      amsub_l1b: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsubl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      amsub_l1c: '{aapp_outdir_base:s}/{aapp_outdir_format:s}/amsubl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
-#      mhs_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/mhsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      mhs_l1c:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/mhsl1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
-#      msu_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/msul1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-#      msu_l1c:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/msul1c_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1c'
-#      dcs_l1b:   '{aapp_outdir_base:s}/{aapp_outdir_format:s}/dcsl1b_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.l1b'
-      
       
     monitor_message:
       send: True

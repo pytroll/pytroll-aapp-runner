@@ -38,7 +38,7 @@ def do_ana_correction(process_config, timestamp):
     Further the ana binaries and scripts must be in the PATH,
     preferable in the primary AAPP bin directory
    
-    Also it relays on reference_landmarks directory under ENV(DIR_NAVIGATE)/ana dir
+    Also it relays on reference_landmarks directory under ENV(DIR_NAVIGATION)/ana dir
     This needs to be copied/installed here by the user 
     """
 
@@ -47,14 +47,13 @@ def do_ana_correction(process_config, timestamp):
             if not process_config['aapp_processes'][process_config.process_name]['do_ana_correction']:
                 return True
     except Exception, err:
-        print str(err)
+        LOG.error("Failed with: {}".format(err))
 
-    return True
     return_status = True
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #Must check of the ana dir exists
     ana_dir = os.path.join(os.getenv('DIR_NAVIGATION'),'ana')
@@ -67,8 +66,9 @@ def do_ana_correction(process_config, timestamp):
     
     if return_status:
         #Find all matching landmarks
-        cmd = "ana_lmk_loc -D {}".format(process_config['avhrr_file'])
+        cmd = "ana_lmk_loc -D {}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
         try:
+            status = False
             status, returncode, std, err = run_shell_command(cmd, stdout_logfile="ana_lmk_loc.log",stderr_logfile="ana_lmk_loc.err")
         except:
             import sys
@@ -86,13 +86,13 @@ def do_ana_correction(process_config, timestamp):
 
     if return_status:
         #Check of ana landmark location file with correct time stamp exist. If not try to find correct timestamp and copy to this. 
-        expected_ana_loc_file = "lmkloc_{}_{:%Y%m%d_%H%M}_{:05d}.txt".format(process_config['platform'], timestamp, process_config['orbit_number'])
+        expected_ana_loc_file = "lmkloc_{}_{:%Y%m%d_%H%M}_{:05d}.txt".format(process_config['platform_name'], timestamp, process_config['orbit_number'])
         if not os.path.exists(os.path.join(ana_dir,"{:%Y-%m}".format(timestamp),expected_ana_loc_file)):
             #Need to run this AAPP command to detect the start of the hrpt.l1b(avhrr data) file
             #Because this might differ from the time stamp in file name
             cmd = "l1bidf.exe"
             try:
-                status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['avhrr_file']))
+                status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
             except:
                 import sys
                 LOG.error("Command {} failed with {}.".format(cmd,sys.exc_info()[0]))
@@ -124,10 +124,10 @@ def do_ana_correction(process_config, timestamp):
         
     import hashlib
     if return_status:
-        print hashlib.sha256(open(process_config['avhrr_file'], 'rb').read()).hexdigest()
+        print hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
     
         #Calculate correction from landmarks and update avhrr_file with these new attitude coefisients.
-        cmd = "ana_estatt -s {0} -d {1:%Y%m%d} -h {1:%H%M} -n {2:5d}".format(process_config['platform'], timestamp, process_config['orbit_number'])
+        cmd = "ana_estatt -s {0} -d {1:%Y%m%d} -h {1:%H%M} -n {2:5d}".format(process_config['platform_name'], timestamp, process_config['orbit_number'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
@@ -144,10 +144,10 @@ def do_ana_correction(process_config, timestamp):
                 _ana_file.close()
                 return_status = False
     
-        print hashlib.sha256(open(process_config['avhrr_file'], 'rb').read()).hexdigest()
+        print hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
     
         import hashlib
-        sha256_before_correction = hashlib.sha256(open(process_config['avhrr_file'], 'rb').read()).hexdigest()
+        sha256_before_correction = hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
 
     if return_status:
         #Recalculate the location in the avhhr data file with the new correction attitude coefisients.
@@ -158,7 +158,7 @@ def do_ana_correction(process_config, timestamp):
             return_status = False
             
     if return_status:
-        sha256_after_correction = hashlib.sha256(open(process_config['avhrr_file'], 'rb').read()).hexdigest()
+        sha256_after_correction = hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
         print "Before: " + sha256_before_correction
         print "After : " + sha256_after_correction
         if ( sha256_before_correction == sha256_after_correction):

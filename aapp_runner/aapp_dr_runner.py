@@ -763,7 +763,7 @@ def process_aapp(msg, config):
     #DO decom
     decom_proc_ok = True
     if not do_decommutation(config, msg, starttime):
-        LOG.warning("The decommutaion failed for some reason. It might be that the processing can continue")
+        LOG.warning("The decommutation failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         decom_proc_ok = False
         return True #Meaning can not complete this and skip the rest of the processing
@@ -922,8 +922,8 @@ if __name__ == "__main__":
                             process_aapp(msg, aapp_config)
                         except KeyError as ke:
                             LOG.error("Process aapp failed: {}".format(ke))
-                            continue                            
-                        except Exception,err:
+                            continue
+                        except Exception as err:
                             LOG.error("Process aapp failed: {}".format(err))
                             continue
                         else:
