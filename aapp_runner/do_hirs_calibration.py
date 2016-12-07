@@ -135,7 +135,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
             cmd = "{} {} -s {} -d {:%Y%m%d} -h {:%H%M} -n {:05d} {}".format(hirs_script,calibration_location,
                                                                             process_config['platform_name'],
                                                                             timestamp,timestamp,
-                                                                            process_config['orbit_number'],
+                                                                            int(process_config['orbit_number']),
                                                                             process_config['aapp_static_configuration']['decommutation_files']['hirs_file'])
         except KeyError as ke:
             LOG.error("Building command string failed with key error: {}".format(ke))

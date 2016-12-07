@@ -105,7 +105,7 @@ def do_decommutation(process_config, msg, timestamp):
     #        LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
 
     if 'noaa' in process_config['platform_name']:
-        print "Do the commutaion for NOAA"
+        print "Do the commutation for NOAA"
         #a_tovs = "ATOVS"
         
         #PROCESS IN THIS ORDER
@@ -116,33 +116,37 @@ def do_decommutation(process_config, msg, timestamp):
         #msu = 0 
         #dcs = 0 
                  
-        decom_file = "decommutation.par"
-        #Needs to find platform number for A/TOVS
-        decom = open(decom_file, 'w')
+        try:
+            decom_file = "decommutation.par"
+            #Needs to find platform number for A/TOVS
+            decom = open(decom_file, 'w')
 
-        if int(process_config['platform_name'][4:6]) <= 14:
-            del process_config['a_tovs'][0]
+            if int(process_config['platform_name'][4:6]) <= 14:
+                del process_config['a_tovs'][0]
+                
+                decom.write("1,0,0,0,0,{},{},{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
+                                                                                                  1 if process_config['process_msu'] else 0,
+                                                                                                  1 if process_config['process_dcs'] else 0,
+                                                                                                  1 if process_config['process_avhrr'] else 0))
+                decom.write("10,0,0,0,0,11,12,13,0,0,0,14              ! STREAM NO.S\n")
+            else:
+                decom.write("1,{},{},{},{},0,0,{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
+                                                                                                    1 if process_config['process_amsua'] else 0,
+                                                                                                    1 if process_config['process_amsua'] else 0,
+                                                                                                    1 if process_config['process_amsub'] else 0,
+                                                                                                    1 if process_config['process_dcs'] else 0,
+                                                                                                    1 if process_config['process_avhrr'] else 0))
+                decom.write("10,11,15,15,16,0,0,13,0,0,0,14              ! STREAM NO.S\n")
+                
+            decom.write("{:%Y}                                     ! year of the data\n".format(timestamp))
+            decom.write("0                                         ! operational mode\n")
+            decom.write("{0:05d},{0:05d}                           ! start and end orbit numbers\n".format(int(process_config['orbit_number'])))
+            decom.close()
+        except Exception as err:
+            LOG.error("Building decommutation command string failed: {}".format(err))
+            return False
         
-            decom.write("1,0,0,0,0,{},{},{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
-                                                                                              1 if process_config['process_msu'] else 0,
-                                                                                              1 if process_config['process_dcs'] else 0,
-                                                                                              1 if process_config['process_avhrr'] else 0))
-            decom.write("10,0,0,0,0,11,12,13,0,0,0,14              ! STREAM NO.S\n")
-        else:
-            decom.write("1,{},{},{},{},0,0,{},0,0,0,{}               ! OPTION NUMBERS\n".format(1 if process_config['process_hirs'] else 0,
-                                                                                                1 if process_config['process_amsua'] else 0,
-                                                                                                1 if process_config['process_amsua'] else 0,
-                                                                                                1 if process_config['process_amsub'] else 0,
-                                                                                                1 if process_config['process_dcs'] else 0,
-                                                                                                1 if process_config['process_avhrr'] else 0))
-            decom.write("10,11,15,15,16,0,0,13,0,0,0,14              ! STREAM NO.S\n")
-            
-        decom.write("{:%Y}                                     ! year of the data\n".format(timestamp))
-        decom.write("0                                         ! operational mode\n")
-        decom.write("{0:05d},{0:05d}                           ! start and end orbit numbers\n".format(process_config['orbit_number']))
-        decom.close()
-            
-        cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, hrpt_file)
+        cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
@@ -150,8 +154,8 @@ def do_decommutation(process_config, msg, timestamp):
         else:
             if returncode in accepted_return_codes_decom_hrpt:
                 LOG.info("Command {} complete.".format(cmd))
-                if not os.path.exists(process_config['avhrr_file']):
-                    LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['avhrr_file']))
+                if not os.path.exists(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']):
+                    LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
             else:
                 LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                 return_status = False

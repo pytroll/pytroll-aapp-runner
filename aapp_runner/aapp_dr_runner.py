@@ -83,6 +83,7 @@ SENSOR_NAME_CONVERTER = {
     'amsu-a': 'amsua',
     'amsu-b': 'amsub',
     'hirs/4': 'hirs',
+    'hirs/3': 'hirs',
     'mhs': 'mhs',
     'avhrr/3': 'avhrr'}
 
@@ -631,25 +632,30 @@ def generate_process_config(msg, config):
 
     #Check sensors and file as given in the incomming message
     #Note: zip iterates two list at the same time
-    for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
-        print sensor, sensor_filename['uri']
-        process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
-        config[process_name] = True
+    if 'dataset' in msg.data:
+        for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
+            #print sensor, sensor_filename['uri']
+            process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            config[process_name] = True
 
-        #Name of the input file for given instrument
-        input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
-        print urlparse(sensor_filename['uri']).path
-        config[input_file_name] = urlparse(sensor_filename['uri']).path
+            #Name of the input file for given instrument
+            input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            #print urlparse(sensor_filename['uri']).path
+            config[input_file_name] = urlparse(sensor_filename['uri']).path
  
-    #Processing of MHS is done as amsub
-    #If process_mhs is true, then also amsub
-    #if config['process_mhs']:
-    #    config['process_amsub'] = config['process_mhs']
-    #   config['input_amsub_file'] = config['input_mhs_file'] 
- 
+    elif 'uri' in msg.data:
+        for sensor in msg.data['sensor']:
+            process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            print sensor, process_name
+            config[process_name] = True
+        config['input_hrpt_file'] = msg.data['uri']
+            
+    else:
+        LOG.error("Could not find needed dataset or uri in message. Can not handle.")
+        return False 
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
-    config['orbit_number'] = msg.data['orbit_number']
+    config['orbit_number'] = int(msg.data['orbit_number'])
     #How to give the platform name?
     #Which format?
     #Used are for Metop:
@@ -659,7 +665,7 @@ def generate_process_config(msg, config):
     #Throughout this processing the last convention is used!
     if msg.data['platform_name'] in config['aapp_static_configuration']['platform_name_aliases']:
         config['platform_name'] = config['aapp_static_configuration']['platform_name_aliases'][msg.data['platform_name']]
-        print config['platform_name']
+        #print config['platform_name']
         #TODO Should not use satellite_name
         
         config['satellite_name'] = config['platform_name']

@@ -52,7 +52,7 @@ def do_atovs_calibration(process_config, timestamp):
         cmd = "msucl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
                                                                                  process_config['platform_name'],
                                                                                  timestamp,
-                                                                                 process_config['orbit_number'],
+                                                                                 int(process_config['orbit_number']),
                                                                                  process_config['aapp_static_configuration']['decommutation_files']['msun_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
@@ -70,7 +70,7 @@ def do_atovs_calibration(process_config, timestamp):
             cmd = "amsuacl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
                                                                                        process_config['platform_name'],
                                                                                        timestamp,
-                                                                                       process_config['orbit_number'],
+                                                                                       int(process_config['orbit_number']),
                                                                                        process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)
@@ -88,6 +88,10 @@ def do_atovs_calibration(process_config, timestamp):
             try:
                 if 'noaa' in process_config['platform_name'] and int(process_config['platform_name'][-2:]) <= 17:
                     amsu_script = "amsubcl"
+                    process_config['process_mhs'] = False
+                else:
+                    process_config['process_amsub'] = False
+                    
             except ValueError as ve:
                 LOG.warning("Could not exctract satellite number from the last two characters in the platform name: {} and convert it to a number.".format(process_config['platform_name']))
                 
@@ -95,7 +99,7 @@ def do_atovs_calibration(process_config, timestamp):
                                                                                    process_config['calibration_location'],
                                                                                    process_config['platform_name'],
                                                                                    timestamp,
-                                                                                   process_config['orbit_number'],
+                                                                                   int(process_config['orbit_number']),
                                                                                    process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)

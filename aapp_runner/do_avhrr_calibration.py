@@ -47,7 +47,7 @@ def do_avhrr_calibration(process_config, msg, timestamp):
         cmd = "avhrcl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
                                                                                   process_config['platform_name'],
                                                                                   timestamp,
-                                                                                  process_config['orbit_number'],
+                                                                                  int(process_config['orbit_number']),
                                                                                   process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
     except Exception, err:
         print str(err)
