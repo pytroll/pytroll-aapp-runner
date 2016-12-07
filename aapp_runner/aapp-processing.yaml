@@ -95,7 +95,7 @@ aapp_processes:
       - avhrr: {aapp_file: hrpt.l1b, data_type: avhrr, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1c, data_type: hirsl1c, data_level: l1c}
-      - hirs: {aapp_file: hrsn.l1d, data_type: hirsl1d, data_level: l1d}
+      - hirs: {aapp_file: hirs.l1d, data_type: hirsl1d, data_level: l1d}
       - amsua: {aapp_file: aman.l1b, data_type: amsual1b, data_level: l1b}
       - amsua: {aapp_file: aman.l1c, data_type: amsual1c, data_level: l1c}
       - amsua: {aapp_file: aman.l1d, data_type: amsual1d, data_level: l1d}

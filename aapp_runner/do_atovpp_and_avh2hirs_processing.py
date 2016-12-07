@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __builtin__ import False
 
 # Copyright (c) 2016
 
@@ -34,11 +35,10 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
     LOG.debug("Do preprocessing atovpp and avh2hirs ... ")
 
     return_status = True
-    return True
 
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['working_directory'])
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     instruments = "AMSU-A AMSU-B HIRS"
     if "".join(process_config['a_tovs']) == 'TOVS':
@@ -61,7 +61,7 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
             LOG.debug(err)
 
     if return_status:
-        cmd = "atovpp -i \"{}\" -g HIRS ".format(instruments)
+        cmd = "atovpp -i \"{}\" -g \"AMSU-A AMSU-B HIRS\"".format(instruments)
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
@@ -75,27 +75,83 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
             else:
                 LOG.info("Command {} complete.".format(cmd))
 
-    #THis will not work since the avh2hirs script sources the ATOVS_CONF at start
-    #and relay on WRK dir, which is a static dir
-    #
-    #Skip for now
-    if 0:
-        cmd = "avh2hirs {}".format("".join(process_config['a_tovs']))
-        try:
-            status, returncode, std, err = run_shell_command(cmd)
-        except:
-            LOG.error("Command {} failed.".format(cmd))
+    if return_status:
+        if os.path.exists("./{}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])):
+            os.symlink("./{}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']), "{}11".format(os.environ["FORT"]))
         else:
-            if returncode != 0:
-                LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-                LOG.error(std)
-                LOG.error(err)
-                return_status = False
+            LOG.error("Could not find file: ./{}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
+            return_status = False
+            
+        if os.path.exists("./hirs.l1d"):
+            os.symlink("./hirs.l1d", "{}12".format(os.environ["FORT"]))
+        else:
+            LOG.error("Could not find file: {}".format("./hirs.l1d"))
+            return_status = False
+            
+        if return_status:
+            cmd = "l1didf -i  hirs.l1d"
+            try:
+                status, returncode, std, err = run_shell_command(cmd)
+            except:
+                LOG.error("Command {} failed.".format(cmd))
             else:
-                LOG.info("Command {} complete.".format(cmd))
-    else:
-        LOG.warning("avh2hirs is not implemented in the processing.")
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    LOG.error(std)
+                    LOG.error(err)
+                    return_status = False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+                    satimg, yyyymmdd, hhmn, orbit, instr, loc1, loc2 = std.split()
+                
+        if return_status:
+            if "noaa" in satimg:
+                satnb = int(satimg[4:6])
+            else:
+                satnb = int(satimg[5:7])
+            LOG.debug("Using satnb: {}".format(satnb))
+            unit = satnb + 50
+            mmc = int(yyyymmdd[4:6])
+            LOG.debug("Using unit: {} and mmc: {}".format(unit,mmc))
+            
+            if os.path.exists(os.path.join(os.environ["DIR_PREPROC"],"cor_{}.dat".format(satimg))):
+                os.symlink(os.path.join(os.environ["DIR_PREPROC"],"cor_{}.dat".format(satimg)), "{}{}".format(os.environ["FORT"], unit))
+            else:
+                LOG.error("Failed to find {}".format(os.path.join(os.environ["DIR_PREPROC"],"cor_{}.dat".format(satimg))))
+                return_status = False
+                
+        if return_status:
+            os.environ["SATIMG"] = satimg
+            os.environ["YYYYMMDD"] = yyyymmdd
+            os.environ["HHMN"] = hhmn
+            os.environ["DIR_MAIA2_ATLAS"] = os.path.join(os.environ["DIR_PREPROC"], "atlas")
+            os.environ["DIR_MAIA2_THRESHOLDS"] = os.path.join(os.environ["DIR_PREPROC"], "thresholds")
+            if "".join(process_config['a_tovs']) == 'TOVS':
+                cmd = "maia2_env;maia2_environment;avh2hirs.exe 2>&1"
+            else:
+                cmd = "bash -c \"source liblog.sh;source maia2_env;maia2_environment\";avh2hirs_atovs.exe 2>&1"
+                
+            try:
+                status, returncode, std, err = run_shell_command(cmd, stdout_logfile="avh2hirs.log", use_shlex=False, use_shell=True)
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    LOG.error(std)
+                    LOG.error(err)
+                    return_status = False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
         
+        if return_status:
+            import glob
+            for fortfile in glob.glob("./fort*"):
+                os.remove(fortfile)
+            os.remove("./albedo")
+            os.remove("./sst") 
+            os.remove("./wv")
+           
     #Change back after this is done
     os.chdir(current_dir)
 
