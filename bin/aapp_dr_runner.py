@@ -38,6 +38,7 @@ from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
 from aapp_runner.tle_satpos_prepare import do_tle_satpos
 from aapp_runner.do_commutation import do_decommutation
+from aapp_runner.exceptions import TleError
 
 import socket
 import netifaces
@@ -750,6 +751,7 @@ def process_aapp(msg, config):
         LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         tle_proc_ok = False
+        raise TleError("Tleing failed for some reason")
     
     #DO tle satpos
     satpos_proc_ok = True
@@ -757,6 +759,7 @@ def process_aapp(msg, config):
         LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         satpos_proc_ok = False
+        raise SatposError("Tle satpos failed for some reason")
     
     #DO decom
     decom_proc_ok = True
@@ -764,7 +767,7 @@ def process_aapp(msg, config):
         LOG.warning("The decommutation failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         decom_proc_ok = False
-        return True #Meaning can not complete this and skip the rest of the processing
+        raise DecommutationError("The decommutation failed for some reason")
     
     #DO HIRS
     hirs_proc_ok = True
@@ -921,6 +924,12 @@ if __name__ == "__main__":
                         except KeyError as ke:
                             LOG.error("Process aapp failed: {}".format(ke))
                             continue
+                        except TleError as te:
+                            LOG.error("The tle failed: {}".format(te))
+                        except SatposError as se:
+                            LOG.error("The satpos failed: {}".format(se))
+                        except DecommutationError as de:
+                            LOG.error("The decommutation failed: {}".format(de))
                         except Exception as err:
                             LOG.error("Process aapp failed: {}".format(err))
                             continue
