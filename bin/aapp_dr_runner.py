@@ -38,7 +38,7 @@ from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
 from aapp_runner.tle_satpos_prepare import do_tle_satpos
 from aapp_runner.do_commutation import do_decommutation
-from aapp_runner.exceptions import TleError
+from aapp_runner.exceptions import TleError, SatposError
 
 import socket
 import netifaces
@@ -559,7 +559,10 @@ def check_message(msg, server):
                 urlobj.append(urlparse(msg.data['uri']))
             elif 'dataset' in msg.data:
                 for file in msg.data['dataset']:
-                    urlobj.append(urlparse(file['uri']))                     
+                    urlobj.append(urlparse(file['uri']))
+            else:
+                LOG.error("Failed to find neccessary filename(s) in message.")
+                return False                     
         except KeyError as ke:
             LOG.error("Key error: {}".format(ke))
                 
@@ -740,74 +743,92 @@ def process_aapp(msg, config):
     Do the various processing steps of aapp for each instruments
     """
 
-    starttime = config['starttime']
-    platform_name = config['platform_name']
-    working_dir = config['aapp_processes'][config.process_name]['working_dir']
-    tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
+    try:
+        starttime = config['starttime']
+        platform_name = config['platform_name']
+        working_dir = config['aapp_processes'][config.process_name]['working_dir']
+        tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
     
-    #DO tle
-    tle_proc_ok = True
-    if not do_tleing(starttime, platform_name, working_dir, tle_indir):
-        LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        tle_proc_ok = False
-        raise TleError("Tleing failed for some reason")
+        #DO tle
+        tle_proc_ok = True
+        if not do_tleing(config, starttime, platform_name, working_dir, tle_indir):
+            LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            tle_proc_ok = False
+            raise TleError("Tleing failed for some reason")
     
-    #DO tle satpos
-    satpos_proc_ok = True
-    if not do_tle_satpos(starttime, platform_name, tle_indir):
-        LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        satpos_proc_ok = False
-        raise SatposError("Tle satpos failed for some reason")
+        #DO tle satpos
+        satpos_proc_ok = True
+        if not do_tle_satpos(starttime, platform_name, tle_indir):
+            LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            satpos_proc_ok = False
+            raise SatposError("Tle satpos failed for some reason")
     
-    #DO decom
-    decom_proc_ok = True
-    if not do_decommutation(config, msg, starttime):
-        LOG.warning("The decommutation failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        decom_proc_ok = False
-        raise DecommutationError("The decommutation failed for some reason")
+        #DO decom
+        decom_proc_ok = True
+        if not do_decommutation(config, msg, starttime):
+            LOG.warning("The decommutation failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            decom_proc_ok = False
+            raise DecommutationError("The decommutation failed for some reason")
     
-    #DO HIRS
-    hirs_proc_ok = True
-    from aapp_runner.do_hirs_calibration import do_hirs_calibration
-    if not do_hirs_calibration(config, msg, starttime):
-        LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        hirs_proc_ok = False
+        #DO HIRS
+        hirs_proc_ok = True
+        from aapp_runner.do_hirs_calibration import do_hirs_calibration
+        if not do_hirs_calibration(config, msg, starttime):
+            LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            hirs_proc_ok = False
     
-    #DO ATOVS
-    atovs_proc_ok = True
-    from aapp_runner.do_atovs_calibration import do_atovs_calibration
-    if not do_atovs_calibration(config, starttime):
-        LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        atovs_proc_ok = False
+        #DO ATOVS
+        atovs_proc_ok = True
+        from aapp_runner.do_atovs_calibration import do_atovs_calibration
+        if not do_atovs_calibration(config, starttime):
+            LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            atovs_proc_ok = False
     
-    #DO AVHRR
-    avhrr_proc_ok = True
-    from aapp_runner.do_avhrr_calibration import do_avhrr_calibration
-    if not do_avhrr_calibration(config, msg, starttime):
-        LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        avhrr_proc_ok = False
+        #DO AVHRR
+        avhrr_proc_ok = True
+        from aapp_runner.do_avhrr_calibration import do_avhrr_calibration
+        if not do_avhrr_calibration(config, msg, starttime):
+            LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            avhrr_proc_ok = False
     
-    #Do Preprocessing
-    atovpp_proc_ok = True
-    from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
-    if not do_atovpp_and_avh2hirs_processing(config, starttime):
-        LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        atovpp_proc_ok = False
+        #Do Preprocessing
+        atovpp_proc_ok = True
+        from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+        if not do_atovpp_and_avh2hirs_processing(config, starttime):
+            LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            atovpp_proc_ok = False
     
-    #DO ANA
-    ana_proc_ok = True
-    from aapp_runner.do_ana_correction import do_ana_correction
-    if not do_ana_correction(config, msg, starttime):
-        LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
-        LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
-        ana_proc_ok = False
+        #DO ANA
+        ana_proc_ok = True
+        from aapp_runner.do_ana_correction import do_ana_correction
+        if not do_ana_correction(config, msg, starttime):
+            LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
+            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            ana_proc_ok = False
+    except KeyError as ke:
+        LOG.error("Process aapp failed: {}".format(ke))
+        return False
+    except TleError as te:
+        LOG.error("The tle failed: {}".format(te))
+        return False
+    except SatposError as se:
+        LOG.error("The satpos failed: {}".format(se))
+        return False
+    except DecommutationError as de:
+        LOG.error("The decommutation failed: {}".format(de))
+        return False
+    except Exception as err:
+        LOG.error("Process aapp failed: {}".format(err))
+        return False
+    else:
+        LOG.info("AAPP processing complete.")
 
     return True
 
@@ -919,22 +940,8 @@ if __name__ == "__main__":
                         if not setup_aapp_processing(aapp_config):
                             continue
                     
-                        try:
-                            process_aapp(msg, aapp_config)
-                        except KeyError as ke:
-                            LOG.error("Process aapp failed: {}".format(ke))
+                        if not process_aapp(msg, aapp_config):
                             continue
-                        except TleError as te:
-                            LOG.error("The tle failed: {}".format(te))
-                        except SatposError as se:
-                            LOG.error("The satpos failed: {}".format(se))
-                        except DecommutationError as de:
-                            LOG.error("The decommutation failed: {}".format(de))
-                        except Exception as err:
-                            LOG.error("Process aapp failed: {}".format(err))
-                            continue
-                        else:
-                            LOG.info("AAPP processing complete.")
 
                         #Rename standard AAPP output file names to usefull ones 
                         #and move files to final location.
