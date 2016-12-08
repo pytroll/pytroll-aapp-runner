@@ -32,7 +32,7 @@ from helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
-def do_ana_correction(process_config, timestamp):
+def do_ana_correction(process_config, msg, timestamp):
 
     """The software ANA is 3party. User will have to get it themself.
     Further the ana binaries and scripts must be in the PATH,
@@ -152,7 +152,7 @@ def do_ana_correction(process_config, timestamp):
     if return_status:
         #Recalculate the location in the avhhr data file with the new correction attitude coefisients.
         from do_avhrr_calibration import do_avhrr_calibration
-        if not do_avhrr_calibration(process_config, timestamp):
+        if not do_avhrr_calibration(process_config, msg, timestamp):
             LOG.warning("The avhrr location with ana correction failed for some reason. It might be that the processing can continue")
             LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
             return_status = False

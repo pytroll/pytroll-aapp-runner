@@ -801,7 +801,7 @@ def process_aapp(msg, config):
     #DO ANA
     ana_proc_ok = True
     from aapp_runner.do_ana_correction import do_ana_correction
-    if not do_ana_correction(config, starttime):
+    if not do_ana_correction(config, msg, starttime):
         LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
         LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
         ana_proc_ok = False
