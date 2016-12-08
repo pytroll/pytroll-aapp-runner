@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import False
 
 # Copyright (c) 2015 Adam.Dybbroe
 
@@ -31,9 +30,11 @@ import logging
 from glob import glob
 import os
 from datetime import datetime
-import shutil
+from shutil import copy
 from subprocess import Popen, PIPE
 from aapp_runner.helper_functions import run_shell_command
+from trollsift.parser import compose
+import re
 
 LOG = logging.getLogger(__name__)
 
@@ -48,9 +49,12 @@ def _do_4_matches(m):
 
 def _do_3_matches(m):
     return datetime.strptime(m.group(1)+m.group(2)+m.group(3),"%Y%m%d")
+
+def _do_3_matchesYY(m):
+    return datetime.strptime(m.group(1)+m.group(2)+m.group(3),"%y%m%d")
         
 
-def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_closest_tle_file_to_data=False):
+def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_closest_tle_file_to_data=True):
     """Get the tle-file and copy them to the AAPP data structure 
        and run the AAPP tleing script and executable"""
     
@@ -59,6 +63,12 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
     os.chdir(workdir)
+
+    tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*',_do_6_matches),
+                       ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*',_do_5_matches),
+                       ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2}).*',_do_4_matches),
+                       ('.*(\d{4})(\d{2})(\d{2}).*',_do_3_matches),
+                       ('.*(\d{2})(\d{2})(\d{2}).*',_do_3_matchesYY))
 
     # SATellite IDentification mandatory
     # so take care of default values 
@@ -112,14 +122,17 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
 
             
     else:
-        #FIXME add as config
-        #tle_file_timestamp_format = "%Y%m%dT%H%M"
-        #infile = "tle-{0:{1}}.txt".format(timestamp,tle_file_timestamp_format)
-        
         #dict to hold needed tle keys
+        tle_dict = {}
         tle_dict['timestamp'] = timestamp
         try:
             infile = compose(config['aapp_processes'][config.process_name]['tle_infile_format'],tle_dict)
+        except KeyError as ke:
+            LOG.error("Key error: {}".format(ke))
+            LOG.error("Valid keys :")
+            for key in tle_dict.keys():
+                LOG.error("{}".format(key))
+            raise
         except:
             raise
         
@@ -128,53 +141,49 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
         min_closest_tle_file = 3*24*60*60
         #Check if I can read the tle file.
         try:
-            with open(os.path.join(tle_indir, infile)) as tle_file:
+            with open(os.path.join(DIR_DATA_TLE, infile)) as tle_file:
+                del tle_file_list[:]
+                tle_file_list.append(os.path.join(DIR_DATA_TLE, infile))
                 pass
         except IOError as e:
             LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
             infile = None
-            #tle_file_list = glob(os.path.join(tle_indir,'tle*'))
+            tle_file_list = glob(os.path.join(DIR_DATA_TLE,'*'))
             #print "tle file list: {}".format(tle_file_list)
-            import re
-            tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*',_do_6_matches),
-                               ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*',_do_5_matches),
-                               ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2}).*',_do_4_matches),
-                               ('.*(\d{4})(\d{2})(\d{2}).*',_do_3_matches))
             #print tle_file_list
-            for tle_file_name in tle_files:
+            infile_closest = ""
+            for tle_file_name in tle_file_list:
                 for regex, test in tle_match_tests:
                     m = re.match(regex, tle_file_name)
                     if m:
+                        #print "{} {}".format(tle_file_name, test(m))
                         delta = timestamp - test(m)
                         if ( abs(delta.total_seconds()) < min_closest_tle_file):
                             min_closest_tle_file = abs(delta.total_seconds()) 
-                            infile = os.path.basename(tle_file_name)
-                        break
-        
+                            infile_closest = os.path.basename(tle_file_name)
+                            print infile_closest
 
-        tle_file_list.append(infile)                
-        LOG.debug("Use this: {} {}".format(tle_file_list,min_closest_tle_file))
-
-        #print "{}".format(tle_file_list)
-        #infile = "tle-{0:{1}}.txt".format(timestamp,tle_file_timestamp_format)
+            if infile_closest:
+                del tle_file_list[:]
+                tle_file_list.append(infile_closest)
+            else:
+                LOG.error("Could not find tle file close enough to timestamp {} with limit {}".format(timestamp, min_closest_tle_file))
+                LOG.error("Update your TLE files or adjust the limit(Not recomended!).")
+                
+        if tle_file_list:
+            LOG.debug("Use this: {} {}".format(tle_file_list, min_closest_tle_file))
     
     if not tle_file_list:
         LOG.error("Found no tle files.")
         return_status = False
     else:    
         for tle_file in tle_file_list:
+            archive=False
             if not os.path.exists(os.path.join(tle_indir,'tle_db',tle_file)):
                 print "Could not find the tle file: {}".format(tle_indir + "/" + tle_file)
                 return_status = False
             else:
                 """Dont use the tle_indir because this is handeled by the tleing script"""
-                #tle_cmd = open("tle_commands", 'w')
-                #tle_cmd.write("{}\n".format(DIR_DATA_TLE))
-                #tle_cmd.write("{}\n".format(tle_file))
-                #tle_cmd.write("{}\n".format(satellite))
-                #tle_cmd.write("{}\n".format(TLE_INDEX))
-                #tle_cmd.close()
-                #LOG.info("TLE file ok. Do the calc for {} ... ".format(satellite))
                 status = False
                 returncode = 0
                 stdout = ""
@@ -224,22 +233,41 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
                             else:
                                 if returncode == 0 and os.path.exists("{}.sort".format(TLE_INDEX)):
                                     try:
-                                        #os.remove(os.path.join(DIR_DATA_TLE, TLE_INDEX))
                                         os.remove(TLE_INDEX)
                                     except OSError as e:
-                                        #LOG.error("Failed to remove unsorted and duplicated index file: {}".format(os.path.join(DIR_DATA_TLE, TLE_INDEX)))
                                         LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
                                     else:
                                         try:
-                                            #os.rename(os.path.join(DIR_DATA_TLE, "{}.sort".fromat(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
                                             os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
+                                            archive=True
                                         except:
                                             LOG.error("Failed to rename sorted index file to original name.")
                                 else:
                                     LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(returncode, "{}.sort".format(TLE_INDEX)))
                         else:
                             LOG.error("tle index file: {} does not exists after tleing before sort. This can not happen.")
-                            
+            
+            #If a new tle is used and archive dir is given in config, copy TLEs to archive
+            if archive and ('tle_archive_dir' in config['aapp_processes'][config.process_name]):
+                archive_dict = {}
+                archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
+                for tle_file_name in tle_file_list:
+                    for regex, test in tle_match_tests:
+                        m = re.match(regex, tle_file_name)
+                        if m:
+                            archive_dict['timestamp'] = test(m) 
+                            tle_archive_dir = compose(config['aapp_processes'][config.process_name]['tle_archive_dir'],archive_dict)
+                            if not os.path.exists(tle_archive_dir):
+                                try:
+                                    os.makedirs(tle_archive_dir)
+                                except:
+                                    LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
+                                
+                            try:
+                                copy(tle_file_name, tle_archive_dir)
+                            except:
+                                LOG.error("Failed to copy TLE file: {} to archive: {}".format(tle_file_name, tle_archive_dir))
+                                        
     #Change back after this is done
     os.chdir(current_dir)
 

@@ -38,7 +38,7 @@ from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
 from aapp_runner.tle_satpos_prepare import do_tle_satpos
 from aapp_runner.do_commutation import do_decommutation
-from aapp_runner.exceptions import TleError, SatposError
+from aapp_runner.exceptions import TleError, SatposError, DecommutationError
 
 import socket
 import netifaces

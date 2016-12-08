@@ -57,9 +57,10 @@ aapp_processes:
       - /XLBANDANTENNA/METOP/L0
 
     tle_indir: /disk2/AAPP/orbelems
-    tle_outdir: test
-    tle_infile_format: 'tle-{timestamp:%Y%m%dT%H%M}.txt'
-
+    tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
+    #tle_infile_format: 'tle-{timestamp:%Y%m%dT%H%M}.txt'
+    tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
+    
     locktime_before_rerun: 10
 
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
