@@ -746,12 +746,12 @@ def process_aapp(msg, config):
     try:
         starttime = config['starttime']
         platform_name = config['platform_name']
-        working_dir = config['aapp_processes'][config.process_name]['working_dir']
-        tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
+        #working_dir = config['aapp_processes'][config.process_name]['working_dir']
+        #tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
     
         #DO tle
         tle_proc_ok = True
-        if not do_tleing(config, starttime, platform_name, working_dir, tle_indir):
+        if not do_tleing(config, starttime, platform_name):
             LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
             LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
             tle_proc_ok = False

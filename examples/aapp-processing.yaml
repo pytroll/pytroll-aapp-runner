@@ -60,6 +60,7 @@ aapp_processes:
     tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
     #tle_infile_format: 'tle-{timestamp:%Y%m%dT%H%M}.txt'
     tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
+    tle_file_to_data_diff_limit_days: 3
     
     locktime_before_rerun: 10
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from __builtin__ import None
 
 # Copyright (c) 2015 Adam.Dybbroe
 
@@ -24,6 +25,12 @@
 """Prepare tle and satpos (and ephe) files for AAPP, using the tleing and
 alleph scripts from AAPP
 
+The task of finding the correct TLE is challeging. The user can supply its own
+directory in the config file and the filename convetion. The the modele
+will try to find the correct one.
+If data is reprocessed it should use the closest tle
+if data is from Direct Broadcast the only newer tle files than the
+timestamp if the index file should be processed.
 """
 
 import logging
@@ -54,7 +61,7 @@ def _do_3_matchesYY(m):
     return datetime.strptime(m.group(1)+m.group(2)+m.group(3),"%y%m%d")
         
 
-def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_closest_tle_file_to_data=True):
+def do_tleing(config, timestamp, satellite):
     """Get the tle-file and copy them to the AAPP data structure 
        and run the AAPP tleing script and executable"""
     
@@ -62,7 +69,7 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(workdir)
+    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*',_do_6_matches),
                        ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*',_do_5_matches),
@@ -74,12 +81,13 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
     # so take care of default values 
     SATID_FILE=os.getenv('SATID_FILE', 'satid.txt')
 
-    if tle_indir == None:
-        """This is the default directory for the tles"""
-        tle_indir = os.getenv('DIR_NAVIGATION')
-    else:
+    if 'tle_indir' in process_config['aapp_processes'][process_config.process_name]:
+        tle_indir = process_config['aapp_processes'][process_config.process_name]['tle_indir']
         LOG.warning("Override the env variable set in AAPP_ENV7 DIR_NAVIGATION from {} to {}.".format(os.environ['DIR_NAVIGATION'], tle_indir))
         os.environ['DIR_NAVIGATION'] = tle_indir
+    else
+        """This is the default directory for the tles"""
+        tle_indir = os.getenv('DIR_NAVIGATION')
 
     # variables for the TLE HOME directory
     DIR_DATA_TLE=os.path.join(os.getenv('DIR_NAVIGATION'),'tle_db')
@@ -92,15 +100,19 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
     
     #LISTESAT=os.getenv('LISTESAT',os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT_INGEST_TLE'))
 
-    #print LISTESAT
+    if 'tle_file_to_data_diff_limit_days' in process_config['aapp_processes'][process_config.process_name]:
+        select_closest_tle_file_to_data = True
+        min_closest_tle_file = int(process_config['aapp_processes'][process_config.process_name]['tle_file_to_data_diff_limit_days'])*24*60*60
+    else
+        select_closest_tle_file_to_data = False
+
 
     TLE_INDEX=os.path.join(DIR_DATA_TLE,"tle_{}.index".format(satellite))
 
     tle_file_list = []
     if not select_closest_tle_file_to_data:
         if os.path.exists(TLE_INDEX):
-            #tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
-            #_tle_file_list = glob(os.path.join(DIR_DATA_TLE,'tle*txt'))
+            #Loop over all tle files, and only do tle 
             tle_files = [s for s in glob(os.path.join(DIR_DATA_TLE,'tle*txt')) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
             tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE,s)))
             
@@ -138,7 +150,6 @@ def do_tleing(config, timestamp, satellite, workdir, tle_indir=None, select_clos
         
         LOG.debug("tle file name: {}".format(infile))
 
-        min_closest_tle_file = 3*24*60*60
         #Check if I can read the tle file.
         try:
             with open(os.path.join(DIR_DATA_TLE, infile)) as tle_file:
