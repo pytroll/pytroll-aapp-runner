@@ -82,7 +82,9 @@ aapp_processes:
     message_providing_server: satproc2.met.no
 
     do_ana_correction: True
-
+    do_atovpp: True
+    do_avh2hirs: True
+    
     instrument_skipped_in_processing:
       - NOAA-15:
         - hirs

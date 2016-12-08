@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from __builtin__ import False
+from gtk import FALSE
 
 # Copyright (c) 2016
 
@@ -44,24 +45,18 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
     if "".join(process_config['a_tovs']) == 'TOVS':
         instruments = "MSU HIRS"
     
-    cmd = "atovin {}".format(instruments)
-    try:
-        status, returncode, std, err = run_shell_command(cmd)
-    except:
-        LOG.error("Command {} failed.".format(cmd))
+    if 'do_atovpp' in process_config['aapp_processes'][process_config.process_name]:
+        process_config['do_atovpp'] = process_config['aapp_processes'][process_config.process_name]['do_atovpp']
     else:
-        if returncode != 0:
-            LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-            LOG.error(std)
-            LOG.error(err)
-            return_status = False
-        else:
-            LOG.info("Command {} complete.".format(cmd))
-            LOG.debug(std)
-            LOG.debug(err)
+        process_config['do_atovpp'] = False
 
-    if return_status:
-        cmd = "atovpp -i \"{}\" -g \"AMSU-A AMSU-B HIRS\"".format(instruments)
+    if 'do_avh2hirs' in process_config['aapp_processes'][process_config.process_name]:
+        process_config['do_avh2hirs'] = process_config['aapp_processes'][process_config.process_name]['do_avh2hirs']
+    else:
+        process_config['do_avh2hirs'] = False
+        
+    if process_config['do_atovpp']:
+        cmd = "atovin {}".format(instruments)
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
@@ -74,8 +69,25 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
                 return_status = False
             else:
                 LOG.info("Command {} complete.".format(cmd))
+                LOG.debug(std)
+                LOG.debug(err)
 
-    if return_status:
+        if return_status:
+            cmd = "atovpp -i \"{}\" -g \"AMSU-A AMSU-B HIRS\"".format(instruments)
+            try:
+                status, returncode, std, err = run_shell_command(cmd)
+            except:
+                LOG.error("Command {} failed.".format(cmd))
+            else:
+                if returncode != 0:
+                    LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+                    LOG.error(std)
+                    LOG.error(err)
+                    return_status = False
+                else:
+                    LOG.info("Command {} complete.".format(cmd))
+
+    if return_status and process_config['do_avh2hirs']:
         if os.path.exists("./{}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])):
             os.symlink("./{}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']), "{}11".format(os.environ["FORT"]))
         else:

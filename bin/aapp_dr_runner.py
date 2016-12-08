@@ -759,7 +759,7 @@ def process_aapp(msg, config):
     
         #DO tle satpos
         satpos_proc_ok = True
-        if not do_tle_satpos(starttime, platform_name, tle_indir):
+        if not do_tle_satpos(config, starttime, platform_name):
             LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
             LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
             satpos_proc_ok = False

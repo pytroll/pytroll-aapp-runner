@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import None
 
 # Copyright (c) 2015 Adam.Dybbroe
 
@@ -69,7 +68,7 @@ def do_tleing(config, timestamp, satellite):
     
     #This function relays on beeing in a working directory
     current_dir = os.getcwd() #Store the dir to change back to after function complete
-    os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
+    os.chdir(config['aapp_processes'][config.process_name]['working_dir'])
 
     tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*',_do_6_matches),
                        ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*',_do_5_matches),
@@ -81,11 +80,11 @@ def do_tleing(config, timestamp, satellite):
     # so take care of default values 
     SATID_FILE=os.getenv('SATID_FILE', 'satid.txt')
 
-    if 'tle_indir' in process_config['aapp_processes'][process_config.process_name]:
-        tle_indir = process_config['aapp_processes'][process_config.process_name]['tle_indir']
+    if 'tle_indir' in config['aapp_processes'][config.process_name]:
+        tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
         LOG.warning("Override the env variable set in AAPP_ENV7 DIR_NAVIGATION from {} to {}.".format(os.environ['DIR_NAVIGATION'], tle_indir))
         os.environ['DIR_NAVIGATION'] = tle_indir
-    else
+    else:
         """This is the default directory for the tles"""
         tle_indir = os.getenv('DIR_NAVIGATION')
 
@@ -100,10 +99,10 @@ def do_tleing(config, timestamp, satellite):
     
     #LISTESAT=os.getenv('LISTESAT',os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT_INGEST_TLE'))
 
-    if 'tle_file_to_data_diff_limit_days' in process_config['aapp_processes'][process_config.process_name]:
+    if 'tle_file_to_data_diff_limit_days' in config['aapp_processes'][config.process_name]:
         select_closest_tle_file_to_data = True
-        min_closest_tle_file = int(process_config['aapp_processes'][process_config.process_name]['tle_file_to_data_diff_limit_days'])*24*60*60
-    else
+        min_closest_tle_file = int(config['aapp_processes'][config.process_name]['tle_file_to_data_diff_limit_days'])*24*60*60
+    else:
         select_closest_tle_file_to_data = False
 
 
@@ -284,15 +283,15 @@ def do_tleing(config, timestamp, satellite):
 
     return return_status
 
-def do_tle_satpos(timestamp, satellite, satpos_dir=None):
+def do_tle_satpos(config, timestamp, satellite):
     
     return_status = True
     
     LOG.info("satpos files is stored under the given directory/satpos")
-    if satpos_dir == None:
-        satpos_dir = os.path.join(os.environ['DIR_NAVIGATION'], "satpos" )
+    if 'tle_indir' in config['aapp_processes'][config.process_name]:
+        satpos_dir = os.path.join(config['aapp_processes'][config.process_name]['tle_indir'], "satpos" )
     else:
-        satpos_dir = os.path.join(satpos_dir, "satpos" )
+        satpos_dir = os.path.join(os.environ['DIR_NAVIGATION'], "satpos" )
         
     if not os.path.exists(satpos_dir):
         try:
