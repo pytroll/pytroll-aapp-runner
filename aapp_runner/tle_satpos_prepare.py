@@ -32,7 +32,7 @@ import os
 from datetime import datetime
 import shutil
 from subprocess import Popen, PIPE
-from helper_functions import run_shell_command
+from aapp_runner.helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
