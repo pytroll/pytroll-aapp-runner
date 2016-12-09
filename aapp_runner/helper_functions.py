@@ -124,7 +124,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None, my_
                 _stdout.write(line + "\n")     
             _stdout.close()
         except IOError as e:
-            print "IO operation to file stdout_logfile: {} failed with {}".format(stdout_logfile,e)
+            LOGGER.error("IO operation to file stdout_logfile: {} failed with {}".format(stdout_logfile,e))
             return False
         
     errlines = err.splitlines()
@@ -138,7 +138,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None, my_
                 _stderr.write(errline + "\n")     
             _stderr.close()
         except IOError as e:
-            print "IO operation to file stderr_logfile: {} failed with {}".format(stderr_logfile,e)
+            LOGGER.error("IO operation to file stderr_logfile: {} failed with {}".format(stderr_logfile,e))
             return False
 
     return True, return_value, out, err

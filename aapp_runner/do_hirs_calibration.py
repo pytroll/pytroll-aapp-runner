@@ -65,7 +65,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
     hirs_err_file = "hirscl.err"
     calibration_location = process_config['calibration_location']
     
-    print "hirs_version_use {}".format(hirs_version_use)
+    LOG.debug("hirs_version_use {}".format(hirs_version_use))
 
     #pdb.set_trace()
 

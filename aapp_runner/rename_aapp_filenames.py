@@ -131,5 +131,4 @@ def rename_aapp_filenames(process_config):
     os.chdir(current_dir)
 
     LOG.info("Rename aapp files complete!")
-    print files
     return files

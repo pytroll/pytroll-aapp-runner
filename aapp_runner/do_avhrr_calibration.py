@@ -50,7 +50,7 @@ def do_avhrr_calibration(process_config, msg, timestamp):
                                                                                   int(process_config['orbit_number']),
                                                                                   process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
     except Exception, err:
-        print str(err)
+        LOG.error("Failed to build avhrcl command: {}".format(err))
         
     try:
         status, returncode, std, err = run_shell_command(cmd)

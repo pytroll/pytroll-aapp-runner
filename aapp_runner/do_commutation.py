@@ -225,10 +225,10 @@ def do_decommutation(process_config, msg, timestamp):
                     return_status = False
 
     else:
-        print "Unknown platform: {}".format(process_config['platform_name'])
+        LOG.error("Unknown platform: {}".format(process_config['platform_name']))
         return_status = False
     
-    print os.listdir("./")
+    #print os.listdir("./")
     #Change back after this is done
     os.chdir(current_dir)
 

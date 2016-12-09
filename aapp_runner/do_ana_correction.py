@@ -109,7 +109,7 @@ def do_ana_correction(process_config, msg, timestamp):
                 else:
                     l1bidf_list = std.split()
                     l1bidf_aapp_datetime = datetime.strptime(l1bidf_list[1]+l1bidf_list[2],"%Y%m%d%H%M")
-                    print l1bidf_aapp_datetime
+                    LOG.debug("l1b idf aapp datetime: {}".format(l1bidf_aapp_datetime))
                     #estatt_file_name =     lmkloc_metop02_20160617_0952_50132.txt
                     ana_loc_file = "lmkloc_{}_{:%Y%m%d_%H%M}_{:05d}.txt".format(l1bidf_list[0], l1bidf_aapp_datetime, int(l1bidf_list[3]))
                     if os.path.exists(os.path.join(ana_dir,"{:%Y-%m}".format(l1bidf_aapp_datetime),ana_loc_file)):
@@ -124,7 +124,7 @@ def do_ana_correction(process_config, msg, timestamp):
         
     import hashlib
     if return_status:
-        print hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
+        #LOG.debug("sha256 of aapp input avhrr_file: {}".format(hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()))
     
         #Calculate correction from landmarks and update avhrr_file with these new attitude coefisients.
         cmd = "ana_estatt -s {0} -d {1:%Y%m%d} -h {1:%H%M} -n {2:5d}".format(process_config['platform_name'], timestamp, process_config['orbit_number'])
@@ -144,7 +144,7 @@ def do_ana_correction(process_config, msg, timestamp):
                 _ana_file.close()
                 return_status = False
     
-        print hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
+        #LOG.debug("sha256 of aapp input avhrr_file: {}".format(hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()))
     
         import hashlib
         sha256_before_correction = hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
@@ -159,8 +159,8 @@ def do_ana_correction(process_config, msg, timestamp):
             
     if return_status:
         sha256_after_correction = hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()
-        print "Before: " + sha256_before_correction
-        print "After : " + sha256_after_correction
+        LOG.debug("sha256 of aapp input avhrr_file BEFORE ana: {}".format(sha256_before_correction))
+        LOG.debug("sha256 of aapp input avhrr_file AFTER  ana: {}".format(sha256_after_correction))
         if ( sha256_before_correction == sha256_after_correction):
             LOG.warning("The correction of the avhrr location with data from ANA did not take place for some reason, or the correction was 0 for all pitch yaw and roll.")
         else:

@@ -171,7 +171,7 @@ def do_tleing(config, timestamp, satellite):
                         if ( abs(delta.total_seconds()) < min_closest_tle_file):
                             min_closest_tle_file = abs(delta.total_seconds()) 
                             infile_closest = os.path.basename(tle_file_name)
-                            print infile_closest
+                            LOG.debug("Closest tle infile so far: {}".format(infile_closest))
 
             if infile_closest:
                 del tle_file_list[:]
@@ -190,7 +190,7 @@ def do_tleing(config, timestamp, satellite):
         for tle_file in tle_file_list:
             archive=False
             if not os.path.exists(os.path.join(tle_indir,'tle_db',tle_file)):
-                print "Could not find the tle file: {}".format(tle_indir + "/" + tle_file)
+                LOG.error("Could not find the tle file: {}".format(tle_indir + "/" + tle_file))
                 return_status = False
             else:
                 """Dont use the tle_indir because this is handeled by the tleing script"""
