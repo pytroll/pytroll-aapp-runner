@@ -939,28 +939,31 @@ if __name__ == "__main__":
                         if not scene_id:
                             continue
                     
-                        if not setup_aapp_processing(aapp_config):
-                            continue
+                        try:
+                            if not setup_aapp_processing(aapp_config):
+                                raise
                     
-                        if not process_aapp(msg, aapp_config):
-                            continue
+                            if not process_aapp(msg, aapp_config):
+                                raise
 
-                        #Rename standard AAPP output file names to usefull ones 
-                        #and move files to final location.
-                        from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
-                        renamed_files = rename_aapp_filenames(aapp_config) 
-                        if not renamed_files:
-                            LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
-                            LOG.warning("This means there are no files to publish")
-                        else:
-                            publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
+                            #Rename standard AAPP output file names to usefull ones 
+                            #and move files to final location.
+                            from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
+                            renamed_files = rename_aapp_filenames(aapp_config) 
+                            if not renamed_files:
+                                LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
+                                LOG.warning("This means there are no files to publish")
+                            else:
+                                publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
                     
-                        move_aapp_log_files(aapp_config)
-                        cleanup_aapp_logfiles_archive(aapp_config)
+                            move_aapp_log_files(aapp_config)
+                            cleanup_aapp_logfiles_archive(aapp_config)
                     
-                        #cleanup_aapp_workdir(aapp_config)
-
-                        block_before_rerun(aapp_config, msg)
+                            block_before_rerun(aapp_config, msg)
+                        except Exception as ex:
+                            LOG.error("AAPP processing failed.")
+                        finally:
+                            cleanup_aapp_workdir(aapp_config)
                     
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")

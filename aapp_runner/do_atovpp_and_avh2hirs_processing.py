@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from __builtin__ import False
-from gtk import FALSE
-
 # Copyright (c) 2016
 
 # Author(s):
