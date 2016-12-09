@@ -635,8 +635,9 @@ def generate_process_config(msg, config):
     #Check sensors and file as given in the incomming message
     #Note: zip iterates two list at the same time
     if 'dataset' in msg.data:
+        print "Checking dataset"
         for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
-            #print sensor, sensor_filename['uri']
+            print sensor, sensor_filename['uri']
             process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
             config[process_name] = True
 
@@ -646,11 +647,12 @@ def generate_process_config(msg, config):
             config[input_file_name] = urlparse(sensor_filename['uri']).path
  
     elif 'uri' in msg.data:
+        print "Checking uri"
         for sensor in msg.data['sensor']:
             process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
             print sensor, process_name
             config[process_name] = True
-        config['input_hrpt_file'] = msg.data['uri']
+        config['input_hrpt_file'] = urlparse(msg.data['uri']).path
             
     else:
         LOG.error("Could not find needed dataset or uri in message. Can not handle.")

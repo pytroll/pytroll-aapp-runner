@@ -105,7 +105,7 @@ def do_decommutation(process_config, msg, timestamp):
     #        LOG.warning("Instrument/sensor {} not recognised.".format(sensor))
 
     if 'noaa' in process_config['platform_name']:
-        print "Do the commutation for NOAA"
+        LOG.debug("Do the commutation for NOAA")
         #a_tovs = "ATOVS"
         
         #PROCESS IN THIS ORDER
