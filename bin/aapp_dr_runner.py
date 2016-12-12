@@ -956,13 +956,13 @@ if __name__ == "__main__":
                             else:
                                 publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
                     
-                            move_aapp_log_files(aapp_config)
-                            cleanup_aapp_logfiles_archive(aapp_config)
-                    
                             block_before_rerun(aapp_config, msg)
                         except Exception as ex:
                             LOG.error("AAPP processing failed.")
                         finally:
+                            #Want to take care of log files to possible debug.
+                            move_aapp_log_files(aapp_config)
+                            cleanup_aapp_logfiles_archive(aapp_config)
                             cleanup_aapp_workdir(aapp_config)
                     
     except KeyboardInterrupt as ki:

@@ -146,6 +146,24 @@ def do_decommutation(process_config, msg, timestamp):
             LOG.error("Building decommutation command string failed: {}".format(err))
             return False
         
+        if (len(process_config['input_hrpt_file']) > 80):
+            LOG.warning("Too long filename for decommutation.exe. The decommutation will probably fail.")
+            LOG.warning("{}".format(process_config['input_hrpt_file']))
+
+        #If for some reason the first line of the data is bad the chk1btime.exe will fail
+        # and there for the decommutation will also fail. Do a check here a give the user a warning.
+        cmd="chk1btime.exe" 
+        try:
+            status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['input_hrpt_file']))
+        except:
+            LOG.error("Command {} failed.".format(cmd))
+            LOG.error("This means that the start of the data are bad, and that the decommutation later will fail.")
+        else:
+            LOG.debug("Return code: {}".format(returncode))
+            LOG.debug("std: {}".format(std))
+            LOG.debug("err: {}".format(err))
+            LOG.debug("status: {}".format(status))
+            
         cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd)

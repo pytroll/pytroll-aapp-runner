@@ -122,7 +122,7 @@ def do_hirs_calibration(process_config, msg, timestamp):
             LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
             LOG.warning("Platform {} not in list: {}".format(process_config['platform_name'],aapp_satellite_list))
             if 'metop' in process_config['platform_name'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
-                LOG.info("Replace in this processing")
+                LOG.debug("Replace in this processing")
                 PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
                 PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
                 PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M02','metop02') 
