@@ -648,6 +648,10 @@ def generate_process_config(msg, config):
  
     elif 'uri' in msg.data:
         LOG.debug("Checking uri")
+        #Need to force list
+        if type(msg.data["sensor"]) not in (tuple, list, set):
+            msg.data["sensor"] = [msg.data["sensor"]]
+
         for sensor in msg.data['sensor']:
             process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
             LOG.debug("{} {}".format(sensor, process_name))
