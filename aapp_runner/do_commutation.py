@@ -206,11 +206,12 @@ def do_decommutation(process_config, msg, timestamp):
                     if returncode in accepted_return_codes_chk1btime:
                         LOG.debug("chk1btime command {} ok.".format(cmd))
                     else:
-                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail.")
                         LOG.debug("Return code: {}".format(returncode))
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
                         LOG.debug("status: {}".format(status))
+                        process_config['process_hirs'] = False
             elif process_config['process_hirs']:
                 LOG.warning("Fort file for hirs does not exist after decommutation. Skip processing this.")
                 process_config['process_hirs'] = False
@@ -227,11 +228,12 @@ def do_decommutation(process_config, msg, timestamp):
                     if returncode in accepted_return_codes_chk1btime:
                         LOG.debug("chk1btime command {} ok.".format(cmd))
                     else:
-                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail.")
                         LOG.debug("Return code: {}".format(returncode))
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
                         LOG.debug("status: {}".format(status))
+                        process_config['process_msu'] = False
             elif process_config['process_msu']:
                 LOG.warning("Fort file for msu does not exist after decommutation. Skip processing this.")
                 process_config['process_msu'] = False
@@ -248,11 +250,12 @@ def do_decommutation(process_config, msg, timestamp):
                     if returncode in accepted_return_codes_chk1btime:
                         LOG.debug("chk1btime command {} ok.".format(cmd))
                     else:
-                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail.")
                         LOG.debug("Return code: {}".format(returncode))
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
                         LOG.debug("status: {}".format(status))
+                        process_config['process_dcs'] = False
             elif process_config['process_dcs']:
                 LOG.warning("Fort file for dcs does not exist after decommutation. Skip processing this.")
                 process_config['process_dcs'] = False
@@ -274,6 +277,7 @@ def do_decommutation(process_config, msg, timestamp):
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
                         LOG.debug("status: {}".format(status))
+                        process_config['process_amsua'] = False
             elif process_config['process_amsua']:
                 LOG.warning("Fort file for amsu-a does not exist after decommutation. Skip processing this.")
                 process_config['process_amsua'] = False
@@ -290,11 +294,12 @@ def do_decommutation(process_config, msg, timestamp):
                     if returncode in accepted_return_codes_chk1btime:
                         LOG.debug("chk1btime command {} ok.".format(cmd))
                     else:
-                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail.")
                         LOG.debug("Return code: {}".format(returncode))
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
                         LOG.debug("status: {}".format(status))
+                        process_config['process_amsub'] = False
             elif process_config['process_amsub']:
                 LOG.warning("Fort file for amsu-b does not exist after decommutation. Skip processing this.")
                 process_config['process_amsub'] = False
