@@ -26,6 +26,7 @@ Relay on several other steps before this can be DONE
 import logging
 import os
 from urlparse import urlparse
+import shutil
 
 from helper_functions import run_shell_command
 
@@ -76,6 +77,7 @@ def do_decommutation(process_config, msg, timestamp):
 
     #A list of accepted return codes for the various scripts/binaries run in this function
     accepted_return_codes_decom_hrpt = [0]
+    accepted_return_codes_chk1btime = [0]
     accepted_return_codes_decom_amsua_metop = [0]
     accepted_return_codes_decom_amsub_metop = [0]
     accepted_return_codes_decom_hirs_metop  = [0]
@@ -146,37 +148,171 @@ def do_decommutation(process_config, msg, timestamp):
             LOG.error("Building decommutation command string failed: {}".format(err))
             return False
         
-        if (len(process_config['input_hrpt_file']) > 80):
-            LOG.warning("Too long filename for decommutation.exe. The decommutation will probably fail.")
-            LOG.warning("{}".format(process_config['input_hrpt_file']))
-
         #If for some reason the first line of the data is bad the chk1btime.exe will fail
         # and there for the decommutation will also fail. Do a check here a give the user a warning.
-        cmd="chk1btime.exe" 
-        try:
-            status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['input_hrpt_file']))
-        except:
-            LOG.error("Command {} failed.".format(cmd))
-            LOG.error("This means that the start of the data are bad, and that the decommutation later will fail.")
-        else:
-            LOG.debug("Return code: {}".format(returncode))
-            LOG.debug("std: {}".format(std))
-            LOG.debug("err: {}".format(err))
-            LOG.debug("status: {}".format(status))
+        #cmd="chk1btime.exe" 
+        #try:
+        #    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['input_hrpt_file']))
+        #except:
+        #    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+        #else:
+        #    LOG.error("This means that the start of the data are bad, and that the decommutation later will fail?")
+        #    LOG.debug("Return code: {}".format(returncode))
+        #    LOG.debug("std: {}".format(std))
+        #    LOG.debug("err: {}".format(err))
+        #    LOG.debug("status: {}".format(status))
             
-        cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
+
+        #Read decommitation input into variable
+        decom = open(decom_file, 'r')
+        decom_input = decom.read()
+        decom.close()
+        
+        os.environ['FILE_COEF']=os.path.join(os.environ.get('PAR_CALIBRATION_COEF'),'amsua', 'amsua_clparams.dat')
+        os.symlink(os.environ['FILE_COEF'], "{}50".format(os.environ['FORT']))
+        
+        cmd="decommutation.exe" #.format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
         try:
-            status, returncode, std, err = run_shell_command(cmd)
+            status, returncode, std, err = run_shell_command(cmd, stdin="{}\n{}{}\n".format(process_config['input_hrpt_file'], decom_input, os.getenv('STATION_ID','ST')),
+                                                             stdout_logfile='decommutation.log',
+                                                             stderr_logfile='decommutation.log')
         except:
             LOG.error("Command {} failed.".format(cmd))
         else:
             if returncode in accepted_return_codes_decom_hrpt:
-                LOG.info("Command {} complete.".format(cmd))
-                if not os.path.exists(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']):
-                    LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
+                LOG.info("Decommutation command {} complete.".format(cmd))
             else:
                 LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                 return_status = False
+        
+        #Need to check the decommutation output and rename fort files 
+        if return_status:
+            #hrpt 14
+            if os.path.exists("{}14".format(os.environ['FORT'])):
+                shutil.move("{}14".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
+            elif process_config['process_avhrr']:
+                LOG.warning("Fort file for avhrr does not exist after decommutation. Skip processing this.")
+                process_config['process_avhrr'] = False
+                
+            #hrsn 11
+            if os.path.exists("{}11".format(os.environ['FORT'])):
+                shutil.move("{}11".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['hirs_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['hirs_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+            elif process_config['process_hirs']:
+                LOG.warning("Fort file for hirs does not exist after decommutation. Skip processing this.")
+                process_config['process_hirs'] = False
+
+            #msun 12
+            if os.path.exists("{}12".format(os.environ['FORT'])):
+                shutil.move("{}12".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['msu_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['msu_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+            elif process_config['process_msu']:
+                LOG.warning("Fort file for msu does not exist after decommutation. Skip processing this.")
+                process_config['process_msu'] = False
+
+            #dcsn 13
+            if os.path.exists("{}13".format(os.environ['FORT'])):
+                shutil.move("{}13".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['dcs_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['dcs_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+            elif process_config['process_dcs']:
+                LOG.warning("Fort file for dcs does not exist after decommutation. Skip processing this.")
+                process_config['process_dcs'] = False
+
+            #aman 15
+            if os.path.exists("{}15".format(os.environ['FORT'])):
+                shutil.move("{}15".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['amsua_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+            elif process_config['process_amsua']:
+                LOG.warning("Fort file for amsu-a does not exist after decommutation. Skip processing this.")
+                process_config['process_amsua'] = False
+
+            #ambn 16
+            if os.path.exists("{}16".format(os.environ['FORT'])):
+                shutil.move("{}16".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['amsub_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+            elif process_config['process_amsub']:
+                LOG.warning("Fort file for amsu-b does not exist after decommutation. Skip processing this.")
+                process_config['process_amsub'] = False
+                    
+        #This is the kort shell script from AAPP
+        #cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
+        #try:
+        #   status, returncode, std, err = run_shell_command(cmd)
+        #except:
+        #    LOG.error("Command {} failed.".format(cmd))
+        #else:
+        #    if returncode in accepted_return_codes_decom_hrpt:
+        #        LOG.info("Command {} complete.".format(cmd))
+        #        if not os.path.exists(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']):
+        #            LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
+        #    else:
+        #        LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
+        #        return_status = False
         
     elif 'METOP' in process_config['platform_name'].upper():
         LOG.info("Do the metop decommutation")

@@ -963,7 +963,7 @@ if __name__ == "__main__":
                             #Want to take care of log files to possible debug.
                             move_aapp_log_files(aapp_config)
                             cleanup_aapp_logfiles_archive(aapp_config)
-                            cleanup_aapp_workdir(aapp_config)
+                            #cleanup_aapp_workdir(aapp_config)
                     
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")

@@ -10,7 +10,8 @@ aapp_static_configuration:
     amsub_file: ambn.l1b
     mhs_file: ambn.l1b
     avhrr_file: hrpt.l1b
-
+    msu_file: msun.l1b
+     
   supported_noaa_satellites:
     - NOAA-15
     - NOAA-18
