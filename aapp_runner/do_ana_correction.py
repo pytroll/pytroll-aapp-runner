@@ -56,10 +56,11 @@ def do_ana_correction(process_config, msg, timestamp):
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #Must check of the ana dir exists
-    ana_dir = os.path.join(os.getenv('DIR_NAVIGATION'),'ana')
+    ana_dir = os.path.join(os.getenv('DIR_NAVIGATION'),'ana2')
     if not os.path.exists(ana_dir):
         try:
             os.makedirs(ana_dir)
+            os.environ['DIR_ANA'] = ana_dir
         except OSError in e:
             LOG.error("Failed to create directory: {}. This is needed to run the ANA software.")
             return_status = False
