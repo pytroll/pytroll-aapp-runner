@@ -656,6 +656,13 @@ def generate_process_config(msg, config):
             process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
             LOG.debug("{} {}".format(sensor, process_name))
             config[process_name] = True
+
+            #Name of the input file for given instrument
+            #Needed for METOP processing
+            input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            config[input_file_name] = urlparse(msg.data['uri']).path
+            
+        #Needed for POES processing
         config['input_hrpt_file'] = urlparse(msg.data['uri']).path
             
     else:
