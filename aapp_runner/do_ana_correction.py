@@ -40,6 +40,9 @@ def do_ana_correction(process_config, msg, timestamp):
    
     Also it relays on reference_landmarks directory under ENV(DIR_NAVIGATION)/ana dir
     This needs to be copied/installed here by the user 
+
+    TODO: Replace the ana_lmk_loc script with code here to better be able to control 
+    the directories used in the processing 
     """
 
     try:
@@ -56,7 +59,7 @@ def do_ana_correction(process_config, msg, timestamp):
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
     #Must check of the ana dir exists
-    ana_dir = os.path.join(os.getenv('DIR_NAVIGATION'),'ana2')
+    ana_dir = os.path.join(os.getenv('DIR_NAVIGATION'),'ana')
     if not os.path.exists(ana_dir):
         try:
             os.makedirs(ana_dir)
@@ -64,7 +67,12 @@ def do_ana_correction(process_config, msg, timestamp):
         except OSError in e:
             LOG.error("Failed to create directory: {}. This is needed to run the ANA software.")
             return_status = False
-    
+
+    #And the ana dir must contain a reference_landmarks directory to work!
+    if not os.path.exists(os.path.join(ana_dir,"reference_landmarks")):
+        LOG.error("Can not run ANA because reference_landmarks under the ana dir is missing.")
+        return_status = False
+        
     if return_status:
         #Find all matching landmarks
         cmd = "ana_lmk_loc -D {}".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])

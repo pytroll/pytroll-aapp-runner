@@ -275,8 +275,8 @@ def do_tleing(config, timestamp, satellite):
                                 
                             try:
                                 copy(tle_file_name, tle_archive_dir)
-                            except:
-                                LOG.error("Failed to copy TLE file: {} to archive: {}".format(tle_file_name, tle_archive_dir))
+                            except IOError as ioe:
+                                LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(tle_file_name, tle_archive_dir, ioe))
                                         
     #Change back after this is done
     os.chdir(current_dir)
