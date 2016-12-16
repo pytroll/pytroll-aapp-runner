@@ -862,11 +862,11 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
             msg_to_send['filename'] = os.path.basename(file['file'])
             msg_to_send['uid'] = os.path.basename(file['file'])
-            msg_to_send['sensor'] = file['sensor']
+            msg_to_send['sensor'] = SENSOR_NAME_CONVERTER.get(file['sensor'],file['sensor'])
             msg_to_send['orbit_number'] = config['orbit_number']
             msg_to_send['format'] = "AAPP"
             msg_to_send['type'] = 'Binary'
-            msg_to_send['data_processing_level'] = file['level'].upper()
+            msg_to_send['data_processing_level'] = file['level'].upper().replace("L", "")
             LOG.debug('level in message: ' + str(msg_to_send['data_processing_level']))
             msg_to_send['start_time'] = config['starttime']
             msg_to_send['end_time'] = config['endtime']
