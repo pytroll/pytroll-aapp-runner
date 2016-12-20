@@ -170,7 +170,8 @@ def do_tleing(config, timestamp, satellite):
                         delta = timestamp - test(m)
                         if ( abs(delta.total_seconds()) < min_closest_tle_file):
                             min_closest_tle_file = abs(delta.total_seconds()) 
-                            infile_closest = os.path.basename(tle_file_name)
+                            #infile_closest = os.path.basename(tle_file_name)
+                            infile_closest = tle_file_name
                             LOG.debug("Closest tle infile so far: {}".format(infile_closest))
 
             if infile_closest:
@@ -276,8 +277,10 @@ def do_tleing(config, timestamp, satellite):
                             try:
                                 copy(tle_file_name, tle_archive_dir)
                                 LOG.debug("Copied {} to {}.".format(tle_file_name, tle_archive_dir))
+                                archive = False
                             except IOError as ioe:
                                 LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(tle_file_name, tle_archive_dir, ioe))
+                                LOG.error("CWD: {}".format(os.getcwd()))
                                         
     #Change back after this is done
     os.chdir(current_dir)
