@@ -190,6 +190,23 @@ def do_decommutation(process_config, msg, timestamp):
             #hrpt 14
             if os.path.exists("{}14".format(os.environ['FORT'])):
                 shutil.move("{}14".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
+                cmd="chk1btime.exe" 
+                try:
+                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
+                except:
+                    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
+                else:
+                    if returncode in accepted_return_codes_chk1btime:
+                        LOG.debug("chk1btime command {} ok.".format(cmd))
+                        LOG.debug("std: {}".format(std))
+                    else:
+                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail.")
+                        LOG.debug("Return code: {}".format(returncode))
+                        LOG.debug("std: {}".format(std))
+                        LOG.debug("err: {}".format(err))
+                        LOG.debug("status: {}".format(status))
+                        process_config['process_avhrr'] = False
+
             elif process_config['process_avhrr']:
                 LOG.warning("Fort file for avhrr does not exist after decommutation. Skip processing this.")
                 process_config['process_avhrr'] = False
