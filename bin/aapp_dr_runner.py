@@ -652,6 +652,8 @@ def generate_process_config(msg, config):
         if type(msg.data["sensor"]) not in (tuple, list, set):
             msg.data["sensor"] = [msg.data["sensor"]]
 
+        LOG.debug("sensor: {}".format(msg.data["sensor"]))
+
         for sensor in msg.data['sensor']:
             process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
             LOG.debug("{} {}".format(sensor, process_name))
@@ -726,7 +728,7 @@ def setup_aapp_processing(config):
     if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name]:
         try:
             config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
-            LOG.debug("working dir set based on aapp_oarkdir and tmp " + str(config['aapp_processes'][config.process_name]['working_dir']))
+            LOG.debug("working dir set based on aapp_workdir and tmp " + str(config['aapp_processes'][config.process_name]['working_dir']))
         except OSError:
             config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp()
         finally:
