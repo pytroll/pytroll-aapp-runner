@@ -182,7 +182,7 @@ def do_tleing(config, timestamp, satellite):
                 LOG.error("Update your TLE files or adjust the limit(Not recomended!).")
                 
         if tle_file_list:
-            LOG.debug("Use this: {} {}".format(tle_file_list, min_closest_tle_file))
+            LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
     
     if not tle_file_list:
         LOG.error("Found no tle files.")
@@ -224,6 +224,10 @@ def do_tleing(config, timestamp, satellite):
                         LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
                         LOG.debug("stdout: {}".format(stdout))
                         LOG.debug("stderr: {}".format(stderr))
+                        LOG.debug("DIR_DATA_TLE : {}".format(DIR_DATA_TLE))
+                        LOG.debug("tle_file : {}".format(os.path.basename(tle_file)))
+                        LOG.debug("satellite : {}".format(satellite))
+                        LOG.debug("TLE_INDEX : {}".format(TLE_INDEX))
 
                         #When a index file is generated above one line is added for each tle file.
                         #If several tle files contains equal TLEs each of these TLEs generate one line in the index file
@@ -233,9 +237,9 @@ def do_tleing(config, timestamp, satellite):
                         #Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
                         #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
                         if os.path.exists(TLE_INDEX):
-                            cmd="sort -u -o {} +0b -3b {}".format("{}.sort".format(TLE_INDEX), TLE_INDEX)
+                            cmd="sort -u +0b -3b {} | grep -v NaN".format(TLE_INDEX)
                             try:
-                                status, returncode, stdout, stderr = run_shell_command(cmd)
+                                status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
                             except:
                                 LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
                                 LOG.error("stdout: {}".format(stdout))
