@@ -4,7 +4,6 @@ import os
 from socket import gethostname, gethostbyaddr, gaierror
 
 from ConfigParser import SafeConfigParser
-from apt_pkg import config
 
 MANDATORY = 'm'
 
