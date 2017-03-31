@@ -150,37 +150,45 @@ def do_tleing(config, timestamp, satellite):
         LOG.debug("tle file name: {}".format(infile))
 
         #Check if I can read the tle file.
-        try:
-            with open(os.path.join(DIR_DATA_TLE, infile)) as tle_file:
-                del tle_file_list[:]
-                tle_file_list.append(os.path.join(DIR_DATA_TLE, infile))
-                pass
-        except IOError as e:
-            LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
-            infile = None
-            tle_file_list = glob(os.path.join(DIR_DATA_TLE,'*'))
-            #print "tle file list: {}".format(tle_file_list)
-            #print tle_file_list
-            infile_closest = ""
-            for tle_file_name in tle_file_list:
-                for regex, test in tle_match_tests:
-                    m = re.match(regex, tle_file_name)
-                    if m:
-                        #print "{} {}".format(tle_file_name, test(m))
-                        delta = timestamp - test(m)
-                        if ( abs(delta.total_seconds()) < min_closest_tle_file):
-                            min_closest_tle_file = abs(delta.total_seconds()) 
-                            #infile_closest = os.path.basename(tle_file_name)
-                            infile_closest = tle_file_name
-                            LOG.debug("Closest tle infile so far: {}".format(infile_closest))
+        first_search = True
+        for tle_search_dir in (DIR_DATA_TLE, compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y-%m}"), tle_dict)):
+            LOG.debug("tle_search_dir {}".format(tle_search_dir))
+            try:
+                with open(os.path.join(tle_search_dir, infile)) as tle_file:
+                    del tle_file_list[:]
+                    tle_file_list.append(os.path.join(tle_search_dir, infile))
+                    pass
+            except IOError as e:
+                LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
+                infile = None
+                tle_file_list = glob(os.path.join(tle_search_dir,'*'))
+                #print "tle file list: {}".format(tle_file_list)
+                #print tle_file_list
+                infile_closest = ""
+                for tle_file_name in tle_file_list:
+                    for regex, test in tle_match_tests:
+                        m = re.match(regex, tle_file_name)
+                        if m:
+                            #print "{} {}".format(tle_file_name, test(m))
+                            delta = timestamp - test(m)
+                            if ( abs(delta.total_seconds()) < min_closest_tle_file):
+                                min_closest_tle_file = abs(delta.total_seconds()) 
+                                #infile_closest = os.path.basename(tle_file_name)
+                                infile_closest = tle_file_name
+                                LOG.debug("Closest tle infile so far: {}".format(infile_closest))
 
-            if infile_closest:
-                del tle_file_list[:]
-                tle_file_list.append(infile_closest)
+                if infile_closest:
+                    del tle_file_list[:]
+                    tle_file_list.append(infile_closest)
+                    break
+                else:
+                    if not first_search:
+                        LOG.error("Could not find tle file close enough to timestamp {} with limit {}".format(timestamp, min_closest_tle_file))
+                        LOG.error("Update your TLE files or adjust the limit(Not recomended!).")
+                first_search = false
             else:
-                LOG.error("Could not find tle file close enough to timestamp {} with limit {}".format(timestamp, min_closest_tle_file))
-                LOG.error("Update your TLE files or adjust the limit(Not recomended!).")
-                
+                break
+
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
     
@@ -237,26 +245,36 @@ def do_tleing(config, timestamp, satellite):
                         #Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
                         #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
                         if os.path.exists(TLE_INDEX):
-                            cmd="sort -u +0b -3b {} | grep -v NaN".format(TLE_INDEX)
+                            cmd="sort -u +0b -3b {}".format(TLE_INDEX)
                             try:
-                                status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
+                                status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort1".format(TLE_INDEX))
                             except:
                                 LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
                                 LOG.error("stdout: {}".format(stdout))
                                 LOG.error("stderr: {}".format(stderr))
                                 return_status = False
                             else:
-                                if returncode == 0 and os.path.exists("{}.sort".format(TLE_INDEX)):
+                                if returncode == 0 and os.path.exists("{}.sort1".format(TLE_INDEX)):
+                                    cmd="grep -v NaN {}.sort1".format(TLE_INDEX)
                                     try:
-                                        os.remove(TLE_INDEX)
-                                    except OSError as e:
-                                        LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
+                                        status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
+                                    except:
+                                        LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                                        LOG.error("stdout: {}".format(stdout))
+                                        LOG.error("stderr: {}".format(stderr))
+                                        return_status = False
                                     else:
+                                    
                                         try:
-                                            os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
-                                            archive=True
-                                        except:
-                                            LOG.error("Failed to rename sorted index file to original name.")
+                                            os.remove(TLE_INDEX)
+                                        except OSError as e:
+                                            LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
+                                        else:
+                                            try:
+                                                os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
+                                                archive=True
+                                            except:
+                                                LOG.error("Failed to rename sorted index file to original name.")
                                 else:
                                     LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(returncode, "{}.sort".format(TLE_INDEX)))
                         else:
