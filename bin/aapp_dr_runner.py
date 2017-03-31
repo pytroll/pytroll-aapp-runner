@@ -661,8 +661,8 @@ def generate_process_config(msg, config):
 
             #For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
             #AAPP processing handles MHS as AMSU-B
-            if (('noaa' in process_config['platform_name'] and int(config['platform_name'][4:6]) >= 18) or 
-                ('METOP' in process_config['platform_name'].upper())) and config['process_mhs']:
+            if (('noaa' in msg.data['platform_name'] and int(msg.data['platform_name'][4:6]) >= 18) or 
+                ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
                 config['process_amsub'] = True
                 
             #Name of the input file for given instrument
