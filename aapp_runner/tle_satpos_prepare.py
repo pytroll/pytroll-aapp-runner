@@ -160,7 +160,6 @@ def do_tleing(config, timestamp, satellite):
                     pass
             except IOError as e:
                 LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
-                infile = None
                 tle_file_list = glob(os.path.join(tle_search_dir,'*'))
                 #print "tle file list: {}".format(tle_file_list)
                 #print tle_file_list
@@ -185,10 +184,11 @@ def do_tleing(config, timestamp, satellite):
                     if not first_search:
                         LOG.error("Could not find tle file close enough to timestamp {} with limit {}".format(timestamp, min_closest_tle_file))
                         LOG.error("Update your TLE files or adjust the limit(Not recomended!).")
-                first_search = false
+                first_search = False
             else:
                 break
 
+        DIR_DATA_TLE = tle_search_dir
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
     
