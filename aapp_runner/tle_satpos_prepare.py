@@ -109,6 +109,8 @@ def do_tleing(config, timestamp, satellite):
     TLE_INDEX=os.path.join(DIR_DATA_TLE,"tle_{}.index".format(satellite))
 
     tle_file_list = []
+    #dict to hold needed tle keys
+    tle_dict = {}
     if not select_closest_tle_file_to_data:
         if os.path.exists(TLE_INDEX):
             #Loop over all tle files, and only do tle 
@@ -134,7 +136,6 @@ def do_tleing(config, timestamp, satellite):
             
     else:
         #dict to hold needed tle keys
-        tle_dict = {}
         tle_dict['timestamp'] = timestamp
         try:
             infile = compose(config['aapp_processes'][config.process_name]['tle_infile_format'],tle_dict)
@@ -188,7 +189,7 @@ def do_tleing(config, timestamp, satellite):
             else:
                 break
 
-        DIR_DATA_TLE = tle_search_dir
+        #DIR_DATA_TLE = tle_search_dir
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
     
@@ -203,6 +204,10 @@ def do_tleing(config, timestamp, satellite):
                 return_status = False
             else:
                 """Dont use the tle_indir because this is handeled by the tleing script"""
+                if (DIR_DATA_TLE != tle_search_dir ):
+                    tle_filename = compose(os.path.join("{timestamp:%Y-%m}",basename(tle_file)), tle_dict)
+                else:
+                    tle_filename = basename(tle_file)
                 status = False
                 returncode = 0
                 stdout = ""
@@ -210,7 +215,7 @@ def do_tleing(config, timestamp, satellite):
                 cmd="tleing.exe"
                 try:
                     status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,
-                                                                                                               os.path.basename(tle_file),
+                                                                                                               tle_filename,
                                                                                                                satellite,
                                                                                                                TLE_INDEX))
                 except:

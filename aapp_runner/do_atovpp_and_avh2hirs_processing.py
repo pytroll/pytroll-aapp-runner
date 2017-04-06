@@ -98,7 +98,7 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
             return_status = False
             
         if return_status:
-            cmd = "l1didf -i  hirs.l1d"
+            cmd = "l1didf -i hirs.l1d"
             try:
                 status, returncode, std, err = run_shell_command(cmd)
             except:
@@ -140,6 +140,7 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
             else:
                 cmd = "bash -c \"source liblog.sh;source maia2_env;maia2_environment\";avh2hirs_atovs.exe 2>&1"
                 
+            LOG.debug("Before running command: {}".format(cmd))
             try:
                 status, returncode, std, err = run_shell_command(cmd, stdout_logfile="avh2hirs.log", use_shlex=False, use_shell=True)
             except:
@@ -152,6 +153,8 @@ def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
                     return_status = False
                 else:
                     LOG.info("Command {} complete.".format(cmd))
+                    LOG.debug(std)
+                    LOG.debug(err)
         
         if return_status:
             import glob
