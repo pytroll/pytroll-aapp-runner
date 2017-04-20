@@ -205,9 +205,9 @@ def do_tleing(config, timestamp, satellite):
             else:
                 """Dont use the tle_indir because this is handeled by the tleing script"""
                 if (DIR_DATA_TLE != tle_search_dir ):
-                    tle_filename = compose(os.path.join("{timestamp:%Y-%m}",basename(tle_file)), tle_dict)
+                    tle_filename = compose(os.path.join("{timestamp:%Y-%m}",os.path.basename(tle_file)), tle_dict)
                 else:
-                    tle_filename = basename(tle_file)
+                    tle_filename = os.path.basename(tle_file)
                 status = False
                 returncode = 0
                 stdout = ""
