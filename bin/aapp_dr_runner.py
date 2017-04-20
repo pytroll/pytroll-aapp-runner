@@ -678,7 +678,43 @@ def generate_process_config(msg, config):
         return False 
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
-    config['orbit_number'] = int(msg.data['orbit_number'])
+    
+    if 'keep_orbit_number_from_message' in config['aapp_processes'][config.process_name] and 'orbit_number' in msg.data:
+        config['orbit_number'] = int(msg.data['orbit_number'])
+    else:
+        # Check the case of no orbit number in message, typically EARS stream
+        start_orbnum = None
+        try:
+            import pyorbital.orbital as orb
+            sat = orb.Orbital(
+                TLE_SATNAME.get(msg.data['platform_name'], msg.data['platform_name']))
+            start_orbnum = sat.get_orbit_number(msg.data['start_time'])
+        except ImportError:
+            LOG.warning("Failed importing pyorbital, " +
+                        "cannot calculate orbit number")
+        except AttributeError:
+            LOG.warning("Failed calculating orbit number using pyorbital")
+            LOG.warning("platform name in msg and config = " +
+                        str(TLE_SATNAME.get(msg.data['platform_name'],
+                                            msg.data['platform_name'])) +
+                        " " + str(config['platform_name']))
+        LOG.info(
+            "Orbit number determined from pyorbital = " + str(start_orbnum))
+        try:
+            config['orbit_number'] = int(msg.data['orbit_number'])
+        except KeyError:
+            LOG.warning("No orbit_number in message! Set to none...")
+            config['orbit_number'] = None
+                
+        if start_orbnum and config['orbit_number'] != start_orbnum:
+            LOG.warning("Correcting orbit number: Orbit now = " +
+                        str(start_orbnum) + " Before = " + str(config['orbit_number']))
+            config['orbit_number'] = start_orbnum
+        else:
+            LOG.debug("Orbit number in message determined"
+                      "to be okay and not changed...")
+            config['orbit_number'] = int(msg.data['orbit_number'])
+
     #How to give the platform name?
     #Which format?
     #Used are for Metop:
