@@ -757,6 +757,22 @@ def setup_aapp_processing(config):
                 (key,_,value) = line.partition("=")
                 os.environ[key]=value
 
+    #Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
+    #but needed names are metop01 etc. Replace this inside the processing from now on.
+    aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
+    if config['platform_name'] not in aapp_satellite_list:
+        LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
+        LOG.warning("Platform {} not in list: {}".format(config['platform_name'],aapp_satellite_list))
+        if 'metop' in config['platform_name'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
+            LOG.debug("Replace in this processing")
+            PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M02','metop02') 
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M03','metop03') 
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
+            os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
+            LOG.debug("New LISTESAT: {}".format(os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
+
     return True
 
 def process_aapp(msg, config):
