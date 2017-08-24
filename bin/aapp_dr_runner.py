@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
 
 # Author(s):
 
@@ -78,7 +78,7 @@ SENSOR_NAME_CONVERTER = {
     'hirs': 'hirs/4',
     'mhs': 'mhs',
     'avhrr': 'avhrr/3',
-    
+
     'amsu-a': 'amsua',
     'amsu-b': 'amsub',
     'hirs/4': 'hirs',
@@ -122,6 +122,7 @@ def get_local_ips():
                 ips.append(add['addr'])
     return ips
 
+
 def reset_job_registry(objdict, key, start_end_times):
     """Remove job key from registry"""
 
@@ -141,7 +142,9 @@ def reset_job_registry(objdict, key, start_end_times):
                 str(key))
     return
 
+
 class AappL1Config(object):
+
     """
     Container for the configuration for AAPP
     """
@@ -170,16 +173,17 @@ class AappL1Config(object):
         self.config = copy.deepcopy(self.orig_config)
         self.local_env = {}
         self.local_env = os.environ.copy()
-        
+
     def add_process_config_paramenter(self, config_key, config_value):
         """
         Add a config parameter to the running config
         """
-        self.config['aapp_processes'][self.process_name][config_key] = config_value
-    
+        self.config['aapp_processes'][
+            self.process_name][config_key] = config_value
+
     def get_parameter(self, key):
         return self.config['aapp_processes'][self.process_name][key]
-         
+
 
 def cleanup_aapp_logfiles_archive(config):
     """
@@ -187,13 +191,16 @@ def cleanup_aapp_logfiles_archive(config):
     """
 
     try:
-        directory_list = glob('%s/*' % config['aapp_processes'][config.process_name]['aapp_log_files_archive_dir'])
-        dummy = [delete_old_dirs(s,config['aapp_processes'][config.process_name]['aapp_log_files_archive_length']) for s in directory_list if os.path.isdir(s)]
+        directory_list = glob(
+            '%s/*' % config['aapp_processes'][config.process_name]['aapp_log_files_archive_dir'])
+        dummy = [delete_old_dirs(s, config['aapp_processes'][config.process_name][
+                                 'aapp_log_files_archive_length']) for s in directory_list if os.path.isdir(s)]
     except Exception as err:
         LOG.error("Failed with: {}".format(err))
         return False
-    
+
     return True
+
 
 def delete_old_dirs(dir_path, older_than_days):
     """
@@ -206,30 +213,34 @@ def delete_old_dirs(dir_path, older_than_days):
             LOG.debug("Removing: {} and all its content.".format(dir_path))
             shutil.rmtree(dir_path)
     except ValueError as ve:
-        LOG.error("Failed to handle value {} as int: {}".format(older_than_days,ve))
+        LOG.error(
+            "Failed to handle value {} as int: {}".format(older_than_days, ve))
         LOG.error("Will NOT clean the directory: {}".format(dir_path))
         return False
     except Exception as err:
         LOG.error("Failed with {}".format(err))
         return False
-    
+
     return True
-    
+
+
 def cleanup_aapp_workdir(config):
     """Clean up the AAPP working dir after processing"""
 
     try:
-        filelist = glob('%s/*' % config['aapp_processes'][config.process_name]['working_dir'])
+        filelist = glob(
+            '%s/*' % config['aapp_processes'][config.process_name]['working_dir'])
         dummy = [os.remove(s) for s in filelist if os.path.isfile(s)]
         #filelist = glob('%s/*' % self.working_dir)
-        #LOG.info("Number of items left after cleaning working dir = " +
+        # LOG.info("Number of items left after cleaning working dir = " +
         #          str(len(filelist)))
         #LOG.debug("Files: " + str(filelist))
-        shutil.rmtree(config['aapp_processes'][config.process_name]['working_dir'])
+        shutil.rmtree(
+            config['aapp_processes'][config.process_name]['working_dir'])
     except Exception as err:
         LOG.warning("Failed to cleanup working dir: {}".format(err))
         return False
-        
+
     return True
 
 
@@ -239,19 +250,24 @@ def move_aapp_log_files(config):
     The directory path is defined in config file (aapp_log_files)
     """
     try:
-        filelist = glob('%s/*.log' % config['aapp_processes'][config.process_name]['working_dir'])
-        
+        filelist = glob(
+            '%s/*.log' % config['aapp_processes'][config.process_name]['working_dir'])
+
         try:
             tmp_config = config.config.copy()
-            tmp_config.update(tmp_config['aapp_processes'][config.process_name])
+            tmp_config.update(
+                tmp_config['aapp_processes'][config.process_name])
 
-            _outdir = compose(tmp_config['aapp_outdir_format'],tmp_config)
-            destination = os.path.join(tmp_config['aapp_log_files_archive_dir'], _outdir)
+            _outdir = compose(tmp_config['aapp_outdir_format'], tmp_config)
+            destination = os.path.join(
+                tmp_config['aapp_log_files_archive_dir'], _outdir)
         except KeyError as err:
-            LOG.error("Failed to compose log files dir: {}. Missing key:{}".format(config['aapp_processes'][config.process_name]['aapp_outdir_format'],err))
+            LOG.error("Failed to compose log files dir: {}. Missing key:{}".format(
+                config['aapp_processes'][config.process_name]['aapp_outdir_format'], err))
             return False
         except Exception as err:
-            LOG.error("Failed to compose log files dir: {}. Error:{}".format(config['aapp_processes'][config.process_name]['aapp_outdir_format'],err))
+            LOG.error("Failed to compose log files dir: {}. Error:{}".format(
+                config['aapp_processes'][config.process_name]['aapp_outdir_format'], err))
             return False
 
         LOG.debug("move_aapp_log_files destination: " + destination)
@@ -260,10 +276,12 @@ def move_aapp_log_files(config):
             try:
                 os.makedirs(destination)
             except OSError as err:
-                LOG.error("Can't create directory: {} because: {}".format(destination, err))
+                LOG.error(
+                    "Can't create directory: {} because: {}".format(destination, err))
                 return False  # FIXME: Check!
             else:
-                LOG.debug("Created new directory for AAPP log files:" + destination)
+                LOG.debug(
+                    "Created new directory for AAPP log files:" + destination)
 
         for file_name in filelist:
             try:
@@ -271,9 +289,10 @@ def move_aapp_log_files(config):
                 dst = os.path.join(destination, base_filename)
                 shutil.move(file_name, dst)
             except Exception as err:
-                LOG.warning("Failed to move log file: {} to: {}".format(file_name, dst))
+                LOG.warning(
+                    "Failed to move log file: {} to: {}".format(file_name, dst))
             else:
-                LOG.debug("Moved {} to {}".format(file_name,dst))
+                LOG.debug("Moved {} to {}".format(file_name, dst))
 
     except OSError as err:
         LOG.error("Moving AAPP log files to " + destination + " failed ", err)
@@ -282,11 +301,12 @@ def move_aapp_log_files(config):
 
     return True
 
+
 def check_scene_id(self, scene_id):
     # Check for keys representing the same scene (slightly different
     # start/end times):
     LOG.debug("Level-0files = " + str(self.level0files))
-    time_thr = timedelta(seconds=30)#FIXME configure
+    time_thr = timedelta(seconds=30)  # FIXME configure
     for key in self.level0files:
         pltrfn, startt, endt = key.split('_')
         if not self.platform_name == pltrfn:
@@ -317,6 +337,7 @@ def check_scene_id(self, scene_id):
                         t2_.strftime('%Y-%m-%d %H:%M:%S'))
     return scene_id
 
+
 def sensors_to_process(self, msg, sensors):
     LOG.debug("Sensor = " + str(msg.data['sensor']))
     LOG.debug("type: " + str(type(msg.data['sensor'])))
@@ -337,8 +358,9 @@ def sensors_to_process(self, msg, sensors):
     if not sensor_ok:
         LOG.info("No required sensors....")
         return False
-        
+
     return True
+
 
 def available_sensors(self, msg, sensors, scene_id):
     if scene_id not in self.level0files:
@@ -372,7 +394,8 @@ def block_before_rerun(config, msg):
     if config['platform_name'] not in config.job_register.keys():
         config.job_register[config['platform_name']] = []
 
-    config.job_register[config['platform_name']].append((config['starttime'], config['endtime']))
+    config.job_register[config['platform_name']].append(
+        (config['starttime'], config['endtime']))
     LOG.debug("End: job register = " + str(config.job_register))
 
     try:
@@ -380,19 +403,22 @@ def block_before_rerun(config, msg):
         # (e.g. 10) minutes from now:
         t__ = threading.Timer(config['aapp_processes'][config.process_name]['locktime_before_rerun'],
                               reset_job_registry, args=(config.job_register,
-                                                        config['platform_name'],
+                                                        config[
+                                                            'platform_name'],
                                                         (config['starttime'],
                                                          config['endtime'])))
         t__.start()
 
-        LOG.debug("After timer call: job register = " + str(config.job_register))
+        LOG.debug(
+            "After timer call: job register = " + str(config.job_register))
 
         #LOG.info("Ready with AAPP level-1 processing on NOAA scene: " + str(fname))
         #LOG.info("working dir: self.working_dir = " + str(config['aapp_processes'][config.process_name]['working_dir']))
     except Exception as err:
         LOG.error("Failed because of: {}".format(err))
-        
+
     return True
+
 
 def read_arguments():
     """
@@ -490,7 +516,6 @@ def cleanup(number_of_days, path):
                 remove(root)
 
 
-
 def setup_logging(config, log_file):
     """
     Init and setup logging
@@ -504,7 +529,7 @@ def setup_logging(config, log_file):
             print err.args, \
                 "is missing. Please, check your config ",\
                 config
-            #FIXME Make the errorhandeling better
+            # FIXME Make the errorhandeling better
             raise IOError("Config was given but doesn't " +
                           "know how to backup and rotate")
 
@@ -536,21 +561,23 @@ def setup_logging(config, log_file):
     logging.getLogger('posttroll').setLevel(logging.INFO)
 
     LOG = logging.getLogger('aapp_runner')
-    
+
     return LOG
-        
+
+
 def check_message(msg, server):
     """
     Check the message for neccessary stuff:
     message type
     providing server
     """
-    
+
     if msg is None:
         #LOG.debug("Message is None.")
         return False
-    elif ( msg.type != 'file' and msg.type != 'dataset' ):
-        LOG.warning("Message type is not a file or collection {}".format(msg.type))
+    elif (msg.type != 'file' and msg.type != 'dataset'):
+        LOG.warning(
+            "Message type is not a file or collection {}".format(msg.type))
         return False
     else:
         try:
@@ -562,10 +589,10 @@ def check_message(msg, server):
                     urlobj.append(urlparse(file['uri']))
             else:
                 LOG.error("Failed to find neccessary filename(s) in message.")
-                return False                     
+                return False
         except KeyError as ke:
             LOG.error("Key error: {}".format(ke))
-                
+
         for obj in urlobj:
             url_ip = socket.gethostbyname(obj.netloc)
             if obj.netloc and (url_ip not in get_local_ips()):
@@ -576,24 +603,28 @@ def check_message(msg, server):
 
     return True
 
+
 def check_satellite(msg, config):
     """
     Check if the satellite in message is a valid satellite for this processing
     """
     try:
         if (msg.data['platform_name'] not in config['aapp_static_configuration']['supported_noaa_satellites'] and
-            msg.data['platform_name'] not in config['aapp_static_configuration']['supported_metop_satellites']):
-                LOG.info("Not a NOAA/Metop scene: " + str(msg.data['platform_name']) + ". Continue...")
-                return False
-                # FIXME:
+                msg.data['platform_name'] not in config['aapp_static_configuration']['supported_metop_satellites']):
+            LOG.info("Not a NOAA/Metop scene: " +
+                     str(msg.data['platform_name']) + ". Continue...")
+            return False
+            # FIXME:
     except Exception, err:
         LOG.warning(str(err))
         return False
-    
-    LOG.debug("Accepting satellite: " + str(msg.data['platform_name']) + " as valid platform.")
+
+    LOG.debug("Accepting satellite: " +
+              str(msg.data['platform_name']) + " as valid platform.")
     return True
 
-def check_pass_length(msg,config):
+
+def check_pass_length(msg, config):
     """
     Check if start and end time is ok
     And check if passlength is ok
@@ -603,27 +634,30 @@ def check_pass_length(msg,config):
     try:
         config['endtime'] = msg.data['end_time']
     except KeyError:
-        #TODO Can we handle this better?
-        LOG.warning("No end_time in message! Guessing start_time + 14 minutes...")
+        # TODO Can we handle this better?
+        LOG.warning(
+            "No end_time in message! Guessing start_time + 14 minutes...")
         config['endtime'] = msg.data['start_time'] + timedelta(seconds=60 * 14)
 
     # Test if the scene is longer than minimum required:
     pass_length = config['endtime'] - config['starttime']
     if pass_length < timedelta(seconds=60 * config['aapp_processes'][config.process_name]['passlength_threshold']):
-        LOG.info("Pass is too short: Length in minutes = %6.1f", pass_length.seconds / 60.0)
+        LOG.info("Pass is too short: Length in minutes = %6.1f",
+                 pass_length.seconds / 60.0)
         return False
 
     LOG.debug("Start and end time ok, and passlength is longer than treshold")
     return True
 
+
 def generate_process_config(msg, config):
     """
     Check sensors to process and setup config for this
-    
+
     Need to check if it is a collection or file message. Then get sensor information from this.
     """
-    
-    #All possible instruments to process initialized to false.
+
+    # All possible instruments to process initialized to false.
     config['process_amsua'] = False
     config['process_amsub'] = False
     config['process_hirs'] = False
@@ -632,53 +666,58 @@ def generate_process_config(msg, config):
     config['process_mhs'] = False
     config['process_dcs'] = False
 
-    #Check sensors and file as given in the incomming message
-    #Note: zip iterates two list at the same time
+    # Check sensors and file as given in the incomming message
+    # Note: zip iterates two list at the same time
     if 'dataset' in msg.data:
         LOG.debug("Checking dataset")
         for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
-            process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            process_name = "process_{}".format(
+                SENSOR_NAME_CONVERTER.get(sensor, sensor))
             config[process_name] = True
 
-            #Name of the input file for given instrument
-            input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
-            #print urlparse(sensor_filename['uri']).path
+            # Name of the input file for given instrument
+            input_file_name = "input_{}_file".format(
+                SENSOR_NAME_CONVERTER.get(sensor, sensor))
+            # print urlparse(sensor_filename['uri']).path
             config[input_file_name] = urlparse(sensor_filename['uri']).path
- 
+
     elif 'uri' in msg.data:
         LOG.debug("Checking uri")
-        #Need to force list
+        # Need to force list
         if type(msg.data["sensor"]) not in (tuple, list, set):
             msg.data["sensor"] = [msg.data["sensor"]]
 
         LOG.debug("sensor: {}".format(msg.data["sensor"]))
 
         for sensor in msg.data['sensor']:
-            process_name = "process_{}".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+            process_name = "process_{}".format(
+                SENSOR_NAME_CONVERTER.get(sensor, sensor))
             LOG.debug("{} {}".format(sensor, process_name))
             config[process_name] = True
 
-            #For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
-            #AAPP processing handles MHS as AMSU-B
-            if (('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) >= 18) or 
-                ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
+            # For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
+            # AAPP processing handles MHS as AMSU-B
+            if (('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) >= 18) or
+                    ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
                 config['process_amsub'] = True
-                
-            #Name of the input file for given instrument
-            #Needed for METOP processing
-            input_file_name = "input_{}_file".format(SENSOR_NAME_CONVERTER.get(sensor,sensor))
+
+            # Name of the input file for given instrument
+            # Needed for METOP processing
+            input_file_name = "input_{}_file".format(
+                SENSOR_NAME_CONVERTER.get(sensor, sensor))
             config[input_file_name] = urlparse(msg.data['uri']).path
-            
-        #Needed for POES processing
+
+        # Needed for POES processing
         config['input_hrpt_file'] = urlparse(msg.data['uri']).path
-            
+
     else:
-        LOG.error("Could not find needed dataset or uri in message. Can not handle.")
-        return False 
+        LOG.error(
+            "Could not find needed dataset or uri in message. Can not handle.")
+        return False
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
-    
+
     if 'keep_orbit_number_from_message' in config['aapp_processes'][config.process_name] and 'orbit_number' in msg.data:
         config['orbit_number'] = int(msg.data['orbit_number'])
     else:
@@ -705,7 +744,7 @@ def generate_process_config(msg, config):
         except KeyError:
             LOG.warning("No orbit_number in message! Set to none...")
             config['orbit_number'] = None
-                
+
         if start_orbnum and config['orbit_number'] != start_orbnum:
             LOG.warning("Correcting orbit number: Orbit now = " +
                         str(start_orbnum) + " Before = " + str(config['orbit_number']))
@@ -715,26 +754,29 @@ def generate_process_config(msg, config):
                       "to be okay and not changed...")
             config['orbit_number'] = int(msg.data['orbit_number'])
 
-    #How to give the platform name?
-    #Which format?
-    #Used are for Metop:
+    # How to give the platform name?
+    # Which format?
+    # Used are for Metop:
     #Metop-A/'Metop A'/'METOP A'
-    #M02
-    #metop02
-    #Throughout this processing the last convention is used!
+    # M02
+    # metop02
+    # Throughout this processing the last convention is used!
     if msg.data['platform_name'] in config['aapp_static_configuration']['platform_name_aliases']:
-        config['platform_name'] = config['aapp_static_configuration']['platform_name_aliases'][msg.data['platform_name']]
-        #print config['platform_name']
-        #TODO Should not use satellite_name
-        
+        config['platform_name'] = config['aapp_static_configuration'][
+            'platform_name_aliases'][msg.data['platform_name']]
+        # print config['platform_name']
+        # TODO Should not use satellite_name
+
         config['satellite_name'] = config['platform_name']
     else:
-        LOG.error("Failed to replace platform_name: {}. Can not continue.".format(msg.data['platform_name']))
+        LOG.error("Failed to replace platform_name: {}. Can not continue.".format(
+            msg.data['platform_name']))
         return False
-    
+
     config['start_time'] = msg.data['start_time']
-    
+
     return True
+
 
 def create_and_check_scene_id(msg, config):
     """
@@ -744,7 +786,8 @@ def create_and_check_scene_id(msg, config):
     if config['platform_name'] in config.job_register and len(config.job_register[config['platform_name']]) > 0:
         # Go through list of start,end time tuples and see if the current
         # scene overlaps with any:
-        status = overlapping_timeinterval((config['starttime'], config['endtime']), config.job_register[config['platform_name']])
+        status = overlapping_timeinterval(
+            (config['starttime'], config['endtime']), config.job_register[config['platform_name']])
         if status:
             LOG.warning("Processing of scene " + config['platform_name'] +
                         " " + str(status[0]) + " " + str(status[1]) +
@@ -760,7 +803,8 @@ def create_and_check_scene_id(msg, config):
                 '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
     LOG.debug("scene_id = " + str(scene_id))
     return scene_id
-    
+
+
 def setup_aapp_processing(config):
     """
     Setup various env variables needed for the aapp processing
@@ -769,47 +813,67 @@ def setup_aapp_processing(config):
 
     if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name]:
         try:
-            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
-            LOG.debug("working dir set based on aapp_workdir and tmp " + str(config['aapp_processes'][config.process_name]['working_dir']))
+            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(
+                dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
+            LOG.debug("working dir set based on aapp_workdir and tmp " +
+                      str(config['aapp_processes'][config.process_name]['working_dir']))
         except OSError:
-            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp()
+            config['aapp_processes'][config.process_name][
+                'working_dir'] = tempfile.mkdtemp()
         finally:
             LOG.info("Create new working dir...")
     elif not 'working_dir' in config['aapp_processes'][config.process_name]:
-        config['aapp_processes'][config.process_name]['working_dir'] = config['aapp_processes'][config.process_name]['aapp_workdir']
+        config['aapp_processes'][config.process_name]['working_dir'] = config[
+            'aapp_processes'][config.process_name]['aapp_workdir']
 
-    LOG.info("Working dir = " + str(config['aapp_processes'][config.process_name]['working_dir']))
+    LOG.info("Working dir = " +
+             str(config['aapp_processes'][config.process_name]['working_dir']))
 
-    os.environ["AAPP_PREFIX"] = config['aapp_processes'][config.process_name]['aapp_prefix']
-    
-    aapp_atovs_conf = os.path.join(os.environ["AAPP_PREFIX"],config['aapp_processes'][config.process_name]['aapp_environment_file'])
-    status, returncode, out, err = run_shell_command("bash -c \"source {}\";env".format(aapp_atovs_conf))
+    os.environ["AAPP_PREFIX"] = config['aapp_processes'][
+        config.process_name]['aapp_prefix']
+
+    aapp_atovs_conf = os.path.join(os.environ["AAPP_PREFIX"], config[
+                                   'aapp_processes'][config.process_name]['aapp_environment_file'])
+    status, returncode, out, err = run_shell_command(
+        "bash -c \"source {}\";env".format(aapp_atovs_conf))
     if not status:
-        LOG.error("Failed to run the bash source env command for " +str(aapp_atovs_conf))
+        LOG.error(
+            "Failed to run the bash source env command for " + str(aapp_atovs_conf))
         return False
     else:
         for line in out.splitlines():
             if line:
-                (key,_,value) = line.partition("=")
-                os.environ[key]=value
+                (key, _, value) = line.partition("=")
+                os.environ[key] = value
 
-    #Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
-    #but needed names are metop01 etc. Replace this inside the processing from now on.
+    # Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
+    # but needed names are metop01 etc. Replace this inside the processing
+    # from now on.
     aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
     if config['platform_name'] not in aapp_satellite_list:
-        LOG.warning("Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
-        LOG.warning("Platform {} not in list: {}".format(config['platform_name'],aapp_satellite_list))
+        LOG.warning(
+            "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
+        LOG.warning("Platform {} not in list: {}".format(
+            config['platform_name'], aapp_satellite_list))
         if 'metop' in config['platform_name'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
             LOG.debug("Replace in this processing")
-            PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M01','metop01')
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M02','metop02') 
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M03','metop03') 
-            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace('M04','metop04')
-            os.environ['PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
-            LOG.debug("New LISTESAT: {}".format(os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
+            PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv(
+                'PAR_NAVIGATION_DEFAULT_LISTESAT')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+                'M01', 'metop01')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+                'M02', 'metop02')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+                'M03', 'metop03')
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+                'M04', 'metop04')
+            os.environ[
+                'PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
+            LOG.debug("New LISTESAT: {}".format(
+                os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
 
     return True
+
 
 def process_aapp(msg, config):
     """
@@ -821,69 +885,86 @@ def process_aapp(msg, config):
         platform_name = config['platform_name']
         #working_dir = config['aapp_processes'][config.process_name]['working_dir']
         #tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
-    
-        #DO tle
+
+        # DO tle
         tle_proc_ok = True
         if not do_tleing(config, starttime, platform_name):
-            LOG.warning("Tleing failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "Tleing failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             tle_proc_ok = False
             raise TleError("Tleing failed for some reason")
-    
-        #DO tle satpos
+
+        # DO tle satpos
         satpos_proc_ok = True
         if not do_tle_satpos(config, starttime, platform_name):
-            LOG.warning("Tle satpos failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "Tle satpos failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             satpos_proc_ok = False
             raise SatposError("Tle satpos failed for some reason")
-    
-        #DO decom
+
+        # DO decom
         decom_proc_ok = True
         if not do_decommutation(config, msg, starttime):
-            LOG.warning("The decommutation failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "The decommutation failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             decom_proc_ok = False
-            raise DecommutationError("The decommutation failed for some reason")
-    
-        #DO HIRS
+            raise DecommutationError(
+                "The decommutation failed for some reason")
+
+        # DO HIRS
         hirs_proc_ok = True
         from aapp_runner.do_hirs_calibration import do_hirs_calibration
         if not do_hirs_calibration(config, msg, starttime):
-            LOG.warning("Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             hirs_proc_ok = False
-    
-        #DO ATOVS
+
+        # DO ATOVS
         atovs_proc_ok = True
         from aapp_runner.do_atovs_calibration import do_atovs_calibration
         if not do_atovs_calibration(config, starttime):
-            LOG.warning("The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             atovs_proc_ok = False
-    
-        #DO AVHRR
+
+        # DO AVHRR
         avhrr_proc_ok = True
         from aapp_runner.do_avhrr_calibration import do_avhrr_calibration
         if not do_avhrr_calibration(config, msg, starttime):
-            LOG.warning("The avhrr calibration and location failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "The avhrr calibration and location failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             avhrr_proc_ok = False
-    
-        #Do Preprocessing
+
+        # Do Preprocessing
         atovpp_proc_ok = True
         from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
         if not do_atovpp_and_avh2hirs_processing(config, starttime):
-            LOG.warning("The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             atovpp_proc_ok = False
-    
-        #DO ANA
+
+        # DO ANA
         ana_proc_ok = True
         from aapp_runner.do_ana_correction import do_ana_correction
         if not do_ana_correction(config, msg, starttime):
-            LOG.warning("The ana attitude correction failed for some reason. It might be that the processing can continue")
-            LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
+            LOG.warning(
+                "The ana attitude correction failed for some reason. It might be that the processing can continue")
+            LOG.warning(
+                "Please check the previous log carefully to see if this is an error you can accept.")
             ana_proc_ok = False
     except KeyError as ke:
         LOG.error("Process aapp failed: {}".format(ke))
@@ -905,11 +986,12 @@ def process_aapp(msg, config):
 
     return True
 
+
 def publish_level1(publisher, config, msg, filelist, station_name, environment):
     """
     Send a publish message, one message per file in the filelist
     """
-    
+
     for file in filelist:
         LOG.debug("Handeling file for sending: {}".format(file))
         msg_to_send = {}
@@ -917,17 +999,21 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
             msg_to_send = msg.data.copy()
             if 'dataset' in msg_to_send:
                 del msg_to_send['dataset']
-                
-            msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][config.process_name]['message_providing_server'], file['file'])
+
+            msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][
+                                                      config.process_name]['message_providing_server'], file['file'])
 
             msg_to_send['filename'] = os.path.basename(file['file'])
             msg_to_send['uid'] = os.path.basename(file['file'])
-            msg_to_send['sensor'] = SENSOR_NAME_CONVERTER.get(file['sensor'],file['sensor'])
+            msg_to_send['sensor'] = SENSOR_NAME_CONVERTER.get(
+                file['sensor'], file['sensor'])
             msg_to_send['orbit_number'] = config['orbit_number']
             msg_to_send['format'] = "AAPP"
             msg_to_send['type'] = 'Binary'
-            msg_to_send['data_processing_level'] = file['level'].upper().replace("L", "")
-            LOG.debug('level in message: ' + str(msg_to_send['data_processing_level']))
+            msg_to_send['data_processing_level'] = file[
+                'level'].upper().replace("L", "")
+            LOG.debug(
+                'level in message: ' + str(msg_to_send['data_processing_level']))
             msg_to_send['start_time'] = config['starttime']
             msg_to_send['end_time'] = config['endtime']
             msg_to_send['station'] = station_name
@@ -935,16 +1021,19 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
         except KeyError as ke:
             LOG.error("KeyError, missing key: {}".format(ke))
         except Exception as err:
-            LOG.error("Failed to build publish message with error: {}".format(err))
+            LOG.error(
+                "Failed to build publish message with error: {}".format(err))
             continue
-        
+
         try:
-            publish_to = compose(config['aapp_processes'][config.process_name]['publish_sift_format'],msg_to_send)
+            publish_to = compose(config['aapp_processes'][config.process_name][
+                                 'publish_sift_format'], msg_to_send)
         except KeyError as ke:
-            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(config['aapp_processes'][config.process_name]['publish_sift_format']))
+            LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(
+                config['aapp_processes'][config.process_name]['publish_sift_format']))
             LOG.warning("Available keys are:")
             for key in to_send:
-                LOG.warning("{} = {}".format(key,msg_to_send[key]))
+                LOG.warning("{} = {}".format(key, msg_to_send[key]))
             LOG.error("Can not publish these data!")
             return False
         except ValueError as ve:
@@ -961,8 +1050,8 @@ if __name__ == "__main__":
     """
     Call the various functions that make up the parts of the AAPP processing
     """
-    
-    #Read the command line argument
+
+    # Read the command line argument
     (station_name, environment, config_filename, log_file) = read_arguments()
 
     if not os.path.isfile(config_filename):
@@ -970,25 +1059,27 @@ if __name__ == "__main__":
         print "Exits!"
         sys.exit()
 
-    config = read_config_file_options(config_filename, station_name, environment)
+    config = read_config_file_options(
+        config_filename, station_name, environment)
 
-    #Set up logging
+    # Set up logging
     try:
         LOG = setup_logging(config, log_file)
     except:
         print "Logging setup failed. Check your config"
-        #TODO
-        #Better error handeling for logging setup
-    
+        # TODO
+        # Better error handeling for logging setup
+
     try:
         aapp_config = AappL1Config(config, environment)
     except Exception as err:
         LOG.error("Failed to init AAPP L1 Config object: {}".format(err))
-        sys.exit()    
+        sys.exit()
 
     try:
         with posttroll.subscriber.Subscribe('',
-                                            aapp_config.get_parameter('subscribe_topics'),
+                                            aapp_config.get_parameter(
+                                                'subscribe_topics'),
                                             True) as subscr:
             with Publish('aapp_runner', 0) as publisher:
                 while True:
@@ -996,46 +1087,49 @@ if __name__ == "__main__":
                         aapp_config.reset()
                         if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
                             continue
-                        
+
                         if not check_satellite(msg, aapp_config):
                             continue
-                    
+
                         if not check_pass_length(msg, aapp_config):
                             continue
-                    
+
                         if not generate_process_config(msg, aapp_config):
                             continue
-                    
-                        scene_id =  create_and_check_scene_id(msg, aapp_config)
+
+                        scene_id = create_and_check_scene_id(msg, aapp_config)
                         if not scene_id:
                             continue
-                    
+
                         try:
                             if not setup_aapp_processing(aapp_config):
                                 raise
-                    
+
                             if not process_aapp(msg, aapp_config):
                                 raise
 
-                            #Rename standard AAPP output file names to usefull ones 
-                            #and move files to final location.
+                            # Rename standard AAPP output file names to usefull ones
+                            # and move files to final location.
                             from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
-                            renamed_files = rename_aapp_filenames(aapp_config) 
+                            renamed_files = rename_aapp_filenames(aapp_config)
                             if not renamed_files:
-                                LOG.warning("The rename of standard aapp filenames to practical ones returned an empty file list")
-                                LOG.warning("This means there are no files to publish")
+                                LOG.warning(
+                                    "The rename of standard aapp filenames to practical ones returned an empty file list")
+                                LOG.warning(
+                                    "This means there are no files to publish")
                             else:
-                                publish_level1(publisher, aapp_config, msg, renamed_files, station_name, environment)
-                    
+                                publish_level1(
+                                    publisher, aapp_config, msg, renamed_files, station_name, environment)
+
                             block_before_rerun(aapp_config, msg)
                         except Exception as ex:
                             LOG.error("AAPP processing failed.")
                         finally:
-                            #Want to take care of log files to possible debug.
+                            # Want to take care of log files to possible debug.
                             move_aapp_log_files(aapp_config)
                             cleanup_aapp_logfiles_archive(aapp_config)
-                            #cleanup_aapp_workdir(aapp_config)
-                    
+                            # cleanup_aapp_workdir(aapp_config)
+
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")
     finally:
