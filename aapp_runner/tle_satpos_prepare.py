@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 Adam.Dybbroe
+# Copyright (c) 2015, 2017 Adam.Dybbroe
 
 # Author(s):
 
@@ -28,6 +28,7 @@ alleph scripts from AAPP
 import logging
 from glob import glob
 import os
+import tempfile
 from datetime import datetime
 import shutil
 from subprocess import Popen, PIPE
@@ -44,7 +45,7 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
     for filename in infiles:
         name = os.path.basename(filename)
         try:
-            dtobj = datetime.strptime(name, "tle-%Y%m%dT%H%M%S.txt")
+            dtobj = datetime.strptime(name, "tle-%Y%m%dT%H%M.txt")
         except ValueError:
             try:
                 dtobj = datetime.strptime(name, "tle-%Y%m%d.txt")
@@ -59,7 +60,10 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
         subdir = "%s/%s" % (tle_out, subdirname)
         if not os.path.exists(subdir):
             os.mkdir(subdir)
-        shutil.copy(filename, outfile)
+        tmp_filepath = tempfile.mktemp(suffix='_' + os.path.basename(outfile),
+                                       dir=os.path.dirname(outfile))
+        shutil.copy(filename, tmp_filepath)
+        os.rename(tmp_filepath, outfile)
         copy_done = True
 
     if copy_done:
