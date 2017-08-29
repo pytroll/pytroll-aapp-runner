@@ -45,7 +45,7 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
     for filename in infiles:
         name = os.path.basename(filename)
         try:
-            dtobj = datetime.strptime(name, "tle-%Y%m%dT%H%M.txt")
+            dtobj = datetime.strptime(name, "tle-%Y%m%d%H%M.txt")
         except ValueError:
             try:
                 dtobj = datetime.strptime(name, "tle-%Y%m%d.txt")
