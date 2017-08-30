@@ -50,25 +50,27 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
             try:
                 dtobj = datetime.strptime(name, "tle-%Y%m%d.txt")
             except ValueError:
-                print("Skip file, " + str(filename))
+                LOG.warning("Skip file, %s", str(filename))
                 continue
 
         subdirname = dtobj.strftime('%Y_%m')
         outfile = "%s/%s/%s" % (tle_out, subdirname, name.replace('-', '_'))
-        print "OUTPUT file = ", outfile
+        LOG.debug("OUTPUT file = %s", str(outfile))
 
         subdir = "%s/%s" % (tle_out, subdirname)
         if not os.path.exists(subdir):
             os.mkdir(subdir)
         tmp_filepath = tempfile.mktemp(suffix='_' + os.path.basename(outfile),
                                        dir=os.path.dirname(outfile))
+        LOG.debug("tmp-filepath = %s", tmp_filepath)
         shutil.copy(filename, tmp_filepath)
+        LOG.debug("File copied: %s -> %s", filename, tmp_filepath)
         os.rename(tmp_filepath, outfile)
+        LOG.debug("Rename: %s -> %s", tmp_filepath, outfile)
         copy_done = True
 
     if copy_done:
-        print "tle files have been found and copied. Do the tleing..."
-
+        LOG.info("tle files have been found and copied. Do the tleing...")
         my_env = os.environ.copy()
         my_env['AAPP_PREFIX'] = aapp_prefix
         for key in my_env:
@@ -78,6 +80,7 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
         LOG.debug('Command sequence= ' + str(myargs))
         proc = Popen(myargs, shell=False, env=my_env,
                      stderr=PIPE, stdout=PIPE)
+
         while True:
             line = proc.stdout.readline()
             if not line:
@@ -93,6 +96,6 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
         proc.poll()
 
     else:
-        print "No tle-files copied. No tleing will be done..."
+        LOG.info("No tle-files copied. No tleing will be done...")
 
     return
