@@ -78,22 +78,16 @@ def do_tleing(aapp_prefix, tle_in, tle_out, tle_call):
         import shlex
         myargs = shlex.split(str(tle_call))
         LOG.debug('Command sequence= ' + str(myargs))
-        proc = Popen(myargs, shell=False, env=my_env,
-                     stderr=PIPE, stdout=PIPE)
+        process = Popen(myargs, shell=False, env=my_env,
+                        stderr=PIPE, stdout=PIPE)
+        stdout, stderr = process.communicate()
+        LOG.debug("communicate called...")
 
-        while True:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            LOG.info(line)
+        for item in stdout.split('\n'):
+            LOG.info(item)
 
-        while True:
-            errline = proc.stderr.readline()
-            if not errline:
-                break
-            LOG.info(errline)
-
-        proc.poll()
+        for item in stderr.split('\n'):
+            LOG.info(item)
 
     else:
         LOG.info("No tle-files copied. No tleing will be done...")
