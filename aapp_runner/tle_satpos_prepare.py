@@ -67,7 +67,12 @@ def do_tleing(config, timestamp, satellite):
     return_status = True
     
     #This function relays on beeing in a working directory
-    current_dir = os.getcwd() #Store the dir to change back to after function complete
+    try:
+        current_dir = os.getcwd() #Store the dir to change back to after function complete
+    except OSError as ose:
+        LOG.error("Failed to get current working dir: {}".format(ose))
+        raise
+
     os.chdir(config['aapp_processes'][config.process_name]['working_dir'])
 
     tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*',_do_6_matches),
