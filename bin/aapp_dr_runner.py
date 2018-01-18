@@ -61,7 +61,8 @@ _DEFAULT_LOG_FORMAT = '[%(levelname)s: %(asctime)s : %(name)s] %(message)s'
 TLE_SATNAME = {'NOAA-19': 'NOAA 19', 'NOAA-18': 'NOAA 18',
                'NOAA-15': 'NOAA 15',
                'Metop-A': 'METOP-A', 'Metop-B': 'METOP-B',
-               'Metop-C': 'METOP-C'}
+               'Metop-C': 'METOP-C',
+               'noaa19': 'NOAA 19'}
 
 METOP_NAME = {'metop01': 'Metop-B', 'metop02': 'Metop-A'}
 METOP_NAME_INV = {'metopb': 'metop01', 'metopa': 'metop02'}
@@ -157,7 +158,11 @@ class AappL1Config(object):
         self.local_env = {}
 
     def __getitem__(self, key):
-        return self.config[key]
+        try:
+            _it = self.config[key]
+        except KeyError:
+            _it = None
+        return _it
 
     def __setitem__(self, key, value):
         self.config[key] = value
@@ -178,7 +183,11 @@ class AappL1Config(object):
         self.config['aapp_processes'][self.process_name][config_key] = config_value
     
     def get_parameter(self, key):
-        return self.config['aapp_processes'][self.process_name][key]
+        try:
+            _it = self.config['aapp_processes'][self.process_name][key]
+        except KeyError:
+            _it = None
+        return _it
          
 
 def cleanup_aapp_logfiles_archive(config):
@@ -686,6 +695,7 @@ def generate_process_config(msg, config):
         start_orbnum = None
         try:
             import pyorbital.orbital as orb
+            LOG.debug("platform_name: {}".format(msg.data['platform_name']))
             sat = orb.Orbital(
                 TLE_SATNAME.get(msg.data['platform_name'], msg.data['platform_name']))
             start_orbnum = sat.get_orbit_number(msg.data['start_time'])
@@ -987,12 +997,17 @@ if __name__ == "__main__":
         sys.exit()    
 
     try:
-        with posttroll.subscriber.Subscribe('',
+        services = aapp_config.get_parameter('services')
+        if not services:
+            services = ''
+        with posttroll.subscriber.Subscribe(services,
                                             aapp_config.get_parameter('subscribe_topics'),
                                             True) as subscr:
             with Publish('aapp_runner', 0) as publisher:
                 while True:
                     for msg in subscr.recv(timeout=90):
+                        if msg:
+                            LOG.debug("New message: {}".format(msg))
                         aapp_config.reset()
                         if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
                             continue
@@ -1030,6 +1045,7 @@ if __name__ == "__main__":
                             block_before_rerun(aapp_config, msg)
                         except Exception as ex:
                             LOG.error("AAPP processing failed.")
+                            raise
                         finally:
                             #Want to take care of log files to possible debug.
                             move_aapp_log_files(aapp_config)
