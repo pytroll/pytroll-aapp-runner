@@ -7,39 +7,39 @@ from ConfigParser import SafeConfigParser
 
 MANDATORY = 'm'
 
-supported_stations = ['kumpula', 'helsinki', 'norrkoping', 'nkp']
+supported_stations = ['kumpula', 'helsinki', 'norrkoping', 'nkp', 'oslo']
 
-valid_config_variables = [
+mandatory_config_variables = [
+    'description',
+    'name',
     'aapp_prefix',
+    'aapp_environment_file',
     'aapp_workdir',
-    'aapp_outdir',
+    'aapp_outdir_base',
     'aapp_outdir_format',    
-    'aapp_run_noaa_script',
-    'aapp_run_metop_script',
     'tle_indir',
-    'tle_outdir',
-    'tle_script',
-    'tle_timestamp_format',
-    'alleph_script',
+    'tle_infile_format',
+    'tle_file_to_data_diff_limit_days',
+    'tle_archive_dir',
     'use_dyn_work_dir',
     'subscribe_topics',
-    'publish_pps_format',
-    'publish_l1_format',
     'publish_sift_format',
-    'pps_out_dir',
-    'pps_out_dir_format',
-    'metop_data_out_dir',
-    'noaa_data_out_dir',
-    'aapp_log_files_dir',
-    'aapp_log_files_backup',
-    'servername',
-    'dataserver',
-    'locktime_before_rerun',
+    'aapp_log_files_archive_dir',
+    'aapp_log_files_archive_length',
+    'rename_aapp_compose',
+    'rename_aapp_files',
+]
+
+optional_config_variables = [
+    'keep_orbit_number_from_message',
+    'do_ana_correction',
+    'do_atovpp',
+    'instrument_skipped_in_processing',
     'passlength_threshold',
-    'copy_data_directories',
-    'move_data_directory',
-    'check_and_set_correct_orbit_number',
-    'do_ana_correction'
+    'monitor_message',
+    'message_providing_server',
+    'custom_aapp_dir_navigation',
+    'locktime_before_rerun',
 ]
 
 #
@@ -47,15 +47,12 @@ valid_config_variables = [
 # ('variable_name', 'permission: r, rw', 'depends on variable_name')
 #
 valid_dir_permissions = [
-    ('noaa_data_out_dir', 'rw', 'publish_l1_format'),
-    ('metop_data_out_dir', 'rw', 'publish_l1_format'),
-    #('pps_out_dir', 'rw', 'publish_pps_format'),
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_workdir', 'rw', MANDATORY),
-    ('aapp_outdir', 'rw', MANDATORY),
+    ('aapp_outdir_base', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
-    ('tle_outdir', 'rw', MANDATORY),
-    ('aapp_log_files_dir', 'rw', MANDATORY)
+    ('aapp_log_files_archive_dir', 'rw', MANDATORY),
+    ('custom_aapp_dir_navigation','rw', MANDATORY)
 ]
 
 valid_readable_files = ['aapp_run_noaa_script',
@@ -71,15 +68,14 @@ valid_servers = [
 # Config variable will be replaced by following config variable
 # if the variable (first one) is empty in config file
 
-optional_config = {'dataserver': 'servername'}
 
 VALID_CONFIGURATION = {
     'supported_stations': supported_stations,
-    'valid_config_variables': valid_config_variables,
+    'mandatory_config_variables': mandatory_config_variables,
     'valid_dir_permissions': valid_dir_permissions,
     'valid_readable_files': valid_readable_files,
     'valid_servers': valid_servers,
-    'optional_config': optional_config
+    'optional_config_variables': optional_config_variables
 }
 
 
@@ -159,8 +155,6 @@ def check_dir_permissions(config, dir_permissions):
     test_results = []
 
     for dirname, perm, required in dir_permissions:
-        #        print dirname, config[dirname]
-
         if required == MANDATORY:
             check = check_dir(config[dirname], perm)
         else:
@@ -219,25 +213,6 @@ def check_config_file_options(config, valid_config=None):
         print "Checking directories failed."
         return False
 
-    print "Checking files..."
-    if not check_readable_files(config, readable_files):
-        return False
-
-    if servers:
-        return True
-        # print "Checking servers..."
-        # for server, server_type in servers:
-        #     #           print "SERVERS:", server, server_type
-        #  #           print "Check:", config[server]
-        #     if config[server] and server_type == 'host':
-        #         if not check_hostserver(config[server]):
-        #             print "Unknown host server: ", config[server]
-        #             return False
-        #     if config[server] and server_type == 'server':
-        #         if not check_dataserver(config[server]):
-        #             print "Unknown server: ", config[server]
-        #             return False
-
     return True
 
 
@@ -257,9 +232,8 @@ def read_config_file_options(filename, station, env, valid_config=None):
             pp = pprint.PrettyPrinter(indent=4)
             pp.pprint(config)
         except yaml.YAMLError as exc:
-            print(exc)
-
-    return config
+            print "Failed reading yaml config file: {} with: {}".format(filename, exc)
+            raise yaml.YAMLError
 
     #FIXME
     #Need to implement checking of the now config
@@ -268,58 +242,51 @@ def read_config_file_options(filename, station, env, valid_config=None):
         valid_config = VALID_CONFIGURATION
 
     # Config variable will be replaced by following config
-    optional_config_variables = valid_config['optional_config']
-    mandatory_config_variables = valid_config['valid_config_variables']
+    optional_config_variables = valid_config['optional_config_variables']
+    mandatory_config_variables = valid_config['mandatory_config_variables']
 
     configuration = {}
     configuration['station'] = station
     configuration['environment'] = env
-    #config.read(filename)
-    #try:
-    #    config_opts = dict(config.items(env, raw=False))
-    #except Exception as err:
-    #    print "Section %s %s" % (env,
-    #                             "is not defined in your " +
-    #                             "aapp_runner config file!")
-    #    print "Error was {}".format(err)
-    #    return None
     
-    # Read config file
+    if 'environment' in config:
+        if not config['environment'] == env:
+            print "Environment from command line: {} does not match with configured environment: {}".format(env, config['environment'])
+            return False
+    else:
+        config['environment'] = env
+    if config['environment'] not in config['aapp_processes']:
+        print "Environment {} not configured in config. Please check.".format(config['environment'])
+        return False
+    if 'station' in config:
+        if not config['station'] == env:
+            print "Station from command line: {} does not match with configured station: {}".format(env, config['station'])
+            return False
+    else:
+        config['station'] = station
+        if not check_station(config, supported_stations):
+            print "Warning: given station: {} not in supported_stations list.".format(config['station'])
+
+    config_opts = config['aapp_processes'][configuration['environment']]
+    #Check for mandatory
     for item in mandatory_config_variables:
         try:
             configuration[item] = config_opts[item]
-            #print "Required variable: ", item
-            if item in optional_config_variables and config_opts[item] == '':
-                #                print "This will be replaced:", item
-                new_item = optional_config_variables.get(item, item)
-                print (item, "was not defined. Value from",
-                       new_item, "will be used.")
-                configuration[item] = config_opts[new_item]
         except KeyError as err:
-         #           print "---------"
-         #           if item in optional_config_variables:
-         #               #print "This will be replaced:", item
-         #               new_item = optional_config_variables.get(item, item)
-         #               print (item, "was not defined. Value from",
-         #                      new_item, "will be used.")
-         #               configuration[item] = config_opts[new_item]
-         #           else:
-            print "%s %s %s" % (err.args,
-                                "is missing."
-                                "Please, check your config file",
-                                filename)
-            return None
+            print "{} is missing. Please, check your config file {}".format(err.args, filename)
+            raise KeyError
 
-    # Fix the list of subscribe topics:
-    topics = configuration['subscribe_topics'].split(',')
-    topiclist = []
-    for topic in topics:
-        topiclist.append(topic.strip(' '))
-    configuration['subscribe_topics'] = topiclist
+    #Check if rest of variables are in optional ( and mandatory )
+    for item in config_opts:
+        if item in optional_config_variables:
+            configuration[item] = config_opts[item]
+        elif item not in mandatory_config_variables:
+            print "Variable {} is not recognised as a mandatory nor optional config variable. This will not be used in the processing.".format(item)
 
-    # print "DATASERVER is", configuration['dataserver']
     if not check_config_file_options(configuration, valid_config):
         return None
+
+    return config
 
     return configuration
 
