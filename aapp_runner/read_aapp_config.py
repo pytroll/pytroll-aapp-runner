@@ -65,6 +65,14 @@ valid_servers = [
     ('dataserver', 'server')
 ]
 
+static_vars = [
+    'decommutation_files',
+    'supported_noaa_satellites',
+    'supported_metop_satellites',
+    'platform_name_aliases',
+    'satellite_sensor_name_aliases'
+    ]
+
 # Config variable will be replaced by following config variable
 # if the variable (first one) is empty in config file
 
@@ -216,6 +224,26 @@ def check_config_file_options(config, valid_config=None):
     return True
 
 
+def check_static_configuration(config):
+    """
+    Check if all the needed static configurations variables
+    are available
+    """
+    
+    if 'aapp_static_configuration' not in config:
+        print "Missing aapp_static_configuration in config. Can not continue."
+        return False
+    else:
+        _static_config = {}
+        for item in static_vars:
+            try:
+                _static_config[item] = config['aapp_static_configuration'][item]
+            except KeyError as ke:
+                print "{} Is missing in the aapp_static_configuration. Please add.".format(item)
+                raise
+
+    return True
+            
 def read_config_file_options(filename, station, env, valid_config=None):
     """
     Read and checks config file
@@ -286,9 +314,11 @@ def read_config_file_options(filename, station, env, valid_config=None):
     if not check_config_file_options(configuration, valid_config):
         return None
 
-    return config
 
-    return configuration
+    if not check_static_configuration(config):
+        return False
+
+    return config
 
 if __name__ == "__main__":
     station_name = ""
