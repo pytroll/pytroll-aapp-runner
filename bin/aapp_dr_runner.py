@@ -48,7 +48,6 @@ import copy
 
 LOG = logging.getLogger(__name__)
 
-
 # ----------------------------
 # Default settings for logging
 # ----------------------------
@@ -530,6 +529,12 @@ def setup_logging(config, log_file):
     """
 
     if log_file is not None:
+        if not os.path.exists(os.path.dirname(log_file)):
+            try:
+                os.makedirs(os.path.dirname(log_file))
+            except os.error as er:
+                print "Can not create missing log dir: {}: {}".format(os.path.dirname(log_file), er)
+                raise
         try:
             ndays = int(config['logging']["log_rotation_days"])
             ncount = int(config['logging']["log_rotation_backup"])
@@ -571,7 +576,6 @@ def setup_logging(config, log_file):
     LOG = logging.getLogger('aapp_runner')
 
     return LOG
-
 
 def check_message(msg, server):
     """
@@ -622,7 +626,6 @@ def check_satellite(msg, config):
             LOG.info("Not a NOAA/Metop scene: " +
                      str(msg.data['platform_name']) + ". Continue...")
             return False
-            # FIXME:
     except Exception, err:
         LOG.warning(str(err))
         return False
@@ -654,7 +657,7 @@ def check_pass_length(msg, config):
                  pass_length.seconds / 60.0)
         return False
 
-    LOG.debug("Start and end time ok, and passlength is longer than treshold")
+    LOG.debug("Start and end time ok, and passlength is longer than treshold.")
     return True
 
 
@@ -892,8 +895,6 @@ def process_aapp(msg, config):
     try:
         starttime = config['starttime']
         platform_name = config['platform_name']
-        #working_dir = config['aapp_processes'][config.process_name]['working_dir']
-        #tle_indir = config['aapp_processes'][config.process_name]['tle_indir']
 
         # DO tle
         tle_proc_ok = True
@@ -1076,8 +1077,7 @@ if __name__ == "__main__":
         LOG = setup_logging(config, log_file)
     except:
         print "Logging setup failed. Check your config"
-        # TODO
-        # Better error handeling for logging setup
+        sys.exit()
 
     try:
         aapp_config = AappL1Config(config, environment)
