@@ -136,7 +136,7 @@ def do_ana_correction(process_config, msg, timestamp):
         #LOG.debug("sha256 of aapp input avhrr_file: {}".format(hashlib.sha256(open(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'], 'rb').read()).hexdigest()))
     
         #Calculate correction from landmarks and update avhrr_file with these new attitude coefisients.
-        cmd = "ana_estatt -s {0} -d {1:%Y%m%d} -h {1:%H%M} -n {2:5d}".format(process_config['platform_name'], timestamp, process_config['orbit_number'])
+        cmd = "ana_estatt -s {0} -d {1:%Y%m%d} -h {1:%H%M} -n {2:05d}".format(process_config['platform_name'], timestamp, process_config['orbit_number'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
