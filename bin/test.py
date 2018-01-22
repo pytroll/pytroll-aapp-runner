@@ -138,6 +138,10 @@ def main():
     #                  "platform_name": "NOAA-18", "end_time": "2016-04-28T06:50:33",
     #                  "type": "binary", "data_processing_level": "0"},]
 
+    topic = "/BANDANTENNA/HRPT/L0"
+
+    info_dicts = [{"uid": "clear_NO15_2470_2018-01-22T09:18:16.681_756-expanded-16bit", "format": "HRPT", "sensor": ["avhrr/3", "amsu-b", "amsu-a", "mhs", "hirs/3", "hirs/4"], "start_time": "2018-01-22T09:18:16", "orbit_number": "2470", "uri": "/data/pytroll/hrpt-16bit/clear_NO15_2470_2018-01-22T09:18:16.681_756-expanded-16bit", "platform_name": "NOAA-15", "data_processing_level": "L0"},]
+
     message_type = 'collection'
     message_type = 'file'
     #message_type = 'dataset'
