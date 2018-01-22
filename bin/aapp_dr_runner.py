@@ -781,6 +781,24 @@ def create_and_check_scene_id(msg, config):
     return scene_id
 
 
+def which(program):
+    #Check if needed executable are available in the
+    #environment search path.
+    #Taken from https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return(program)
+    else:
+        for path in os.environ['PATH'].split(os.pathsep):
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+    return None
+
 def setup_aapp_processing(config):
     """
     Setup various env variables needed for the aapp processing
@@ -848,8 +866,13 @@ def setup_aapp_processing(config):
             LOG.debug("New LISTESAT: {}".format(
                 os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
 
+    list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop', 'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
+    for program in list_of_needed_programs:
+        if not which(program):
+            LOG.error("Can not find needed AAPP program '{}' in environment. Please check.".format(program))
+            return False
+                
     return True
-
 
 def process_aapp(msg, config):
     """
@@ -1080,10 +1103,10 @@ if __name__ == "__main__":
 
                         try:
                             if not setup_aapp_processing(aapp_config):
-                                raise
+                                raise Exception("setup_aapp_processing returned False. See above lines for details.")
 
                             if not process_aapp(msg, aapp_config):
-                                raise
+                                raise Exception("Process aapp failed. See above lines for details.")
 
                             # Rename standard AAPP output file names to usefull ones
                             # and move files to final location.
