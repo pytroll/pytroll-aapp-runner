@@ -54,40 +54,6 @@ LOG = logging.getLogger(__name__)
 _DEFAULT_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 _DEFAULT_LOG_FORMAT = '[%(levelname)s: %(asctime)s : %(name)s] %(message)s'
 
-# -------------------------------
-# Default settings for satellites
-# -------------------------------
-TLE_SATNAME = {'NOAA-19': 'NOAA 19', 'NOAA-18': 'NOAA 18',
-               'NOAA-15': 'NOAA 15',
-               'Metop-A': 'METOP-A', 'Metop-B': 'METOP-B',
-               'Metop-C': 'METOP-C',
-               'noaa19': 'NOAA 19'}
-
-METOP_NAME = {'metop01': 'Metop-B', 'metop02': 'Metop-A'}
-METOP_NAME_INV = {'metopb': 'metop01', 'metopa': 'metop02'}
-SATELLITE_NAME = {'NOAA-19': 'noaa19', 'NOAA-18': 'noaa18',
-                  'NOAA-15': 'noaa15', 'NOAA-14': 'noaa14',
-                  'Metop-A': 'metop02', 'Metop-B': 'metop01',
-                  'Metop-C': 'metop03'}
-
-SENSOR_NAMES = ['amsu-a', 'amsu-b', 'mhs', 'avhrr/3', 'hirs/4']
-
-SENSOR_NAME_CONVERTER = {
-    'amsua': 'amsu-a',
-    'amsub': 'amsu-b',
-    'hirs': 'hirs/4',
-    'mhs': 'mhs',
-    'avhrr': 'avhrr/3',
-
-    'amsu-a': 'amsua',
-    'amsu-b': 'amsub',
-    'hirs/4': 'hirs',
-    'hirs/3': 'hirs',
-    'mhs': 'mhs',
-    'avhrr/3': 'avhrr'}
-
-METOP_NUMBER = {'b': '01', 'a': '02'}
-
 """
 These are the standard names used by the various AAPP decommutation scripts.
 If you change these, you will also have to change the decommutation scripts.
@@ -683,13 +649,12 @@ def generate_process_config(msg, config):
         LOG.debug("Checking dataset")
         for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
-            process_name = "process_{}".format(
-                SENSOR_NAME_CONVERTER.get(sensor, sensor))
+            process_name = "process_{}".format(config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             config[process_name] = True
 
             # Name of the input file for given instrument
             input_file_name = "input_{}_file".format(
-                SENSOR_NAME_CONVERTER.get(sensor, sensor))
+                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             # print urlparse(sensor_filename['uri']).path
             config[input_file_name] = urlparse(sensor_filename['uri']).path
 
@@ -703,7 +668,7 @@ def generate_process_config(msg, config):
 
         for sensor in msg.data['sensor']:
             process_name = "process_{}".format(
-                SENSOR_NAME_CONVERTER.get(sensor, sensor))
+                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             LOG.debug("{} {}".format(sensor, process_name))
             config[process_name] = True
 
@@ -716,7 +681,7 @@ def generate_process_config(msg, config):
             # Name of the input file for given instrument
             # Needed for METOP processing
             input_file_name = "input_{}_file".format(
-                SENSOR_NAME_CONVERTER.get(sensor, sensor))
+                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             config[input_file_name] = urlparse(msg.data['uri']).path
 
         # Needed for POES processing
@@ -737,8 +702,7 @@ def generate_process_config(msg, config):
         try:
             import pyorbital.orbital as orb
             LOG.debug("platform_name: {}".format(msg.data['platform_name']))
-            sat = orb.Orbital(
-                TLE_SATNAME.get(msg.data['platform_name'], msg.data['platform_name']))
+            sat = orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(msg.data['platform_name'], msg.data['platform_name']))
             start_orbnum = sat.get_orbit_number(msg.data['start_time'])
         except ImportError:
             LOG.warning("Failed importing pyorbital, " +
@@ -746,7 +710,7 @@ def generate_process_config(msg, config):
         except AttributeError:
             LOG.warning("Failed calculating orbit number using pyorbital")
             LOG.warning("platform name in msg and config = " +
-                        str(TLE_SATNAME.get(msg.data['platform_name'],
+                        str(config['aapp_static_configuration']['tle_platform_name_aliases'].get(msg.data['platform_name'],
                                             msg.data['platform_name'])) +
                         " " + str(config['platform_name']))
         LOG.info(
@@ -1015,7 +979,7 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
             msg_to_send['filename'] = os.path.basename(file['file'])
             msg_to_send['uid'] = os.path.basename(file['file'])
-            msg_to_send['sensor'] = SENSOR_NAME_CONVERTER.get(
+            msg_to_send['sensor'] = config['aapp_static_configuration']['sensor_name_converter'].get(
                 file['sensor'], file['sensor'])
             msg_to_send['orbit_number'] = config['orbit_number']
             msg_to_send['format'] = "AAPP"

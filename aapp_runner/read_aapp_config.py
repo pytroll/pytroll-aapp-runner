@@ -40,6 +40,7 @@ optional_config_variables = [
     'message_providing_server',
     'custom_aapp_dir_navigation',
     'locktime_before_rerun',
+    'services'
 ]
 
 #
@@ -263,9 +264,10 @@ def read_config_file_options(filename, station, env, valid_config=None):
             print "Failed reading yaml config file: {} with: {}".format(filename, exc)
             raise yaml.YAMLError
 
-    #FIXME
-    #Need to implement checking of the now config
-    
+    if 'aapp_processes' not in config:
+        print "Can not find main section 'aapp_processes' in yaml file. Please check your config."
+        return False
+
     if valid_config == None:
         valid_config = VALID_CONFIGURATION
 
