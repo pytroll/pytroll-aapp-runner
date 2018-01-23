@@ -14,14 +14,12 @@ mandatory_config_variables = [
     'name',
     'aapp_prefix',
     'aapp_environment_file',
-    'aapp_workdir',
     'aapp_outdir_base',
     'aapp_outdir_format',    
     'tle_indir',
     'tle_infile_format',
     'tle_file_to_data_diff_limit_days',
     'tle_archive_dir',
-    'use_dyn_work_dir',
     'subscribe_topics',
     'publish_sift_format',
     'aapp_log_files_archive_dir',
@@ -31,6 +29,9 @@ mandatory_config_variables = [
 ]
 
 optional_config_variables = [
+    'aapp_workdir',
+    'working_dir',
+    'use_dyn_work_dir',
     'keep_orbit_number_from_message',
     'do_ana_correction',
     'do_atovpp',
@@ -49,7 +50,6 @@ optional_config_variables = [
 #
 valid_dir_permissions = [
     ('aapp_prefix', 'r', MANDATORY),
-    ('aapp_workdir', 'rw', MANDATORY),
     ('aapp_outdir_base', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
     ('aapp_log_files_archive_dir', 'rw', MANDATORY),
@@ -312,6 +312,10 @@ def read_config_file_options(filename, station, env, valid_config=None):
             configuration[item] = config_opts[item]
         elif item not in mandatory_config_variables:
             print "Variable {} is not recognised as a mandatory nor optional config variable. This will not be used in the processing.".format(item)
+
+    if 'aapp_workdir' not in config_opts and 'working_dir' not in config_opts:
+        print "You must give either 'aapp_workdir' or 'working_dir in config."
+        return False
 
     if not check_config_file_options(configuration, valid_config):
         return None
