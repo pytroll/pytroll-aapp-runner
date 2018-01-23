@@ -691,6 +691,26 @@ def generate_process_config(msg, config):
         LOG.error(
             "Could not find needed dataset or uri in message. Can not handle.")
         return False
+
+    #Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
+    if ('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) == 15) and config['process_mhs']:
+        config['process_mhs'] = False
+
+    #Check if processing for this platform should be altered
+    #due to config.
+    if 'instrument_skipped_in_processing' in config['aapp_processes'][config.process_name]:
+        for platform_name in config['aapp_processes'][config.process_name]['instrument_skipped_in_processing']:
+            _platform_name = platform_name.keys()[0]
+            if _platform_name.upper() == msg.data['platform_name'].upper():
+                for sensor in msg.data['sensor']:
+                    for skip_sensor in platform_name[_platform_name]:
+                        if skip_sensor == sensor:
+                            process_name = "process_{}".format(
+                                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
+                            if config[process_name]:
+                                LOG.debug("Skipping processing of sensor: {} as of config.".format(skip_sensor))
+                                config[process_name] = False 
+                            
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
 
@@ -805,7 +825,7 @@ def setup_aapp_processing(config):
     and set eg working dir
     """
 
-    if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name]:
+    if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name] and config['aapp_processes'][config.process_name]['use_dyn_work_dir']:
         try:
             config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(
                 dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
@@ -814,11 +834,18 @@ def setup_aapp_processing(config):
         except OSError:
             config['aapp_processes'][config.process_name][
                 'working_dir'] = tempfile.mkdtemp()
+        except KeyError as ke:
+            LOG.error(": {}".format(ke))
+            raise
         finally:
             LOG.info("Create new working dir...")
     elif not 'working_dir' in config['aapp_processes'][config.process_name]:
-        config['aapp_processes'][config.process_name]['working_dir'] = config[
-            'aapp_processes'][config.process_name]['aapp_workdir']
+        try:
+            config['aapp_processes'][config.process_name]['working_dir'] = config[
+                'aapp_processes'][config.process_name]['aapp_workdir']
+        except KeyError as ke:
+            LOG.error("working_dir nor aapp_workdir is given in config. Dont know where to store what I do.")
+            raise
 
     LOG.info("Working dir = " +
              str(config['aapp_processes'][config.process_name]['working_dir']))
@@ -1129,7 +1156,7 @@ if __name__ == "__main__":
                             # Want to take care of log files to possible debug.
                             move_aapp_log_files(aapp_config)
                             cleanup_aapp_logfiles_archive(aapp_config)
-                            # cleanup_aapp_workdir(aapp_config)
+                            LOG.info("AAPP dr runner is complete.")
 
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")
