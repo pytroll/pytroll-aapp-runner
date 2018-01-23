@@ -1,6 +1,13 @@
 Changelog
 =========
 
+v0.9.0 (2018-01-23)
+
+Rewrite
+
+ - Completely rewritten the runner. Instead of using the aapp running script
+   this is now handled by the runner itself. [Trygve Aspenes]
+
 v0.2.0 (2015-02-19)
 -------------------
 
