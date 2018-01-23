@@ -130,5 +130,6 @@ def rename_aapp_filenames(process_config):
     #Change back after this is done
     os.chdir(current_dir)
 
-    LOG.info("Renamed aapp files complete into: {}!".format(os.path.dirname(files[0]['file'])))
+    if len(files) > 0:
+        LOG.info("Renamed aapp files complete into: {}!".format(os.path.dirname(files[0]['file'])))
     return files
