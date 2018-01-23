@@ -53,6 +53,88 @@ logging_mode
 
 Static configuration
 ^^^^^^^^^^^^^^^^^^^^
+This section contains a lot of information to the processes how to handle various names of platforms and sensors. An how to translate the in the processing. A platform can take many names, like: M01, Metop-B, METOP-B, metopb and so on. Depending of your source of the data adjust this section accordingly. The example listed above is used at Met Norway.
+
+The point of having this configuration here is to avoid to edit the code to make adjustments like this.
 
 aapp_processes
 ^^^^^^^^^^^^^^
+<environment>
+   Name of the environment, e.g. test, dev or oper
+
+description
+   A nice description of this enviroment
+
+name
+   A name of the environment
+
+subscribe_topics
+   posttroll topics to subscribe to, must be a list
+
+tle_indir
+   Basedir of your tle files.
+
+tle_infile_format
+   format of your tle files. Can contain sift encoding
+
+tle_archive_dir
+   Where to archive your TLEs
+
+tle_file_to_data_diff_limit_days
+   Search for the closest TLE file based on the TLE file format time stamp
+   Maximum difference in days is the value configured here.
+
+locktime_before_rerun
+   Minutes to lock for similar passes in minutes
+
+publish_sift_format
+   posttroll topic to be used when publishing the results. Can contain sift encoding
+
+aapp_prefix
+   Base dir of your AAPP installation
+
+aapp_environment_file
+   Your AAPP environment file. This is typically ATOVS_ENV7 in you aapp_prefix dir.
+
+aapp_workdir
+   The directory where AAPP writes all working files. This or working_dir must be given.
+
+working_dir
+   The directory where AAPP writes all working files. This or aapp_workdir must be given.
+   
+use_dyn_work_dir
+   If aapp_workdir is given and this variable is set to True,
+   add a random named temporary directory below aapp_wordir
+   This is handy if more than one dataset are processed simultaniously
+
+aapp_outdir_base
+   AAPP base dir of all the final output data
+
+aapp_outdir_format
+   Name of the subdir under aapp_outdir_base where the output data is stored. Can contain sift encoding.
+
+passlength_threshold
+   Minimums lenght of a dataset in minutes
+
+aapp_log_files_archive_dir
+   Base dir of an archive of the AAPP logs.
+
+aapp_log_files_archive_length
+   How many days to keep the AAPP logs before cleanup
+
+message_providing_server
+   If you use several servers with posttroll multicast,
+   you can give this to specify which server you want to receive messages from.
+
+do_ana_correction
+   Do ANA correction. ANA is a separate software package not included in AAPP.
+
+do_atovpp
+   Do some extra processing ... 
+
+do_avh2hirs
+   Even more processing ...
+
+instrument_skipped_in_processing
+   This is a list of satellite names with a list of sensor to skip to process.
+   Can be handy if you want to skip bad sensors on a specific platform.
