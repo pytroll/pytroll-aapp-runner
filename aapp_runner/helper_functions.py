@@ -21,7 +21,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-'''Helper functions for Trollduction
+'''Helper functions for aapp runner
 '''
 
 import numpy as np
@@ -116,7 +116,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None, my_
     lines = out.splitlines()
     if stdout_logfile == None:
         for line in lines:
-            LOGGER.info(line)
+            LOGGER.debug(line)
     else:
         try:
             _stdout = open(stdout_logfile, 'w')
@@ -130,7 +130,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None, my_
     errlines = err.splitlines()
     if (stderr_logfile == None):
         for errline in errlines:
-            LOGGER.info(errline)
+            LOGGER.debug(errline)
     else:
         try:
             _stderr = open(stderr_logfile, 'w')
