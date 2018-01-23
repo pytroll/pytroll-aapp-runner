@@ -161,6 +161,7 @@ def do_ana_correction(process_config, msg, timestamp):
     if return_status:
         #Recalculate the location in the avhhr data file with the new correction attitude coefisients.
         from do_avhrr_calibration import do_avhrr_calibration
+        LOG.info("Need to recalculate the avhrcl with new attitude coefisients from ANA.")
         if not do_avhrr_calibration(process_config, msg, timestamp):
             LOG.warning("The avhrr location with ana correction failed for some reason. It might be that the processing can continue")
             LOG.warning("Please check the previous log carefully to see if this is an error you can accept.")
