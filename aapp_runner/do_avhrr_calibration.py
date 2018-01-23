@@ -32,6 +32,10 @@ LOG = logging.getLogger(__name__)
 
 def do_avhrr_calibration(process_config, msg, timestamp):
 
+    if not process_config['process_avhrr']:
+        LOG.debug("Skipping avhrr processing due to config or missing data.")
+        return True
+
     accepted_return_codes_avhrcl = [0]
 
     return_value = True
