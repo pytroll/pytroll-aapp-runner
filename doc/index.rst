@@ -16,7 +16,6 @@ You need to have latest versjon (7.XX) of AAPP installed. See `NWPSAF`_.
 
 Running arguments:
 ------------------
-Input arguments:
 -c ( --config_file)
    Valid yaml configuration file 
 
@@ -33,3 +32,27 @@ Input arguments:
 
 -l ( --log)
    Sprecify the file to log to, else write to stdout
+
+Configuration
+-------------
+
+See this `aapp_config.yaml-template`_ for an example.
+
+.. _aapp_config.yaml-template: https://github.com/pytroll/pytroll-aapp-runner/blob/develop/examples/aapp-processing.yaml-template
+
+Logging
+^^^^^^^
+log_rotation_days
+   How many days before rotation (if log_file option is given)
+
+log_rotation_backup
+   How many rotations to keep ( if log_file option is given)
+
+logging_mode
+   Logging mode (if verbose is given logging_mode is overriden)
+
+Static configuration
+^^^^^^^^^^^^^^^^^^^^
+
+aapp_processes
+^^^^^^^^^^^^^^

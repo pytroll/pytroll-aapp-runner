@@ -323,7 +323,7 @@ def read_arguments():
                         dest='config_file',
                         default='',
                         help="The file containing " +
-                        "configuration parameters e.g. aapp_runner.cfg")
+                        "configuration parameters e.g. aapp_runner.yaml")
     parser.add_argument("-s", "--station",
                         help="Name of the station",
                         dest="station",
@@ -361,7 +361,7 @@ def read_arguments():
         print "Template file given as master config, aborting!"
         sys.exit()
 
-    return station, env, args.config_file, args.log
+    return station, env, args.config_file, args.log, args.verbose
 
 
 def remove(path):
@@ -383,7 +383,7 @@ def remove(path):
             LOG.debug("Unable to remove file: " + path)
 
 
-def setup_logging(config, log_file):
+def setup_logging(config, log_file, verbose):
     """
     Init and setup logging
     """
@@ -419,7 +419,7 @@ def setup_logging(config, log_file):
         handler = logging.StreamHandler(sys.stderr)
 
     if (config['logging']["logging_mode"] and
-            config['logging']["logging_mode"] == "DEBUG"):
+            config['logging']["logging_mode"] == "DEBUG") or verbose:
         loglevel = logging.DEBUG
     else:
         loglevel = logging.INFO
@@ -970,7 +970,7 @@ if __name__ == "__main__":
     """
 
     # Read the command line argument
-    (station_name, environment, config_filename, log_file) = read_arguments()
+    (station_name, environment, config_filename, log_file, verbose) = read_arguments()
 
     if not os.path.isfile(config_filename):
         print "ERROR! Can not find config file: {}".format(config_filename)
@@ -982,7 +982,7 @@ if __name__ == "__main__":
 
     # Set up logging
     try:
-        LOG = setup_logging(config, log_file)
+        LOG = setup_logging(config, log_file, verbose)
     except:
         print "Logging setup failed. Check your config"
         sys.exit()
