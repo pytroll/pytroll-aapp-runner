@@ -1,7 +1,5 @@
-Trollduction
+pytroll-aapp-runner
 ============
 
-Trollduction is a framework for operational weather satellite image
-production.
+Pytroll runner for AAPP
 
-For documentation, see http://trollduction.readthedocs.org/
