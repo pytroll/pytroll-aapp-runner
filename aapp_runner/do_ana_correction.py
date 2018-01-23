@@ -45,6 +45,10 @@ def do_ana_correction(process_config, msg, timestamp):
     the directories used in the processing 
     """
 
+    if not process_config['process_avhrr']:
+        LOG.debug("Skipping ANA as AVHRR is not processed de to config or missing data.")
+        return True
+
     try:
         if 'do_ana_correction' in process_config['aapp_processes'][process_config.process_name]:
             if not process_config['aapp_processes'][process_config.process_name]['do_ana_correction']:
