@@ -30,6 +30,10 @@ from helper_functions import run_shell_command
 LOG = logging.getLogger(__name__)
 
 def do_atovpp_and_avh2hirs_processing(process_config, timestamp):
+    if not process_config['process_amsua'] and not process_config['process_amsub'] and not process_config['process_hirs']:
+        LOG.debug("Skipping atovpp and avh2hirs processing.")
+        return True
+
     LOG.debug("Do preprocessing atovpp and avh2hirs ... ")
 
     return_status = True
