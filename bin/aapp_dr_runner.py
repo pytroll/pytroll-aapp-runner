@@ -274,91 +274,6 @@ def move_aapp_log_files(config):
 
     return True
 
-
-def check_scene_id(self, scene_id):
-    # Check for keys representing the same scene (slightly different
-    # start/end times):
-    LOG.debug("Level-0files = " + str(self.level0files))
-    time_thr = timedelta(seconds=30)  # FIXME configure
-    for key in self.level0files:
-        pltrfn, startt, endt = key.split('_')
-        if not self.platform_name == pltrfn:
-            continue
-        t1_ = datetime.strptime(startt, '%Y%m%d%H%M%S')
-        t2_ = datetime.strptime(endt, '%Y%m%d%H%M%S')
-        # Get the relative time overlap:
-        sec_inside = (
-            min(t2_, self.endtime) - max(t1_, self.starttime)).total_seconds()
-        dsec = (t2_ - t1_).total_seconds()
-        if dsec < 0.01:
-            LOG.warning(
-                "Something awkward with this scene: start_time = end_time!")
-            break
-        elif float(sec_inside / dsec) > 0.85:
-            # It is the same scene!
-            LOG.debug(
-                "It is the same scene,"
-                " though the file times may deviate a bit...")
-            scene_id = key
-            break
-
-        elif float(sec_inside / dsec) > 0.01:
-            LOG.warning("There was an overlap but probably not the " +
-                        "same scene: Time interval = " +
-                        "(%s, %s)",
-                        t1_.strftime('%Y-%m-%d %H:%M:%S'),
-                        t2_.strftime('%Y-%m-%d %H:%M:%S'))
-    return scene_id
-
-
-def sensors_to_process(self, msg, sensors):
-    LOG.debug("Sensor = " + str(msg.data['sensor']))
-    LOG.debug("type: " + str(type(msg.data['sensor'])))
-    if isinstance(msg.data['sensor'], (str, unicode)):
-        sensors.append(msg.data['sensor'])
-    elif isinstance(msg.data['sensor'], (list, set, tuple)):
-        sensors.extend(msg.data['sensor'])
-    else:
-        sensors = []
-        LOG.warning('Failed interpreting sensor(s)!')
-
-    LOG.info("Sensor(s): " + str(sensors))
-    sensor_ok = False
-    for sensor in sensors:
-        if sensor in SENSOR_NAMES:
-            sensor_ok = True
-            break
-    if not sensor_ok:
-        LOG.info("No required sensors....")
-        return False
-
-    return True
-
-
-def available_sensors(self, msg, sensors, scene_id):
-    if scene_id not in self.level0files:
-        LOG.debug("Reset level-0 files: scene_id = " + str(scene_id))
-        self.level0files[scene_id] = []
-
-    for sensor in sensors:
-        item = (self.level0_filename, sensor)
-        if item not in self.level0files[scene_id]:
-            self.level0files[scene_id].append(item)
-            LOG.debug("Appending item to list: " + str(item))
-        else:
-            LOG.debug("item already in list: " + str(item))
-
-    if len(self.level0files[scene_id]) < 4 and msg.data.get("variant") != "EARS":
-        LOG.info("Not enough sensor data available yet. " +
-                 "Level-0 files = " +
-                 str(self.level0files[scene_id]))
-        return False
-    else:
-        LOG.info("Level 0 files ready: " + str(self.level0files[scene_id]))
-
-    return True
-
-
 def block_before_rerun(config, msg):
     """
     Add run to registry to block this from rerun if that is configured
@@ -466,27 +381,6 @@ def remove(path):
                 os.remove(path)
         except OSError:
             LOG.debug("Unable to remove file: " + path)
-
-
-def cleanup(number_of_days, path):
-    """
-    Removes files from the passed in path that are older than or equal
-    to number_of_days
-    """
-    time_in_secs = _time() - number_of_days * 24 * 60 * 60
-    for root, dirs, files in os.walk(path, topdown=False):
-        LOG.debug("root dirs files: " + root)
-        for file_ in files:
-            full_path = os.path.join(root, file_)
-            stat = os.stat(full_path)
-
-            if stat.st_mtime <= time_in_secs:
-                LOG.debug("Removing: " + full_path)
-                remove(full_path)
-
-            if not os.listdir(root):
-                LOG.debug("Removing root: " + root)
-                remove(root)
 
 
 def setup_logging(config, log_file):
