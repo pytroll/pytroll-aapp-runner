@@ -1,4 +1,4 @@
-#!/home/users/satman/current/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2016
@@ -27,6 +27,8 @@ import logging
 import os
 from urlparse import urlparse
 import shutil
+import re
+import datetime
 
 from helper_functions import run_shell_command
 
@@ -148,21 +150,6 @@ def do_decommutation(process_config, msg, timestamp):
             LOG.error("Building decommutation command string failed: {}".format(err))
             return False
         
-        #If for some reason the first line of the data is bad the chk1btime.exe will fail
-        # and there for the decommutation will also fail. Do a check here a give the user a warning.
-        #cmd="chk1btime.exe" 
-        #try:
-        #    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['input_hrpt_file']))
-        #except:
-        #    LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
-        #else:
-        #    LOG.error("This means that the start of the data are bad, and that the decommutation later will fail?")
-        #    LOG.debug("Return code: {}".format(returncode))
-        #    LOG.debug("std: {}".format(std))
-        #    LOG.debug("err: {}".format(err))
-        #    LOG.debug("status: {}".format(status))
-            
-
         #Read decommitation input into variable
         decom = open(decom_file, 'r')
         decom_input = decom.read()
@@ -320,22 +307,31 @@ def do_decommutation(process_config, msg, timestamp):
             elif process_config['process_amsub']:
                 LOG.warning("Fort file for amsu-b does not exist after decommutation. Skip processing this.")
                 process_config['process_amsub'] = False
-                    
-        #This is the kort shell script from AAPP
-        #cmd="decommutation {} {} {}".format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
-        #try:
-        #   status, returncode, std, err = run_shell_command(cmd)
-        #except:
-        #    LOG.error("Command {} failed.".format(cmd))
-        #else:
-        #    if returncode in accepted_return_codes_decom_hrpt:
-        #        LOG.info("Command {} complete.".format(cmd))
-        #        if not os.path.exists(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']):
-        #            LOG.warning("Decom gave OK status, but no {} data is produced. Something is wrong".format(process_config['aapp_static_configuration']['decommutation_files']['avhrr_file']))
-        #    else:
-        #        LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
-        #        return_status = False
-        
+
+        if os.path.exists("decommutation.log"):
+            dd = None
+            tt = None
+            with open("decommutation.log") as decomlog:
+                while True:
+                    line= decomlog.readline()
+                    if not line:
+                        break
+                    p_date = re.compile(".*avhrr\send\sdata\sday\s([0-9]{2})/([0-9]{2})/([0-9]{2})")
+                    p_time = re.compile(".*avhrr\send\sdata\stime\s([0-9]{2}):([0-9]{2}):([0-9]{2})\.([0-9]{0,3})")
+                    se = p_date.search(line)
+                    if se:
+                        dd = datetime.date(year=(int(se.group(3))+2000), month=int(se.group(2)), day=int(se.group(1)))
+                    te = p_time.search(line)
+                    if te:
+                        tt = datetime.time(hour=int(te.group(1)), minute=int(te.group(2)), second=int(te.group(3)), microsecond=int(te.group(4))*1000)
+                    if tt and dd:
+                        et = datetime.datetime.combine(dd,tt)
+                        if abs((et-process_config['endtime']).total_seconds()) < 20*60:
+                            LOG.debug("Adjusting the endtime with data from decommutaion.log.")
+                            LOG.debug("Before {}".format(process_config['endtime']))
+                            process_config['endtime'] = et
+                            LOG.debug("After  {}".format(process_config['endtime']))
+                        break
     elif 'METOP' in process_config['platform_name'].upper():
         LOG.info("Do the metop decommutation")
         if process_config['process_amsua']:
