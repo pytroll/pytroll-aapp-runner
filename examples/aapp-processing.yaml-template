@@ -180,10 +180,9 @@ aapp_processes:
       - msu: {aapp_file: msu.l1c, data_type: msul1c, data_level: l1c}
       - dcs: {aapp_file: dcs.l1b, data_type: dcsl1b, data_level: l1b}
       
+    #The idea is to send posttroll messages during the processing for various status
+    #information.
+    #NOT Implemented.
     monitor_message:
       send: True
       topic: 'some fantastic topic'
-
-  trollcast:
-    name: trollcast
-    subscribe_topics: []

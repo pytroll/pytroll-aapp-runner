@@ -136,5 +136,18 @@ do_avh2hirs
    Even more processing ...
 
 instrument_skipped_in_processing
-   This is a list of satellite names with a list of sensor to skip to process.
+   This is a list of satellite names, each with a list of sensor to skip to process.
    Can be handy if you want to skip bad sensors on a specific platform.
+
+rename_aapp_compose
+   Tells the runner how to rename the processed data from AAPP to more meaningsfull names.
+   This can be a simle file name, but then all sensors from each data level will be renamed
+   to the same. So I would say you must use a sift formated variable. See rename_aapp_files
+   for details.
+
+rename_aapp_files
+   Is a list of dictionaries how to rename the various AAPP processed data. This dictionary
+   is applied to rename_aapp_compose.
+
+monitor_message:
+  Not implemented.
