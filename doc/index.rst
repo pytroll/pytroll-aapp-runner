@@ -84,6 +84,18 @@ tle_file_to_data_diff_limit_days
    Search for the closest TLE file based on the TLE file format time stamp
    Maximum difference in days is the value configured here.
 
+tle_download
+   List of TLE urls in a dictionary to download and append to a tle file.
+   The order of the list matters. The first element is in top of the tle
+   file and so on.
+   A download is only triggered when a tle file of the data timestamp is
+   not found and tle_file_to_data_diff_limit_days is not given or the search 
+   does not find any tle files.
+   Only latest tle files are downloaded, so if you process old data this will not work.
+   Valid keys in the dictionary is: url.
+   For space-track aditional keys are valid: timeout, user, passwd and catalogue.
+   Catalogue is a comma separated string with internatinal satellite numbers.
+
 locktime_before_rerun
    Minutes to lock for similar passes in minutes
 

@@ -24,11 +24,11 @@
 """Prepare tle and satpos (and ephe) files for AAPP, using the tleing and
 alleph scripts from AAPP
 
-The task of finding the correct TLE is challeging. The user can supply its own
-directory in the config file and the filename convetion. The the modele
+The task of finding the correct TLE is challenging. The user can supply its own
+directory in the config file and the filename convetion. Then the module
 will try to find the correct one.
 If data is reprocessed it should use the closest tle
-if data is from Direct Broadcast the only newer tle files than the
+If data is from Direct Broadcast the only newer tle files than the
 timestamp if the index file should be processed.
 """
 
@@ -36,7 +36,7 @@ import logging
 from glob import glob
 import os
 from datetime import datetime
-from shutil import copy
+from shutil import copy, move
 from subprocess import Popen, PIPE
 from aapp_runner.helper_functions import run_shell_command
 from trollsift.parser import compose
@@ -59,6 +59,99 @@ def _do_3_matches(m):
 def _do_3_matchesYY(m):
     return datetime.strptime(m.group(1)+m.group(2)+m.group(3),"%y%m%d")
         
+
+def download_tle(config, timestamp, dir_data_tle):
+
+    user = os.getenv("PAR_NAVIGATION_TLE_USER","xxxxxx")
+    passwd = os.getenv("PAR_NAVIGATION_TLE_PASSWD","xxxxxx")
+    url = os.getenv("PAR_NAVIGATION_TLE_URL_DOWNLOAD")
+    timeout=60
+    catalogue="25338,26536,27453,28654,33591,37849,29499,38771,27431,32958,37214,25994,27424"
+
+    tle_infile = ""
+    tle_indir = ""
+    tle_dict = {}
+    tle_dict['timestamp'] = timestamp
+
+    tle_cnf = config['aapp_processes'][config.process_name]['tle_download']
+    tle_cnf.append({'url': url, 'user': user, 'passwd': passwd, 'timeout': timeout, 'catalogue': catalogue})
+
+    try:
+        tle_infile = compose(config['aapp_processes'][config.process_name]['tle_infile_format'],tle_dict)
+    except KeyError as ke:
+        LOG.error("Key error: {}".format(ke))
+        LOG.error("Valid keys :")
+        for key in tle_dict.keys():
+            LOG.error("{}".format(key))
+            raise
+    except:
+        raise
+
+    tle_file_list = []
+    for cnf in tle_cnf:
+        LOG.debug("Will try to download TLE from {}.".format(cnf['url']))
+        
+        if "space-track" in cnf['url']:
+            #Do the special space-track login
+            status = False
+            returncode = 0
+            stdout = ""
+            stderr = ""
+            cmd="wget -T {} --post-data=\"identity={}&password={}\" --cookies=on --keep-session-cookies --save-cookies=cookies_spacetrack \"{}/ajaxauth/login\" -olog".format(cnf['timeout'], cnf['user'], cnf['passwd'], cnf['url'])
+            try:
+                status, returncode, stdout, stderr = run_shell_command(cmd)
+            except:
+                LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                LOG.error("stdout: {}".format(stdout))
+                LOG.error("stderr: {}".format(stderr))
+                return_status = False
+            else:
+                if returncode != 0:
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
+                else:
+                    cmd="wget -T {} --keep-session-cookies --load-cookies=cookies_spacetrack -O weather.txt \"{}/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/{}/orderby/TLE_LINE1\"".format(cnf['timeout'], cnf['url'], cnf['catalogue'])
+                    try:
+                        status, returncode, stdout, stderr = run_shell_command(cmd)
+                    except:
+                        LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                        LOG.error("stdout: {}".format(stdout))
+                        LOG.error("stderr: {}".format(stderr))
+                        return_status = False
+                    else:
+                        if returncode != 0:
+                            LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                            LOG.debug("stdout: {}".format(stdout))
+                            LOG.debug("stderr: {}".format(stderr))
+                        else:
+                            LOG.debug("TLE download ok")
+            if os.path.exists("weather.txt"):
+                try:
+                    tle_file = open("weather.txt", 'r')
+                    tle_string = tle_file.read()
+                    tle_file.close()
+                    tle_file_out = os.path.join(dir_data_tle, tle_infile)
+                    with open(tle_file_out, "a") as tle_file:
+                        tle_file.write(tle_string)
+                        
+                    if tle_file_out not in tle_file_list:
+                        tle_file_list.append(tle_file_out)
+                except Exception as ex:
+                    LOG.debug("Failed rename tle download file: {}".format(ex))
+                    raise
+        else:
+            import urllib2
+            f = urllib2.urlopen(cnf['url'])
+            tle_string = f.read()
+            f.close()
+            tle_file_out = os.path.join(dir_data_tle, tle_infile)
+            with open(tle_file_out, "a") as tle_file:
+                tle_file.write(tle_string)
+            if tle_file_out not in tle_file_list:
+                tle_file_list.append(tle_file_out)
+
+    return tle_file_list
 
 def do_tleing(config, timestamp, satellite):
     """Get the tle-file and copy them to the AAPP data structure 
@@ -96,20 +189,15 @@ def do_tleing(config, timestamp, satellite):
     # variables for the TLE HOME directory
     DIR_DATA_TLE=os.path.join(os.getenv('DIR_NAVIGATION'),'tle_db')
 
-    #This is needed by AAPP tleing. Try other of not existing
+    #This is needed by AAPP tleing. Try other if not existing
     if not os.path.exists(DIR_DATA_TLE):
         DIR_DATA_TLE=os.path.join(os.getenv('DIR_NAVIGATION'),'orb_elem')
-        
-    FIC_WRK=os.path.join(os.getenv('DIR_DATA_TLE'),'tmp_tle_',"{}".format(os.getpid()))
-    
-    #LISTESAT=os.getenv('LISTESAT',os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT_INGEST_TLE'))
 
     if 'tle_file_to_data_diff_limit_days' in config['aapp_processes'][config.process_name]:
         select_closest_tle_file_to_data = True
         min_closest_tle_file = int(config['aapp_processes'][config.process_name]['tle_file_to_data_diff_limit_days'])*24*60*60
     else:
         select_closest_tle_file_to_data = False
-
 
     TLE_INDEX=os.path.join(DIR_DATA_TLE,"tle_{}.index".format(satellite))
 
@@ -163,6 +251,7 @@ def do_tleing(config, timestamp, satellite):
                 with open(os.path.join(tle_search_dir, infile)) as tle_file:
                     del tle_file_list[:]
                     tle_file_list.append(os.path.join(tle_search_dir, infile))
+                    min_closest_tle_file = 0
                     pass
             except IOError as e:
                 LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
@@ -199,120 +288,120 @@ def do_tleing(config, timestamp, satellite):
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
     
     if not tle_file_list:
-        LOG.error("Found no tle files.")
-        return_status = False
-    else:    
-        for tle_file in tle_file_list:
-            archive=False
-            if not os.path.exists(os.path.join(tle_indir,'tle_db',tle_file)):
-                LOG.error("Could not find the tle file: {}".format(tle_indir + "/" + tle_file))
+        LOG.warning("Found no tle files. Try to download ... ")
+        tle_file_list = download_tle(config, timestamp, DIR_DATA_TLE)
+
+    for tle_file in tle_file_list:
+        archive=False
+        if not os.path.exists(os.path.join(tle_indir,'tle_db',tle_file)):
+            LOG.error("Could not find the tle file: {}".format(tle_indir + "/" + tle_file))
+            return_status = False
+        else:
+            """Dont use the tle_indir because this is handeled by the tleing script"""
+            if (DIR_DATA_TLE != tle_search_dir ):
+                tle_filename = compose(os.path.join("{timestamp:%Y-%m}",os.path.basename(tle_file)), tle_dict)
+            else:
+                tle_filename = os.path.basename(tle_file)
+            status = False
+            returncode = 0
+            stdout = ""
+            stderr = ""
+            cmd="tleing.exe"
+            try:
+                status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,
+                                                                                                           tle_filename,
+                                                                                                           satellite,
+                                                                                                           TLE_INDEX))
+            except:
+                LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                LOG.error("stdout: {}".format(stdout))
+                LOG.error("stderr: {}".format(stderr))
                 return_status = False
             else:
-                """Dont use the tle_indir because this is handeled by the tleing script"""
-                if (DIR_DATA_TLE != tle_search_dir ):
-                    tle_filename = compose(os.path.join("{timestamp:%Y-%m}",os.path.basename(tle_file)), tle_dict)
+                if returncode != 0:
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
+                elif not os.path.exists(TLE_INDEX):
+                    LOG.error("index file: {} does not exist after tleing. Something is wrong.".format(TLE_INDEX))
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
                 else:
-                    tle_filename = os.path.basename(tle_file)
-                status = False
-                returncode = 0
-                stdout = ""
-                stderr = ""
-                cmd="tleing.exe"
-                try:
-                    status, returncode, stdout, stderr = run_shell_command(cmd,stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,
-                                                                                                               tle_filename,
-                                                                                                               satellite,
-                                                                                                               TLE_INDEX))
-                except:
-                    LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
-                    LOG.error("stdout: {}".format(stdout))
-                    LOG.error("stderr: {}".format(stderr))
-                    return_status = False
-                else:
-                    if returncode != 0:
-                        LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
-                        LOG.debug("stdout: {}".format(stdout))
-                        LOG.debug("stderr: {}".format(stderr))
-                    elif not os.path.exists(TLE_INDEX):
-                        LOG.error("index file: {} does not exist after tleing. Something is wrong.".format(TLE_INDEX))
-                        LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
-                        LOG.debug("stdout: {}".format(stdout))
-                        LOG.debug("stderr: {}".format(stderr))
-                    else:
-                        LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
-                        LOG.debug("stdout: {}".format(stdout))
-                        LOG.debug("stderr: {}".format(stderr))
-                        LOG.debug("DIR_DATA_TLE : {}".format(DIR_DATA_TLE))
-                        LOG.debug("tle_file : {}".format(os.path.basename(tle_file)))
-                        LOG.debug("satellite : {}".format(satellite))
-                        LOG.debug("TLE_INDEX : {}".format(TLE_INDEX))
+                    LOG.debug("Running command: {} with return code: {}".format(cmd,returncode))
+                    LOG.debug("stdout: {}".format(stdout))
+                    LOG.debug("stderr: {}".format(stderr))
+                    LOG.debug("DIR_DATA_TLE : {}".format(DIR_DATA_TLE))
+                    LOG.debug("tle_file : {}".format(os.path.basename(tle_file)))
+                    LOG.debug("satellite : {}".format(satellite))
+                    LOG.debug("TLE_INDEX : {}".format(TLE_INDEX))
 
-                        #When a index file is generated above one line is added for each tle file.
-                        #If several tle files contains equal TLEs each of these TLEs generate one line in the index file
-                        #To avoid this, sort the index file keeping only unique lines(skipping the tle filename at the end
-                    
-                        #The sort options +0b -3b is guessed to be sort from column 0 to 3, but this is not documented
-                        #Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
-                        #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
-                        if os.path.exists(TLE_INDEX):
-                            cmd="sort -u +0b -3b {}".format(TLE_INDEX)
-                            try:
-                                status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort1".format(TLE_INDEX))
-                            except:
-                                LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
-                                LOG.error("stdout: {}".format(stdout))
-                                LOG.error("stderr: {}".format(stderr))
-                                return_status = False
-                            else:
-                                if returncode == 0 and os.path.exists("{}.sort1".format(TLE_INDEX)):
-                                    cmd="grep -v NaN {}.sort1".format(TLE_INDEX)
-                                    try:
-                                        status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
-                                    except:
-                                        LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
-                                        LOG.error("stdout: {}".format(stdout))
-                                        LOG.error("stderr: {}".format(stderr))
-                                        return_status = False
-                                    else:
-                                    
-                                        try:
-                                            os.remove(TLE_INDEX)
-                                        except OSError as e:
-                                            LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
-                                        else:
-                                            try:
-                                                os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
-                                                archive=True
-                                            except:
-                                                LOG.error("Failed to rename sorted index file to original name.")
-                                else:
-                                    LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(returncode, "{}.sort".format(TLE_INDEX)))
+                    #When a index file is generated above one line is added for each tle file.
+                    #If several tle files contains equal TLEs each of these TLEs generate one line in the index file
+                    #To avoid this, sort the index file keeping only unique lines(skipping the tle filename at the end
+
+                    #The sort options +0b -3b is guessed to be sort from column 0 to 3, but this is not documented
+                    #Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
+                    #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                    if os.path.exists(TLE_INDEX):
+                        cmd="sort -u +0b -3b {}".format(TLE_INDEX)
+                        try:
+                            status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort1".format(TLE_INDEX))
+                        except:
+                            LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                            LOG.error("stdout: {}".format(stdout))
+                            LOG.error("stderr: {}".format(stderr))
+                            return_status = False
                         else:
-                            LOG.error("tle index file: {} does not exists after tleing before sort. This can not happen.")
-            
-            #If a new tle is used and archive dir is given in config, copy TLEs to archive
-            if archive and ('tle_archive_dir' in config['aapp_processes'][config.process_name]):
-                archive_dict = {}
-                archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
-                for tle_file_name in tle_file_list:
-                    for regex, test in tle_match_tests:
-                        m = re.match(regex, tle_file_name)
-                        if m:
-                            archive_dict['timestamp'] = test(m) 
-                            tle_archive_dir = compose(config['aapp_processes'][config.process_name]['tle_archive_dir'],archive_dict)
-                            if not os.path.exists(tle_archive_dir):
+                            if returncode == 0 and os.path.exists("{}.sort1".format(TLE_INDEX)):
+                                cmd="grep -v NaN {}.sort1".format(TLE_INDEX)
                                 try:
-                                    os.makedirs(tle_archive_dir)
+                                    status, returncode, stdout, stderr = run_shell_command(cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
                                 except:
-                                    LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
-                                
+                                    LOG.error("Failed running command: {} with return code: {}".format(cmd,returncode))
+                                    LOG.error("stdout: {}".format(stdout))
+                                    LOG.error("stderr: {}".format(stderr))
+                                    return_status = False
+                                else:
+
+                                    try:
+                                        os.remove(TLE_INDEX)
+                                    except OSError as e:
+                                        LOG.error("Failed to remove unsorted and duplicated index file: {}".format(TLE_INDEX))
+                                    else:
+                                        try:
+                                            os.rename("{}.sort".format(TLE_INDEX),TLE_INDEX)
+                                            archive=True
+                                        except:
+                                            LOG.error("Failed to rename sorted index file to original name.")
+                            else:
+                                LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(returncode, "{}.sort".format(TLE_INDEX)))
+                    else:
+                        LOG.error("tle index file: {} does not exists after tleing before sort. This can not happen.")
+
+        #If a new tle is used and archive dir is given in config, copy TLEs to archive
+        if archive and ('tle_archive_dir' in config['aapp_processes'][config.process_name]):
+            archive_dict = {}
+            archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
+            for tle_file_name in tle_file_list:
+                for regex, test in tle_match_tests:
+                    m = re.match(regex, tle_file_name)
+                    if m:
+                        archive_dict['timestamp'] = test(m) 
+                        tle_archive_dir = compose(config['aapp_processes'][config.process_name]['tle_archive_dir'],archive_dict)
+                        if not os.path.exists(tle_archive_dir):
                             try:
-                                copy(tle_file_name, tle_archive_dir)
-                                LOG.debug("Copied {} to {}.".format(tle_file_name, tle_archive_dir))
-                                archive = False
-                            except IOError as ioe:
-                                LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(tle_file_name, tle_archive_dir, ioe))
-                                LOG.error("CWD: {}".format(os.getcwd()))
+                                os.makedirs(tle_archive_dir)
+                            except:
+                                LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
+
+                        try:
+                            copy(tle_file_name, tle_archive_dir)
+                            LOG.debug("Copied {} to {}.".format(tle_file_name, tle_archive_dir))
+                            archive = False
+                        except IOError as ioe:
+                            LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(tle_file_name, tle_archive_dir, ioe))
+                            LOG.error("CWD: {}".format(os.getcwd()))
                                         
     #Change back after this is done
     os.chdir(current_dir)
