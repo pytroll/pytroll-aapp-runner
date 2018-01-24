@@ -130,10 +130,15 @@ do_ana_correction
    Do ANA correction. ANA is a separate software package not included in AAPP.
 
 do_atovpp
-   Do some extra processing ... 
+   Add AAPP processing of level 1c TOVS/ATOVS to level 1d.
 
 do_avh2hirs
-   Even more processing ...
+   From the AAPP software documenation: 
+   applies the calibration coefficients (calculated by AVHRCL) to AVHRR counts and 
+   converts radiance into brightness temperature, maps AVHRR data in HIRS FOV, and
+   makes the cloud mask MAIA_2.1 for AAPP version 3 and later) in the HIRS ellipse 
+   for contaminated pixels discrimination. At the end of this procedure, a level
+   1d file exists (HIRS level 1d). 
 
 instrument_skipped_in_processing
    This is a list of satellite names, each with a list of sensor to skip to process.
