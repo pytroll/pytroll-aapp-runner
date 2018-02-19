@@ -73,8 +73,12 @@ def download_tle(config, timestamp, dir_data_tle):
     tle_dict = {}
     tle_dict['timestamp'] = timestamp
 
-    tle_cnf = config['aapp_processes'][config.process_name]['tle_download']
-    tle_cnf.append({'url': url, 'user': user, 'passwd': passwd, 'timeout': timeout, 'catalogue': catalogue})
+    try:
+        tle_cnf = config['aapp_processes'][config.process_name]['tle_download']
+        tle_cnf.append({'url': url, 'user': user, 'passwd': passwd, 'timeout': timeout, 'catalogue': catalogue})
+    except KeyError as ke:
+        LOG.error("Could not get tle_download config.")
+        raise
 
     try:
         tle_infile = compose(config['aapp_processes'][config.process_name]['tle_infile_format'],tle_dict)
@@ -83,7 +87,7 @@ def download_tle(config, timestamp, dir_data_tle):
         LOG.error("Valid keys :")
         for key in tle_dict.keys():
             LOG.error("{}".format(key))
-            raise
+        raise
     except:
         raise
 
