@@ -15,11 +15,11 @@ mandatory_config_variables = [
     'aapp_prefix',
     'aapp_environment_file',
     'aapp_outdir_base',
-    'aapp_outdir_format',    
+    'aapp_outdir_format',
     'tle_indir',
     'tle_infile_format',
     'tle_file_to_data_diff_limit_days',
-    'tle_archive_dir',
+    # 'tle_archive_dir',
     'subscribe_topics',
     'publish_sift_format',
     'aapp_log_files_archive_dir',
@@ -41,6 +41,7 @@ optional_config_variables = [
     'message_providing_server',
     'custom_aapp_dir_navigation',
     'locktime_before_rerun',
+    'tle_archive_dir',
     'services'
 ]
 
@@ -53,7 +54,7 @@ valid_dir_permissions = [
     ('aapp_outdir_base', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
     ('aapp_log_files_archive_dir', 'rw', MANDATORY),
-    ('custom_aapp_dir_navigation','rw', MANDATORY)
+    ('custom_aapp_dir_navigation', 'rw', MANDATORY)
 ]
 
 valid_readable_files = ['aapp_run_noaa_script',
@@ -72,7 +73,7 @@ static_vars = [
     'supported_metop_satellites',
     'platform_name_aliases',
     'satellite_sensor_name_aliases'
-    ]
+]
 
 # Config variable will be replaced by following config variable
 # if the variable (first one) is empty in config file
@@ -149,7 +150,7 @@ def check_dir(directory, test):
                 test.close()
                 os.remove(filename)
             except IOError as ioe:
-                print ("ERROR: Cannot write to directory! {}:{}".format(directory,ioe))
+                print ("ERROR: Cannot write to directory! {}:{}".format(directory, ioe))
                 return False
     else:
         print "ERROR: Unknown test."
@@ -230,7 +231,7 @@ def check_static_configuration(config):
     Check if all the needed static configurations variables
     are available
     """
-    
+
     if 'aapp_static_configuration' not in config:
         print "Missing aapp_static_configuration in config. Can not continue."
         return False
@@ -244,7 +245,8 @@ def check_static_configuration(config):
                 raise
 
     return True
-            
+
+
 def read_config_file_options(filename, station, env, valid_config=None):
     """
     Read and checks config file
@@ -278,7 +280,7 @@ def read_config_file_options(filename, station, env, valid_config=None):
     configuration = {}
     configuration['station'] = station
     configuration['environment'] = env
-    
+
     if 'environment' in config:
         if not config['environment'] == env:
             print "Environment from command line: {} does not match with configured environment: {}".format(env, config['environment'])
@@ -298,7 +300,7 @@ def read_config_file_options(filename, station, env, valid_config=None):
             print "Warning: given station: {} not in supported_stations list.".format(config['station'])
 
     config_opts = config['aapp_processes'][configuration['environment']]
-    #Check for mandatory
+    # Check for mandatory
     for item in mandatory_config_variables:
         try:
             configuration[item] = config_opts[item]
@@ -306,7 +308,7 @@ def read_config_file_options(filename, station, env, valid_config=None):
             print "{} is missing. Please, check your config file {}".format(err.args, filename)
             raise KeyError
 
-    #Check if rest of variables are in optional ( and mandatory )
+    # Check if rest of variables are in optional ( and mandatory )
     for item in config_opts:
         if item in optional_config_variables:
             configuration[item] = config_opts[item]
@@ -320,7 +322,6 @@ def read_config_file_options(filename, station, env, valid_config=None):
     if not check_config_file_options(configuration, valid_config):
         return None
 
-
     if not check_static_configuration(config):
         return False
 
@@ -331,4 +332,3 @@ if __name__ == "__main__":
     environment = "xl-band"
     run_options = read_config_file_options("aapp-processing.yaml",
                                            station_name, environment)
-    

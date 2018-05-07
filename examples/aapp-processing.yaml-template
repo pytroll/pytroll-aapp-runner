@@ -102,7 +102,7 @@ aapp_processes:
     # Sift format of your TLE files
     tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
     # Where to find tles if other lights goes out
-    tle_download
+    tle_download:
       - {url: 'http://www.celestrak.com/NORAD/elements/weather.txt'}
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
     
