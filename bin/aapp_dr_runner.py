@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016, 2017 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
 
 # Author(s):
 
@@ -157,7 +157,8 @@ class AappL1Config(object):
         except KeyError:
             _it = None
         return _it
-         
+
+
 def cleanup_aapp_logfiles_archive(config):
     """
     Loop over the aapp log files directories and remove expired directories accordingly
@@ -273,6 +274,7 @@ def move_aapp_log_files(config):
     LOG.info("AAPP log files saved in to " + destination)
 
     return True
+
 
 def block_before_rerun(config, msg):
     """
@@ -437,6 +439,7 @@ def setup_logging(config, log_file, verbose):
 
     return LOG
 
+
 def check_message(msg, server):
     """
     Check the message for neccessary stuff:
@@ -543,7 +546,8 @@ def generate_process_config(msg, config):
         LOG.debug("Checking dataset")
         for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
-            process_name = "process_{}".format(config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
+            process_name = "process_{}".format(
+                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             config[process_name] = True
 
             # Name of the input file for given instrument
@@ -586,12 +590,12 @@ def generate_process_config(msg, config):
             "Could not find needed dataset or uri in message. Can not handle.")
         return False
 
-    #Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
+    # Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
     if ('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) == 15) and config['process_mhs']:
         config['process_mhs'] = False
 
-    #Check if processing for this platform should be altered
-    #due to config.
+    # Check if processing for this platform should be altered
+    # due to config.
     if 'instrument_skipped_in_processing' in config['aapp_processes'][config.process_name]:
         for platform_name in config['aapp_processes'][config.process_name]['instrument_skipped_in_processing']:
             _platform_name = platform_name.keys()[0]
@@ -603,8 +607,8 @@ def generate_process_config(msg, config):
                                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
                             if config[process_name]:
                                 LOG.debug("Skipping processing of sensor: {} as of config.".format(skip_sensor))
-                                config[process_name] = False 
-                            
+                                config[process_name] = False
+
     config['calibration_location'] = "-c -l"
     config['a_tovs'] = list("ATOVS")
 
@@ -616,7 +620,8 @@ def generate_process_config(msg, config):
         try:
             import pyorbital.orbital as orb
             LOG.debug("platform_name: {}".format(msg.data['platform_name']))
-            sat = orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(msg.data['platform_name'], msg.data['platform_name']))
+            sat = orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(
+                msg.data['platform_name'], msg.data['platform_name']))
             start_orbnum = sat.get_orbit_number(msg.data['start_time'])
         except ImportError:
             LOG.warning("Failed importing pyorbital, " +
@@ -625,7 +630,7 @@ def generate_process_config(msg, config):
             LOG.warning("Failed calculating orbit number using pyorbital")
             LOG.warning("platform name in msg and config = " +
                         str(config['aapp_static_configuration']['tle_platform_name_aliases'].get(msg.data['platform_name'],
-                                            msg.data['platform_name'])) +
+                                                                                                 msg.data['platform_name'])) +
                         " " + str(config['platform_name']))
         LOG.info(
             "Orbit number determined from pyorbital = " + str(start_orbnum))
@@ -696,9 +701,9 @@ def create_and_check_scene_id(msg, config):
 
 
 def which(program):
-    #Check if needed executable are available in the
-    #environment search path.
-    #Taken from https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+    # Check if needed executable are available in the
+    # environment search path.
+    # Taken from https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
@@ -712,6 +717,7 @@ def which(program):
             if is_exe(exe_file):
                 return exe_file
     return None
+
 
 def setup_aapp_processing(config):
     """
@@ -787,13 +793,15 @@ def setup_aapp_processing(config):
             LOG.debug("New LISTESAT: {}".format(
                 os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
 
-    list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop', 'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
+    list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop',
+                               'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
     for program in list_of_needed_programs:
         if not which(program):
             LOG.error("Can not find needed AAPP program '{}' in environment. Please check.".format(program))
             return False
-                
+
     return True
+
 
 def process_aapp(msg, config):
     """
@@ -997,6 +1005,9 @@ if __name__ == "__main__":
         services = aapp_config.get_parameter('services')
         if not services:
             services = ''
+        LOG.debug('Subscribe: {services} {topics}'.format(services=services,
+                                                          topics=aapp_config.get_parameter('subscribe_topics')))
+
         with posttroll.subscriber.Subscribe(services,
                                             aapp_config.get_parameter('subscribe_topics'),
                                             True) as subscr:
@@ -1007,6 +1018,8 @@ if __name__ == "__main__":
                             LOG.debug("New message: {}".format(msg))
                         aapp_config.reset()
                         if not check_message(msg, aapp_config.get_parameter('message_providing_server')):
+                            LOG.debug("Message providing server: {}".format(
+                                aapp_config.get_parameter('message_providing_server')))
                             continue
 
                         if not check_satellite(msg, aapp_config):
