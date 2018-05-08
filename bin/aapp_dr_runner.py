@@ -468,6 +468,8 @@ def check_message(msg, server):
         except KeyError as ke:
             LOG.error("Key error: {}".format(ke))
 
+        LOG.debug("urlobj: {}".format(str(urlobj)))
+
         for obj in urlobj:
             url_ip = socket.gethostbyname(obj.netloc)
             if obj.netloc and (url_ip not in get_local_ips()):
