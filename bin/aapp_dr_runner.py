@@ -727,7 +727,9 @@ def setup_aapp_processing(config):
     and set eg working dir
     """
 
-    if not 'working_dir' in config['aapp_processes'][config.process_name] and 'use_dyn_work_dir' in config['aapp_processes'][config.process_name] and config['aapp_processes'][config.process_name]['use_dyn_work_dir']:
+    if (not 'working_dir' in config['aapp_processes'][config.process_name] and
+            'use_dyn_work_dir' in config['aapp_processes'][config.process_name] and
+            config['aapp_processes'][config.process_name]['use_dyn_work_dir']):
         try:
             config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(
                 dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
@@ -1070,4 +1072,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt as ki:
         LOG.info("Received keyboard interrupt. Shutting down")
     finally:
-        LOG.info("Exiting AAPP runner. See ya")
+        LOG.info("Exit AAPP runner. See ya")
