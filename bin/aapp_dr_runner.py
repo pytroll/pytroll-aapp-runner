@@ -897,19 +897,19 @@ def process_aapp(msg, config):
                 "Please check the previous log carefully to see if this is an error you can accept.")
             ana_proc_ok = False
     except KeyError as ke:
-        LOG.error("Process aapp failed: {}".format(ke))
+        LOG.exception("Process aapp failed: {}".format(ke))
         return False
     except TleError as te:
-        LOG.error("The tle failed: {}".format(te))
+        LOG.exception("The tle failed: {}".format(te))
         return False
     except SatposError as se:
-        LOG.error("The satpos failed: {}".format(se))
+        LOG.exception("The satpos failed: {}".format(se))
         return False
     except DecommutationError as de:
-        LOG.error("The decommutation failed: {}".format(de))
+        LOG.exception("The decommutation failed: {}".format(de))
         return False
     except Exception as err:
-        LOG.error("Process aapp failed: {}".format(err))
+        LOG.exception("Process aapp failed: {}".format(err))
         return False
     else:
         LOG.info("AAPP processing complete.")
