@@ -232,8 +232,9 @@ def do_tleing(config, timestamp, satellite):
 
             if len(tle_file_list) == 0:
                 import time
-                LOG.warning("No newer tle files than last update of the index file. Last update of index file is {:d}s. If more than a few days you should check.".format(
-                    int(time.time() - tle_index_mtime)))
+                LOG.warning(("No newer tle files than last update of the index file. " +
+                             "Last update of index file is {:d}s. If more than a few days you should check.".format(
+                                 int(time.time() - tle_index_mtime))))
             else:
                 LOG.info("Will use tle files {}".format(tle_file_list))
         else:
@@ -261,7 +262,7 @@ def do_tleing(config, timestamp, satellite):
 
         # Check if I can read the tle file.
         first_search = True
-        for tle_search_dir in (DIR_DATA_TLE, compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y-%m}"), tle_dict)):
+        for tle_search_dir in (DIR_DATA_TLE, compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict)):
             LOG.debug("tle_search_dir {}".format(tle_search_dir))
             try:
                 with open(os.path.join(tle_search_dir, infile)) as tle_file:
@@ -272,14 +273,15 @@ def do_tleing(config, timestamp, satellite):
             except IOError as e:
                 LOG.warning("Could not find tle file: {}. Try find closest ... ".format(infile))
                 tle_file_list = glob(os.path.join(tle_search_dir, '*'))
-                # print "tle file list: {}".format(tle_file_list)
-                # print tle_file_list
+                LOG.debug("tle file list: {}".format(tle_file_list))
+                LOG.debug(tle_file_list)
                 infile_closest = ""
+
                 for tle_file_name in tle_file_list:
                     for regex, test in tle_match_tests:
                         m = re.match(regex, tle_file_name)
                         if m:
-                            # print "{} {}".format(tle_file_name, test(m))
+                            LOG.debug("{} {}".format(tle_file_name, test(m)))
                             delta = timestamp - test(m)
                             if (abs(delta.total_seconds()) < min_closest_tle_file):
                                 min_closest_tle_file = abs(delta.total_seconds())
@@ -314,7 +316,7 @@ def do_tleing(config, timestamp, satellite):
             LOG.error("Could not find the tle file: {}".format(tle_indir + "/" + tle_file))
             return_status = False
         else:
-            """Dont use the tle_indir because this is handeled by the tleing script"""
+            """Don't use the tle_indir because this is handeled by the tleing script"""
             if (DIR_DATA_TLE != tle_search_dir):
                 tle_filename = compose(os.path.join("{timestamp:%Y-%m}", os.path.basename(tle_file)), tle_dict)
             else:
