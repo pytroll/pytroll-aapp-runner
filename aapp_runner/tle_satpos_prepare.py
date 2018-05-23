@@ -262,7 +262,8 @@ def do_tleing(config, timestamp, satellite):
 
         # Check if I can read the tle file.
         first_search = True
-        for tle_search_dir in (DIR_DATA_TLE, compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict)):
+        # for tle_search_dir in (DIR_DATA_TLE, compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict)):
+        for tle_search_dir in [compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict), ]:
             LOG.debug("tle_search_dir {}".format(tle_search_dir))
             try:
                 with open(os.path.join(tle_search_dir, infile)) as tle_file:
@@ -281,13 +282,16 @@ def do_tleing(config, timestamp, satellite):
                     for regex, test in tle_match_tests:
                         m = re.match(regex, tle_file_name)
                         if m:
-                            LOG.debug("{} {}".format(tle_file_name, test(m)))
-                            delta = timestamp - test(m)
-                            if (abs(delta.total_seconds()) < min_closest_tle_file):
-                                min_closest_tle_file = abs(delta.total_seconds())
-                                #infile_closest = os.path.basename(tle_file_name)
-                                infile_closest = tle_file_name
-                                LOG.debug("Closest tle infile so far: {}".format(infile_closest))
+                            try:
+                                LOG.debug("{} {}".format(tle_file_name, test(m)))
+                                delta = timestamp - test(m)
+                                if (abs(delta.total_seconds()) < min_closest_tle_file):
+                                    min_closest_tle_file = abs(delta.total_seconds())
+                                    #infile_closest = os.path.basename(tle_file_name)
+                                    infile_closest = tle_file_name
+                                    LOG.debug("Closest tle infile so far: {}".format(infile_closest))
+                            except ValueError:
+                                pass
 
                 if infile_closest:
                     del tle_file_list[:]
@@ -326,11 +330,12 @@ def do_tleing(config, timestamp, satellite):
             stdout = ""
             stderr = ""
             cmd = "tleing.exe"
+            stdin = "{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE, tle_filename, satellite, TLE_INDEX)
+            LOG.debug('stdin arguments to command: ' + str(stdin))
+
             try:
-                status, returncode, stdout, stderr = run_shell_command(cmd, stdin="{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE,
-                                                                                                            tle_filename,
-                                                                                                            satellite,
-                                                                                                            TLE_INDEX))
+                status, returncode, stdout, stderr = run_shell_command(cmd, stdin=stdin)
+
             except:
                 LOG.error("Failed running command: {} with return code: {}".format(cmd, returncode))
                 LOG.error("stdout: {}".format(stdout))
