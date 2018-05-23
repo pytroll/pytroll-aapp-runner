@@ -238,7 +238,7 @@ def do_tleing(config, timestamp, satellite):
                 LOG.info("Will use tle files {}".format(tle_file_list))
         else:
             LOG.warning(
-                "index file does not exist. If this is the first run of AAPP tleing.exe it is ok, elsewise it is a bit suspisiuos.")
+                "index file does not exist. If this is the first run of AAPP tleing.exe it is ok, otherwise it is a bit suspisiuos.")
             tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
             tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE, s)))
             tle_file_list = tle_files
