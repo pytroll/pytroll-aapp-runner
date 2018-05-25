@@ -322,7 +322,7 @@ def do_tleing(config, timestamp, satellite):
         else:
             """Don't use the tle_indir because this is handeled by the tleing script"""
             if (DIR_DATA_TLE != tle_search_dir):
-                tle_filename = compose(os.path.join("{timestamp:%Y-%m}", os.path.basename(tle_file)), tle_dict)
+                tle_filename = compose(os.path.join("{timestamp:%Y_%m}", os.path.basename(tle_file)), tle_dict)
             else:
                 tle_filename = os.path.basename(tle_file)
             status = False
@@ -332,7 +332,6 @@ def do_tleing(config, timestamp, satellite):
             cmd = "tleing.exe"
             stdin = "{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE, tle_filename, satellite, TLE_INDEX)
             LOG.debug('stdin arguments to command: ' + str(stdin))
-
             try:
                 status, returncode, stdout, stderr = run_shell_command(cmd, stdin=stdin)
 
@@ -415,14 +414,18 @@ def do_tleing(config, timestamp, satellite):
                 for regex, test in tle_match_tests:
                     m = re.match(regex, tle_file_name)
                     if m:
-                        archive_dict['timestamp'] = test(m)
-                        tle_archive_dir = compose(
-                            config['aapp_processes'][config.process_name]['tle_archive_dir'], archive_dict)
-                        if not os.path.exists(tle_archive_dir):
-                            try:
-                                os.makedirs(tle_archive_dir)
-                            except:
-                                LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
+                        try:
+                            archive_dict['timestamp'] = test(m)
+                            tle_archive_dir = compose(
+                                config['aapp_processes'][config.process_name]['tle_archive_dir'], archive_dict)
+                            if not os.path.exists(tle_archive_dir):
+                                try:
+                                    os.makedirs(tle_archive_dir)
+                                except:
+                                    LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
+                        except ValueError:
+                            LOG.exception('Failed in archive step...')
+                            pass
 
                         try:
                             copy(tle_file_name, tle_archive_dir)
