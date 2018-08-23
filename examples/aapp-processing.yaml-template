@@ -1,15 +1,15 @@
-#Template config
+# Template config
 
-#Configuration of rotation and mode of the logging
+# Configuration of rotation and mode of the logging
 logging:
   log_rotation_days: 1
   log_rotation_backup: 30
   logging_mode: DEBUG
 
-#Static configuration of various elements needed in the AAPP processing
+# Static configuration of various elements needed in the AAPP processing
 aapp_static_configuration:
-  #How to name the aoutput files from 
-  #the decommutation processing
+  # How to name the output files from 
+  # the decommutation processing
   decommutation_files:
     hirs_file: hrsn.l1b
     amsua_file: aman.l1b
@@ -18,20 +18,20 @@ aapp_static_configuration:
     avhrr_file: hrpt.l1b
     msu_file: msun.l1b
      
-  #Valid NOAA(POES)satellite names to process
+  # Valid NOAA(POES)satellite names to process
   supported_noaa_satellites:
     - NOAA-15
     - NOAA-18
     - NOAA-19
 
-  #Valid Metop satellite names to process
+  # Valid Metop satellite names to process
   supported_metop_satellites:
     - Metop-B
     - Metop-A
     
-  #Unfortunately satellite names comes in a few combinations
-  #This is how aapp names the satellite internally
-  #and all other names needs to be translated.
+  # Unfortunately satellite names comes in a few combinations
+  # This is how aapp names the satellite internally
+  # and all other names needs to be translated.
   platform_name_aliases:
     NOAA-19: noaa19
     NOAA-18: noaa18
@@ -51,7 +51,7 @@ aapp_static_configuration:
     M02: metop02
     M03: metop03
     
-  #Aliases of satellite sensor names
+  # Aliases of satellite sensor names
   satellite_sensor_name_aliases:
     'amsua': 'amsu-a'
     'amsub': 'amsu-b'
@@ -59,8 +59,8 @@ aapp_static_configuration:
     'mhs': 'mhs'
     'avhrr': 'avhrr/3'
 
-  #Depending in you source of TLE, the naming of TLE satellite names
-  #varies. Please adjust these to match your source accordingly
+  # Depending on your source of TLE, the naming of TLE satellite names
+  # varies. Please adjust these to match your source accordingly
   tle_platform_name_aliases:
     'NOAA-19': 'NOAA 19'
     'noaa19': 'NOAA 19'
@@ -70,9 +70,9 @@ aapp_static_configuration:
     'Metop-B': 'METOP-B'
     'Metop-C': 'METOP-C'
 
-  #Satellite sensors are named differently.
-  #Here is how to translate various names depending 
-  #on the processing
+  # Satellite sensors are named differently.
+  # Here is how to translate various names depending 
+  # on the processing
   sensor_name_converter:
     'amsua': 'amsu-a'
     'amsub': 'amsu-b'
@@ -86,7 +86,7 @@ aapp_static_configuration:
     'mhs': 'mhs'
     'avhrr/3': 'avhrr'
 
-#This is the main section of the processing configuration
+# This is the main section of the processing configuration
 aapp_processes:
   xl-band:
     description: 'Text describing this processing config"
@@ -95,79 +95,79 @@ aapp_processes:
       - /XLBANDANTENNA/HRPT/L0
       - /XLBANDANTENNA/METOP/L0
 
-    #Base dir of your TLE files.
+    # Base dir of your TLE files.
     tle_indir: /disk2/AAPP/orbelems
-    #Sift format of your TLE file archive
+    # Sift format of your TLE file archive
     tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
-    #Sift format of your TLE files
+    # Sift format of your TLE files
     tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
-    #Where to find tles if other lights goes out
+    # Where to find tles if other lights goes out
     tle_download
       - {url: 'http://www.celestrak.com/NORAD/elements/weather.txt'}
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
     
-    #Search for the closest tle file from data timestamp
-    #but maximum different can not be larger than this value
+    # Search for the closest tle file from data timestamp
+    # but maximum different can not be larger than this value
     tle_file_to_data_diff_limit_days: 3
     
-    #Minutes to lock for simliar passes in minutes
+    # Minutes to lock for simliar passes in minutes
     locktime_before_rerun: 10
 
-    #Sift form to use as publish topic
-    #Valid variables are those in the message and some more given
+    # Sift form to use as publish topic
+    # Valid variables are those in the message and some more given
     # in the publish_level1 function in aapp_dr_runner.py
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
 
-    #Base dir of your AAPP installation
+    # Base dir of your AAPP installation
     aapp_prefix: /disk2/AAPP
-    #AAPP environment file to use
+    # AAPP environment file to use
     aapp_environment_file: ATOVS_ENV7
-    #One of these must be given. aapp_workdir takes presedens over the latter.
+    # One of these must be given. aapp_workdir takes precedence over the latter.
     aapp_workdir: /run/shm/aapp-workdir
     working_dir: <path to working dir>
 
-    #if aapp_workdir is given, then if use_dyn_work_dir this is True,
-    #add a random temporary directory below this.
-    #This to seperate the output of different
-    #processing. Recommended True, but you need to clean these directories.
+    # If aapp_workdir is given, then if use_dyn_work_dir this is True,
+    # add a random temporary directory below this.
+    # This to seperate the output of different
+    # processing. Recommended True, but you need to clean these directories.
     use_dyn_work_dir: True
 
-    #AAPP base dir of the final output data
+    # AAPP base dir of the final output data
     aapp_outdir_base: /disk2/aapp-runner-data
-    #AAPP sift format of specific datadir. This example match that of PPS
+    # AAPP sift format of specific datadir. This example match that of PPS
     aapp_outdir_format: '{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:05d}'
 
-    #Minimums lenght of a pass in minutes
+    # Minimum lenght of a pass in minutes
     passlength_threshold: 5
 
-    #Where to move the logs after processig.
+    # Where to move the logs after processig.
     aapp_log_files_archive_dir: /disk2/aapp-runner-log
-    #How many days will log files be kept before deleting.
+    # How many days will log files be kept before deleting.
     aapp_log_files_archive_length: 1
 
-    #If your use several servers with posttroll multicast
+    # If you use several servers with posttroll multicast
     # give this to select which server to use
     message_providing_server: satproc2.met.no
 
-    #Do ANA correction.
-    #NOTE: You must install this, ANA is not a part of AAPP
+    # Do ANA correction.
+    # NOTE: You must install this, ANA is not a part of AAPP
     do_ana_correction: True
-    #Do atovs postprocessing
+    # Do atovs postprocessing
     do_atovpp: True
-    #Do avhrr to hirs processing. Means running MAIA. And MAIA need NWP fields to work properly.
-    #Please look in the AAPP documentation before you use this.
+    # Do avhrr to hirs processing. Means running MAIA. And MAIA need NWP fields to work properly.
+    # Please look in the AAPP documentation before you use this.
     do_avh2hirs: True
     
-    #Skip certain Platforms and/or instruments.
+    # Skip certain Platforms and/or instruments.
     instrument_skipped_in_processing:
       - NOAA-15:
         - hirs/3
         - amsu-a
         - amsu-b
 
-    #Sift format of the resulting file names of the AAPP processing
+    # Sift format of the resulting file names of the AAPP processing
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
-    #Data useing the rename_aapp_compose. This is how the aapp runner does it.
+    # Data useing the rename_aapp_compose. This is how the aapp runner does it.
     rename_aapp_files:
       - avhrr: {aapp_file: hrpt.l1b, data_type: avhrr, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
@@ -184,9 +184,9 @@ aapp_processes:
       - msu: {aapp_file: msu.l1c, data_type: msul1c, data_level: l1c}
       - dcs: {aapp_file: dcs.l1b, data_type: dcsl1b, data_level: l1b}
       
-    #The idea is to send posttroll messages during the processing for various status
-    #information.
-    #NOT Implemented.
+    # The idea is to send posttroll messages during the processing for various status
+    # information.
+    # NOT Implemented.
     monitor_message:
       send: True
       topic: 'some fantastic topic'
