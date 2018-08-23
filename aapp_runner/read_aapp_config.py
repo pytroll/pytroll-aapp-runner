@@ -52,8 +52,8 @@ valid_dir_permissions = [
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_outdir_base', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
-    ('aapp_log_files_archive_dir', 'rw', MANDATORY),
-    ('custom_aapp_dir_navigation','rw', MANDATORY)
+    ('aapp_log_files_archive_dir', 'rw', MANDATORY)
+#    ('custom_aapp_dir_navigation','rw', MANDATORY)
 ]
 
 valid_readable_files = ['aapp_run_noaa_script',
