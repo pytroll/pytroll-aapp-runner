@@ -36,8 +36,7 @@ import logging
 from glob import glob
 import os
 from datetime import datetime
-from shutil import copy, move
-from subprocess import Popen, PIPE
+from shutil import copy
 from aapp_runner.helper_functions import run_shell_command
 from trollsift.parser import compose
 import re
@@ -106,7 +105,8 @@ def download_tle(config, timestamp, dir_data_tle):
             returncode = 0
             stdout = ""
             stderr = ""
-            cmd = "wget -T {} --post-data=\"identity={}&password={}\" --cookies=on --keep-session-cookies --save-cookies=cookies_spacetrack \"{}/ajaxauth/login\" -olog".format(
+            cmd = "wget -T {} --post-data=\"identity={}&password={}\" --cookies=on ",
+            "--keep-session-cookies --save-cookies=cookies_spacetrack \"{}/ajaxauth/login\" -olog".format(
                 cnf['timeout'], cnf['user'], cnf['passwd'], cnf['url'])
             try:
                 status, returncode, stdout, stderr = run_shell_command(cmd)
@@ -121,7 +121,8 @@ def download_tle(config, timestamp, dir_data_tle):
                     LOG.debug("stdout: {}".format(stdout))
                     LOG.debug("stderr: {}".format(stderr))
                 else:
-                    cmd = "wget -T {} --keep-session-cookies --load-cookies=cookies_spacetrack -O weather.txt \"{}/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/{}/orderby/TLE_LINE1\"".format(
+                    cmd = "wget -T {} --keep-session-cookies --load-cookies=cookies_spacetrack -O weather.txt ",
+                    "\"{}/basicspacedata/query/class/tle_latest/ORDINAL/1/NORAD_CAT_ID/{}/orderby/TLE_LINE1\"".format(
                         cnf['timeout'], cnf['url'], cnf['catalogue'])
                     try:
                         status, returncode, stdout, stderr = run_shell_command(cmd)
@@ -166,7 +167,7 @@ def download_tle(config, timestamp, dir_data_tle):
 
 
 def do_tleing(config, timestamp, satellite):
-    """Get the tle-file and copy them to the AAPP data structure 
+    """Get the tle-file and copy them to the AAPP data structure
        and run the AAPP tleing script and executable"""
 
     return_status = True
@@ -238,8 +239,8 @@ def do_tleing(config, timestamp, satellite):
             else:
                 LOG.info("Will use tle files {}".format(tle_file_list))
         else:
-            LOG.warning(
-                "index file does not exist. If this is the first run of AAPP tleing.exe it is ok, otherwise it is a bit suspisiuos.")
+            LOG.warning("index file does not exist. If this is the first run of AAPP tleing.exe it is ok,"
+                        " otherwise it is a bit suspisiuos.")
             tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
             tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE, s)))
             tle_file_list = tle_files
@@ -287,7 +288,7 @@ def do_tleing(config, timestamp, satellite):
                                 delta = timestamp - test(m)
                                 if (abs(delta.total_seconds()) < min_closest_tle_file):
                                     min_closest_tle_file = abs(delta.total_seconds())
-                                    #infile_closest = os.path.basename(tle_file_name)
+                                    # infile_closest = os.path.basename(tle_file_name)
                                     infile_closest = tle_file_name
                                     LOG.debug("Closest tle infile so far: {}".format(infile_closest))
                             except ValueError:
@@ -306,7 +307,7 @@ def do_tleing(config, timestamp, satellite):
             else:
                 break
 
-        #DIR_DATA_TLE = tle_search_dir
+        # DIR_DATA_TLE = tle_search_dir
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
 
@@ -364,8 +365,10 @@ def do_tleing(config, timestamp, satellite):
                     # To avoid this, sort the index file keeping only unique lines(skipping the tle filename at the end
 
                     # The sort options +0b -3b is guessed to be sort from column 0 to 3, but this is not documented
-                    # Could cause problems with future version of sort. See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
-                    #cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),os.path.join(DIR_DATA_TLE, TLE_INDEX))
+                    # Could cause problems with future version of sort.
+                    # See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
+                    # cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),
+                    # os.path.join(DIR_DATA_TLE, TLE_INDEX))
                     if os.path.exists(TLE_INDEX):
                         cmd = "sort -u +0b -3b {}".format(TLE_INDEX)
                         try:
@@ -462,15 +465,17 @@ def do_tle_satpos(config, timestamp, satellite):
     file_satpos = os.path.join(satpos_dir, "satpos_{}_{:%Y%m%d}.txt".format(satellite, timestamp))
 
     if (not os.path.exists(file_satpos) or os.stat(file_satpos).st_size == 0) and return_status:
-        """Usage is: satpostle  [ -o] [-s satellite] [-S station] [-d start date] [-n number of days] [-i increment in seconds] [-c search criteria] 
+        """Usage is: satpostle  [ -o] [-s satellite] [-S station] [-d start date] [-n number of days]
+        [-i increment in seconds] [-c search criteria]
 
-        -o -s -S -d -n -i –c are optional. 
+        -o -s -S -d -n -i –c are optional.
 
-        If no parameter is specified as an option, defaults are : noaa14, Lannion, today 0h, 1.0, 120.0, n (n= nearest, p = preceding). 
+        If no parameter is specified as an option, defaults are : noaa14, Lannion, today 0h, 1.0, 120.0,
+        n (n= nearest, p = preceding).
 
         The option -o specifies that the data will be stored in the file satpos_noaxx_yyyymmdd.txt.
 
-        Output default is the standard output.. 
+        Output default is the standard output..
         """
         cmd = "satpostle -o -s {} -d {:%d/%m/%y} -n 1.2".format(satellite, timestamp)
         try:
