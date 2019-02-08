@@ -156,7 +156,7 @@ def do_decommutation(process_config, msg, timestamp):
         os.environ['FILE_COEF'] = os.path.join(os.environ.get('PAR_CALIBRATION_COEF'), 'amsua', 'amsua_clparams.dat')
         os.symlink(os.environ['FILE_COEF'], "{}50".format(os.environ['FORT']))
 
-        cmd="decommutation.exe"  # .format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
+        cmd = "decommutation.exe"  # .format("".join(process_config['a_tovs']),decom_file, process_config['input_hrpt_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd, stdin="{}\n{}{}\n".format(process_config['input_hrpt_file'], decom_input, os.getenv('STATION_ID', 'ST')),
                                                              stdout_logfile='decommutation.log',
@@ -269,16 +269,18 @@ def do_decommutation(process_config, msg, timestamp):
             # aman 15
             if os.path.exists("{}15".format(os.environ['FORT'])):
                 shutil.move("{}15".format(os.environ['FORT']), process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
-                cmd="chk1btime.exe" 
+                cmd = "chk1btime.exe"
                 try:
-                    status, returncode, std, err = run_shell_command(cmd,stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['amsua_file']))
+                    status, returncode, std, err = run_shell_command(cmd,
+                                                                     stdin="{}\n".format(process_config['aapp_static_configuration']['decommutation_files']['amsua_file']))
                 except:
                     LOG.error("Failed to execute command {}. Something wrong with the command.".format(cmd))
                 else:
                     if returncode in accepted_return_codes_chk1btime:
                         LOG.debug("chk1btime command {} ok.".format(cmd))
                     else:
-                        LOG.error("This means that the start of the data are bad, and that the processing for this data later will fail?")
+                        LOG.error("This means that the start of the data are bad, "
+                                  "and that the processing for this data later will fail?")
                         LOG.debug("Return code: {}".format(returncode))
                         LOG.debug("std: {}".format(std))
                         LOG.debug("err: {}".format(err))
