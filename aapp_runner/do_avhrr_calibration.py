@@ -30,6 +30,7 @@ from helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
+
 def do_avhrr_calibration(process_config, msg, timestamp):
 
     if not process_config['process_avhrr']:
@@ -39,23 +40,23 @@ def do_avhrr_calibration(process_config, msg, timestamp):
     accepted_return_codes_avhrcl = [0]
 
     return_value = True
-    LOG.debug("Do the avhrr calibration")        
+    LOG.debug("Do the avhrr calibration")
 
-    #This function relays on beeing in a working directory
-    current_dir = os.getcwd() #Store the dir to change back to after function complete
+    # This function relays on beeing in a working directory
+    current_dir = os.getcwd()  # Store the dir to change back to after function complete
     os.chdir(process_config['aapp_processes'][process_config.process_name]['working_dir'])
 
-    #calibration_location = "-c -l"
-    
+    # calibration_location = "-c -l"
+
     try:
         cmd = "avhrcl {0} -s {1} -d {2:%Y%m%d} -h {2:%H%M} -n {3:05d} {4}".format(process_config['calibration_location'],
                                                                                   process_config['platform_name'],
                                                                                   timestamp,
                                                                                   int(process_config['orbit_number']),
                                                                                   process_config['aapp_static_configuration']['decommutation_files']['avhrr_file'])
-    except Exception, err:
+    except Exception as err:
         LOG.error("Failed to build avhrcl command: {}".format(err))
-        
+
     try:
         status, returncode, std, err = run_shell_command(cmd)
     except:
@@ -67,8 +68,7 @@ def do_avhrr_calibration(process_config, msg, timestamp):
             LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
             return_value = False
 
-
-    #Change back after this is done
+    # Change back after this is done
     os.chdir(current_dir)
 
     LOG.info("do_avhrr_calibration complete!")
@@ -79,28 +79,28 @@ def do_avhrr_calibration(process_config, msg, timestamp):
 #        LOG.debug("RUN prl1bavh")
 #        """
 #        From the nwpsaf documentation:
-#        For  AVHRR,  HIRS  and  MSU,  before  and  after  navigation/calibration  task,  AAPP_RUN  calls 
-#       tools  (prhavh,  prhirs,  prhmsu)  to  write  level  1B  headers  and  first  records  into 
-#       ASCII  files (phavh_before_calib.log, phavh_before_calib.log , ...). 
-#        At the end, it renames all output files to include 
+#        For  AVHRR,  HIRS  and  MSU,  before  and  after  navigation/calibration  task,  AAPP_RUN  calls
+#       tools  (prhavh,  prhirs,  prhmsu)  to  write  level  1B  headers  and  first  records  into
+#       ASCII  files (phavh_before_calib.log, phavh_before_calib.log , ...).
+#        At the end, it renames all output files to include
 #        information in the file names: Satellite name, date and time, orbit number.
-#        
-#        But Be aware that the prhxxx scripts now is renamed to prl1bxxx 
+#
+#        But Be aware that the prhxxx scripts now is renamed to prl1bxxx
 #        """
 #        cmd ="prl1bavh -s 1 -e 1 hrpt.l1b"
 #        run_shell_command(cmd,stdout_logfile="prl1bavh_before_calib.log")
 #        prl1bavh -s 1 -e 1 hrpt.l1b > prl1bavh_before_calib.log \
 #  || { log_error "prl1bavh failed"; exit 1; }
-#fi
+# fi
 
 # AVHRR calibration and navigation
-#log_info "Running avhrcl"
-#avhrcl $callocflag -s $SATIMG -d $YYYYMMDD -h $HHMN  -n $NNNNN hrpt.l1b \
-#|| { log_error "avhrcl failed"; exit 1; }
-  
+# log_info "Running avhrcl"
+# avhrcl $callocflag -s $SATIMG -d $YYYYMMDD -h $HHMN  -n $NNNNN hrpt.l1b \
+# || { log_error "avhrcl failed"; exit 1; }
+
 # AVHRR l1b contents after AVHRR calibration/navigation
-#if [ -n "${DEBUG}" ] ; then
+# if [ -n "${DEBUG}" ] ; then
 #  prl1bavh -s 1 -e 1 hrpt.l1b > prl1bavh_after_calib.log \
 #  || { log_error "prl1bavh failed"; exit 1; }
-#fi
-#fi
+# fi
+# fi
