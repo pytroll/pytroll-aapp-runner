@@ -1,9 +1,6 @@
 import os
 
-#import socket
 from socket import gethostname, gethostbyaddr, gaierror
-
-from ConfigParser import SafeConfigParser
 
 MANDATORY = 'm'
 
@@ -15,11 +12,11 @@ mandatory_config_variables = [
     'aapp_prefix',
     'aapp_environment_file',
     'aapp_outdir_base',
-    'aapp_outdir_format',    
+    'aapp_outdir_format',
     'tle_indir',
     'tle_infile_format',
     'tle_file_to_data_diff_limit_days',
-    'tle_archive_dir',
+    # 'tle_archive_dir',
     'subscribe_topics',
     'publish_sift_format',
     'aapp_log_files_archive_dir',
@@ -41,6 +38,7 @@ optional_config_variables = [
     'message_providing_server',
     'custom_aapp_dir_navigation',
     'locktime_before_rerun',
+    'tle_archive_dir',
     'services'
 ]
 
@@ -52,8 +50,8 @@ valid_dir_permissions = [
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_outdir_base', 'rw', MANDATORY),
     ('tle_indir', 'r', MANDATORY),
-    ('aapp_log_files_archive_dir', 'rw', MANDATORY)
-#    ('custom_aapp_dir_navigation','rw', MANDATORY)
+    ('aapp_log_files_archive_dir', 'rw', MANDATORY),
+    ('custom_aapp_dir_navigation', 'rw', MANDATORY)
 ]
 
 valid_readable_files = ['aapp_run_noaa_script',
@@ -72,7 +70,7 @@ static_vars = [
     'supported_metop_satellites',
     'platform_name_aliases',
     'satellite_sensor_name_aliases'
-    ]
+]
 
 # Config variable will be replaced by following config variable
 # if the variable (first one) is empty in config file
@@ -132,16 +130,16 @@ def check_dir(directory, test):
     Second test if directory is writable
     Print error message if fails
     """
-#    print "check_dir: test is ", test
+#    print("check_dir: test is ", test)
     if test == 'r' or test == 'rw':
         if not (os.path.exists(directory) or
                 os.access(directory, os.R_OK)):
-            print ("ERROR: Directory doesn't exist or " +
-                   "it is not readable!:" +
-                   directory)
+            print("ERROR: Directory doesn't exist or " +
+                  "it is not readable!:" +
+                  directory)
             return False
         if test == 'rw':
-            # print "RW test"
+            # print("RW test")
             test_file = "tmp_write_test.tmp"
             filename = os.path.join(directory, test_file)
             try:
@@ -149,10 +147,10 @@ def check_dir(directory, test):
                 test.close()
                 os.remove(filename)
             except IOError as ioe:
-                print ("ERROR: Cannot write to directory! {}:{}".format(directory,ioe))
+                print("ERROR: Cannot write to directory! {}:{}".format(directory, ioe))
                 return False
     else:
-        print "ERROR: Unknown test."
+        print("ERROR: Unknown test.")
     return True
 
 
@@ -172,7 +170,7 @@ def check_dir_permissions(config, dir_permissions):
                 check = check_dir(config[dirname], perm)
 
             # else:
-            #     print "%s %s %s %s %s" % ("ERROR: ", dirname,
+            #     print("%s %s %s %s %s" % ("ERROR: ", dirname,
             #                               "requires", required,
             #                               "but it's NOT defined!")
             #     check = False
@@ -181,7 +179,7 @@ def check_dir_permissions(config, dir_permissions):
     if all(test_results):
         return True
     else:
-        print "Number of failures: ", len(test_results) - sum(test_results)
+        print("Number of failures: ", len(test_results) - sum(test_results))
         return False
 
 
@@ -194,17 +192,17 @@ def check_readable_files(config, files_to_check):
     """
     Check files_to_check[] are readable
     """
-#    print "------------------------------"
+#    print("------------------------------")
     test_results = []
     for filename in files_to_check:
         check = check_file(config[filename])
         test_results.append(check)
-        print filename, " is ", check
+        print(filename, " is ", check)
 
     if all(test_results):
         return True
     else:
-        print "Number of failures: ", len(test_results) - sum(test_results)
+        print("Number of failures: ", len(test_results) - sum(test_results))
         return False
 
 
@@ -217,9 +215,9 @@ def check_config_file_options(config, valid_config=None):
     readable_files = valid_config['valid_readable_files']
     servers = valid_config['valid_servers']
 
-    print "Checking directories..."
+    print("Checking directories...")
     if not check_dir_permissions(config, dir_permissions):
-        print "Checking directories failed."
+        print("Checking directories failed.")
         return False
 
     return True
@@ -230,9 +228,9 @@ def check_static_configuration(config):
     Check if all the needed static configurations variables
     are available
     """
-    
+
     if 'aapp_static_configuration' not in config:
-        print "Missing aapp_static_configuration in config. Can not continue."
+        print("Missing aapp_static_configuration in config. Can not continue.")
         return False
     else:
         _static_config = {}
@@ -240,35 +238,36 @@ def check_static_configuration(config):
             try:
                 _static_config[item] = config['aapp_static_configuration'][item]
             except KeyError as ke:
-                print "{} Is missing in the aapp_static_configuration. Please add.".format(item)
+                print("{} Is missing in the aapp_static_configuration. Please add.".format(item))
                 raise
 
     return True
-            
+
+
 def read_config_file_options(filename, station, env, valid_config=None):
     """
     Read and checks config file
     If ok, return configuration dictionary
     """
 
-    #config = SafeConfigParser()
+    # config = SafeConfigParser()
     import yaml
     with open(filename, 'r') as stream:
         try:
             config = yaml.load(stream)
             import pprint
-            print type(config)
+            print(type(config))
             pp = pprint.PrettyPrinter(indent=4)
             pp.pprint(config)
         except yaml.YAMLError as exc:
-            print "Failed reading yaml config file: {} with: {}".format(filename, exc)
+            print("Failed reading yaml config file: {} with: {}".format(filename, exc))
             raise yaml.YAMLError
 
     if 'aapp_processes' not in config:
-        print "Can not find main section 'aapp_processes' in yaml file. Please check your config."
+        print("Can not find main section 'aapp_processes' in yaml file. Please check your config.")
         return False
 
-    if valid_config == None:
+    if valid_config is None:
         valid_config = VALID_CONFIGURATION
 
     # Config variable will be replaced by following config
@@ -278,48 +277,50 @@ def read_config_file_options(filename, station, env, valid_config=None):
     configuration = {}
     configuration['station'] = station
     configuration['environment'] = env
-    
+
     if 'environment' in config:
         if not config['environment'] == env:
-            print "Environment from command line: {} does not match with configured environment: {}".format(env, config['environment'])
+            print("Environment from command line: {} "
+                  "does not match with configured environment: {}".format(env, config['environment']))
             return False
     else:
         config['environment'] = env
     if config['environment'] not in config['aapp_processes']:
-        print "Environment {} not configured in config. Please check.".format(config['environment'])
+        print("Environment {} not configured in config. Please check.".format(config['environment']))
         return False
     if 'station' in config:
         if not config['station'] == env:
-            print "Station from command line: {} does not match with configured station: {}".format(env, config['station'])
+            print("Station from command line: {} "
+                  "does not match with configured station: {}".format(env, config['station']))
             return False
     else:
         config['station'] = station
         if not check_station(config, supported_stations):
-            print "Warning: given station: {} not in supported_stations list.".format(config['station'])
+            print("Warning: given station: {} not in supported_stations list.".format(config['station']))
 
     config_opts = config['aapp_processes'][configuration['environment']]
-    #Check for mandatory
+    # Check for mandatory
     for item in mandatory_config_variables:
         try:
             configuration[item] = config_opts[item]
         except KeyError as err:
-            print "{} is missing. Please, check your config file {}".format(err.args, filename)
+            print("{} is missing. Please, check your config file {}".format(err.args, filename))
             raise KeyError
 
-    #Check if rest of variables are in optional ( and mandatory )
+    # Check if rest of variables are in optional ( and mandatory )
     for item in config_opts:
         if item in optional_config_variables:
             configuration[item] = config_opts[item]
         elif item not in mandatory_config_variables:
-            print "Variable {} is not recognised as a mandatory nor optional config variable. This will not be used in the processing.".format(item)
+            print("Variable {} is not recognised as a mandatory nor optional config variable."
+                  "This will not be used in the processing.".format(item))
 
     if 'aapp_workdir' not in config_opts and 'working_dir' not in config_opts:
-        print "You must give either 'aapp_workdir' or 'working_dir in config."
+        print("You must give either 'aapp_workdir' or 'working_dir in config.")
         return False
 
     if not check_config_file_options(configuration, valid_config):
         return None
-
 
     if not check_static_configuration(config):
         return False
@@ -331,4 +332,3 @@ if __name__ == "__main__":
     environment = "xl-band"
     run_options = read_config_file_options("aapp-processing.yaml",
                                            station_name, environment)
-    

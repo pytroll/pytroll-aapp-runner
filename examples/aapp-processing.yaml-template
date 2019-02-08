@@ -102,7 +102,7 @@ aapp_processes:
     # Sift format of your TLE files
     tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
     # Where to find tles if other lights goes out
-    tle_download
+    tle_download:
       - {url: 'http://www.celestrak.com/NORAD/elements/weather.txt'}
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
     
@@ -117,6 +117,9 @@ aapp_processes:
     # Valid variables are those in the message and some more given
     # in the publish_level1 function in aapp_dr_runner.py
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
+
+    # Take the orbit number from the posttroll message as the true orbit number:
+    keep_orbit_number_from_message: True
 
     # Base dir of your AAPP installation
     aapp_prefix: /disk2/AAPP
@@ -169,7 +172,7 @@ aapp_processes:
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
     # Data useing the rename_aapp_compose. This is how the aapp runner does it.
     rename_aapp_files:
-      - avhrr: {aapp_file: hrpt.l1b, data_type: avhrr, data_level: l1b}
+      - avhrr: {aapp_file: hrpt.l1b, data_type: hrpt, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1c, data_type: hirsl1c, data_level: l1c}
       - hirs: {aapp_file: hirs.l1d, data_type: hirsl1d, data_level: l1d}
