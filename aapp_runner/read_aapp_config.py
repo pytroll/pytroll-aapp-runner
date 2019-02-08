@@ -13,10 +13,6 @@ mandatory_config_variables = [
     'aapp_environment_file',
     'aapp_outdir_base',
     'aapp_outdir_format',
-    'tle_indir',
-    'tle_infile_format',
-    'tle_file_to_data_diff_limit_days',
-    # 'tle_archive_dir',
     'subscribe_topics',
     'publish_sift_format',
     'aapp_log_files_archive_dir',
@@ -39,7 +35,12 @@ optional_config_variables = [
     'custom_aapp_dir_navigation',
     'locktime_before_rerun',
     'tle_archive_dir',
-    'services'
+    'services',
+    'dir_navigation',
+    'tle_indir',
+    'tle_infile_format',
+    'tle_file_to_data_diff_limit_days',
+    'tle_archive_dir'
 ]
 
 #
@@ -49,9 +50,7 @@ optional_config_variables = [
 valid_dir_permissions = [
     ('aapp_prefix', 'r', MANDATORY),
     ('aapp_outdir_base', 'rw', MANDATORY),
-    ('tle_indir', 'r', MANDATORY),
-    ('aapp_log_files_archive_dir', 'rw', MANDATORY),
-    ('custom_aapp_dir_navigation', 'rw', MANDATORY)
+    ('aapp_log_files_archive_dir', 'rw', MANDATORY)
 ]
 
 valid_readable_files = ['aapp_run_noaa_script',
@@ -130,7 +129,7 @@ def check_dir(directory, test):
     Second test if directory is writable
     Print error message if fails
     """
-#    print("check_dir: test is ", test)
+    # print("check_dir: test is ", test)
     if test == 'r' or test == 'rw':
         if not (os.path.exists(directory) or
                 os.access(directory, os.R_OK)):
