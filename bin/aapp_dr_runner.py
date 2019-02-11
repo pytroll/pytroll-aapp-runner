@@ -1,7 +1,7 @@
 #!/home/users/satman/current/bin/python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
+# Copyright (c) 2014, 2015, 2016, 2019 Adam.Dybbroe
 
 # Author(s):
 
@@ -67,7 +67,7 @@ SENSOR_NAME_CONVERTER = {
     'amsua': 'amsu-a', 'amsub': 'amsu-b', 'hirs': 'hirs/4',
     'mhs': 'mhs', 'avhrr': 'avhrt/3'}
 
-METOP_NUMBER = {'b': '01', 'a': '02'}
+METOP_NUMBER = {'b': '01', 'a': '02', 'c': '03'}
 
 # FIXME! This variable should be put in the config file:
 SATS_ONLY_AVHRR = []
@@ -391,6 +391,7 @@ class AappLvl1Processor(object):
 #                directories.append(sub_dir_path)
 #    return directories
 
+
     def run(self, msg):
         """Start the AAPP level 1 processing on either a NOAA HRPT file or a
         set of Metop HRPT files"""
@@ -506,7 +507,7 @@ class AappLvl1Processor(object):
                 # scene overlaps with any:
                 status = overlapping_timeinterval(
                     (self.starttime, self.endtime),
-                                                  self.job_register[keyname])
+                    self.job_register[keyname])
                 if status:
                     LOG.warning("Processing of scene " + keyname +
                                 " " + str(status[0]) + " " + str(status[1]) +
@@ -585,8 +586,11 @@ class AappLvl1Processor(object):
             sensor_ok = False
             for sensor in sensors:
                 if sensor in SENSOR_NAMES:
-                    sensor_ok = True
-                    break
+                    if sensor == 'hirs/4' and self.platform_name in ['Metop-C']:
+                        LOG.info("HIRS does not exist on Metop-C, thus this sensor is not considered here...")
+                    else:
+                        sensor_ok = True
+                        break
             if not sensor_ok:
                 LOG.info("No required sensors....")
                 return True
@@ -603,14 +607,18 @@ class AappLvl1Processor(object):
                 else:
                     LOG.debug("item already in list: " + str(item))
 
-            if len(self.level0files[scene_id]) < 4 and msg.data.get("variant") != "EARS":
+            if self.platform_name in ['Metop-C']:
+                num_of_required_level1files = 3
+            else:
+                num_of_required_level1files = 4
+
+            if len(self.level0files[scene_id]) < num_of_required_level1files and msg.data.get("variant") != "EARS":
                 LOG.info("Not enough sensor data available yet. " +
                          "Level-0 files = " +
                          str(self.level0files[scene_id]))
                 return True
             else:
-                LOG.info(
-                    "Level 0 files ready: " + str(self.level0files[scene_id]))
+                LOG.info("Level 0 files ready: " + str(self.level0files[scene_id]))
 
             if not self.working_dir and self.use_dyn_work_dir:
                 try:
@@ -695,7 +703,7 @@ class AappLvl1Processor(object):
                     cmdstr += " -u " + sensor_filename['amsu-a']
                 if "mhs" in sensor_filename:
                     cmdstr += " -m " + sensor_filename['mhs']
-                if "hirs/4" in sensor_filename:
+                if "hirs/4" in sensor_filename and self.platform_name not in ['Metop-C']:
                     cmdstr += " -h " + sensor_filename['hirs/4']
 
                 cmdstr += ' -n ' + \
@@ -853,7 +861,7 @@ def aapp_rolling_runner(runner_config):
                     if aapp_proc.platform_name.startswith('Metop'):
                         subd = create_pps_subdirname(
                             tobj, aapp_proc.platform_name,
-                                                     aapp_proc.orbit)
+                            aapp_proc.orbit)
                         LOG.info("Create sub-directory for level-1 files: " +
                                  str(subd))
                         level1_files = aapp_proc.smove_lvl1dir()
@@ -1420,6 +1428,7 @@ def delete_old_dirs(dir_path, older_than_days):
                 yield folder_path
                 LOG.debug("Deleting folder " + folder)
                 # folders.remove(folder)
+
 
 if __name__ == "__main__":
 
