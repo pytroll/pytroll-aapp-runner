@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013, 2014, 2015, 2016, 2018 Pytroll developers
+# Copyright (c) 2016
 
 # Author(s):
 
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Trygve Aspenes <trygveas@met.no>
+#   Trygve Aspenes
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +20,18 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Version file.
+"""Run the calibration script from AAPP for IASI
+Relay on several other steps before this can be DONE
 """
 
-__version__ = "0.9.0"
+import os
+import logging
 
+from helper_functions import run_shell_command
+
+LOG = logging.getLogger(__name__)
+
+def do_iasi_calibration(process_config, timestamp):
+    #Not implemented.
+    #Need the optional software OPS-LRS, not included in normal AAPP download.
+    return True
