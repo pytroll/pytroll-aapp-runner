@@ -27,7 +27,7 @@ for pytroll messages from Nimbus (NOAA/Metop file dispatch) and triggers
 processing on direct readout HRPT level 0 files (full swaths - no granules at
 the moment)
 """
-from ConfigParser import RawConfigParser
+#from ConfigParser import RawConfigParser
 import os
 import sys
 import logging
@@ -59,7 +59,7 @@ These are the standard names used by the various AAPP decommutation scripts.
 If you change these, you will also have to change the decommutation scripts.
 """
 
-from urlparse import urlparse
+from urllib.parse import urlparse
 import posttroll.subscriber
 from posttroll.publisher import Publish
 from posttroll.message import Message
@@ -232,16 +232,16 @@ def move_aapp_log_files(config):
             tmp_config.update(
                 tmp_config['aapp_processes'][config.process_name])
 
-            _outdir = compose(tmp_config['aapp_outdir_format'], tmp_config)
+            _outdir = compose(tmp_config['aapp_log_outdir_format'], tmp_config)
             destination = os.path.join(
                 tmp_config['aapp_log_files_archive_dir'], _outdir)
         except KeyError as err:
             LOG.error("Failed to compose log files dir: {}. Missing key:{}".format(
-                config['aapp_processes'][config.process_name]['aapp_outdir_format'], err))
+                config['aapp_processes'][config.process_name]['aapp_log_outdir_format'], err))
             return False
         except Exception as err:
             LOG.error("Failed to compose log files dir: {}. Error:{}".format(
-                config['aapp_processes'][config.process_name]['aapp_outdir_format'], err))
+                config['aapp_processes'][config.process_name]['aapp_log_outdir_format'], err))
             return False
 
         LOG.debug("move_aapp_log_files destination: " + destination)
@@ -345,10 +345,10 @@ def read_arguments():
     args = parser.parse_args()
 
     if args.config_file == '':
-        print "Configuration file required! aapp_runner.py <file>"
+        print("Configuration file required! aapp_runner.py <file>")
         sys.exit()
     if args.station == '':
-        print "Station required! Use command-line switch -s <station>"
+        print("Station required! Use command-line switch -s <station>")
         sys.exit()
     else:
         station = args.station.lower()
@@ -360,7 +360,7 @@ def read_arguments():
         env = args.environment.lower()
 
     if 'template' in args.config_file:
-        print "Template file given as master config, aborting!"
+        print("Template file given as master config, aborting!")
         sys.exit()
 
     return station, env, args.config_file, args.log, args.verbose
@@ -395,18 +395,18 @@ def setup_logging(config, log_file, verbose):
             try:
                 os.makedirs(os.path.dirname(log_file))
             except os.error as er:
-                print "Can not create missing log dir: {}: {}".format(os.path.dirname(log_file), er)
+                print("Can not create missing log dir: {}: {}"
+                      .format(os.path.dirname(log_file), er))
                 raise
         try:
             ndays = int(config['logging']["log_rotation_days"])
             ncount = int(config['logging']["log_rotation_backup"])
         except KeyError as err:
-            print err.args, \
-                "is missing. Please, check your config ",\
-                config
+            print(err.args,
+                  "is missing. Please, check your config ", config)
             # FIXME Make the errorhandeling better
             raise IOError("Config was given but doesn't " +
-                          "know how to backup and rotate")
+                          "know how to backup and rotate log files")
 
         handler = handlers.TimedRotatingFileHandler(log_file,
                                                     when='midnight',
@@ -445,39 +445,70 @@ def check_message(msg, server):
     Check the message for neccessary stuff:
     message type
     providing server
+    files if no netloc in the message
     """
-
     if msg is None:
-        #LOG.debug("Message is None.")
         return False
     elif (msg.type != 'file' and msg.type != 'dataset'):
         LOG.warning(
-            "Message type is not a file or collection {}".format(msg.type))
+            "Message type is not a file or collection %s", str(msg.type))
         return False
     else:
+        LOG.debug("Found %s", str(msg.type))
         try:
             urlobj = []
             if 'uri' in msg.data:
                 urlobj.append(urlparse(msg.data['uri']))
             elif 'dataset' in msg.data:
                 for file in msg.data['dataset']:
+                    LOG.debug("File in dataset: %s",
+                              str(urlparse(file['uri'])))
                     urlobj.append(urlparse(file['uri']))
             else:
                 LOG.error("Failed to find neccessary filename(s) in message.")
                 return False
         except KeyError as ke:
-            LOG.error("Key error: {}".format(ke))
+            LOG.error("Key error: %s", str(ke))
 
-        LOG.debug("urlobj: {}".format(str(urlobj)))
-
+        LOG.debug("urlobj: %s", str(urlobj))
+        LOG.debug("server: %s", str(server))
         for obj in urlobj:
             url_ip = socket.gethostbyname(obj.netloc)
-            if obj.netloc and (url_ip not in get_local_ips()):
+            LOG.debug("obj.path: %s", obj.path)
+            LOG.debug("url_ip: %s", url_ip)
+            LOG.debug("netloc: %s", obj.netloc)
+            LOG.debug("Empty netloc: %s", bool(not obj.netloc))
+            LOG.debug("isfile: %s", str(os.path.isfile(obj.path)))
+            LOG.debug("access: %s", str(os.access(obj.path, os.R_OK)))
+
+            # Check file in message (uri) if no ip in msg
+            if not obj.netloc:
+                LOG.debug("netloc empty in msg.")
+                if (not os.access(obj.path, os.R_OK) and
+                        not os.path.isfile(obj.path)):
+                    LOG.warning("File %s is not readable" +
+                                " on this server (%s)",
+                                str(obj.path), str(get_local_ips()))
+                    return False
+            # Check msg ip in case of message_providing_server defined in cfg
+            elif (obj.netloc
+                    and server is not None
+                    and url_ip != server):
+                LOG.warning("Server %s is not listed as a " +
+                            "message_server: %s",
+                            str(obj.netloc),
+                            str(server))
+                return False
+            # Check msg ip vs current server if no message_providing_server
+            elif (obj.netloc
+                    and server is None
+                    and (url_ip not in get_local_ips())):
                 LOG.warning("Server %s not the current one: %s",
                             str(obj.netloc),
                             socket.gethostname())
+                LOG.warning("No message_providing_server defined.")
                 return False
-
+    LOG.debug("Message ok for processing.")
     return True
 
 
@@ -485,18 +516,21 @@ def check_satellite(msg, config):
     """
     Check if the satellite in message is a valid satellite for this processing
     """
+    metops = config['aapp_static_configuration']['supported_metop_satellites']
+    noaas = config['aapp_static_configuration']['supported_noaa_satellites']
+    supported_satellites = metops + noaas
+
     try:
-        if (msg.data['platform_name'] not in config['aapp_static_configuration']['supported_noaa_satellites'] and
-                msg.data['platform_name'] not in config['aapp_static_configuration']['supported_metop_satellites']):
-            LOG.info("Not a NOAA/Metop scene: " +
-                     str(msg.data['platform_name']) + ". Continue...")
+        if msg.data['platform_name'] not in supported_satellites:
+            LOG.info("Not a NOAA/Metop scene: %s. Continue.",
+                     str(msg.data['platform_name']))
             return False
-    except Exception, err:
+    except Exception as err:
         LOG.warning(str(err))
         return False
 
-    LOG.debug("Accepting satellite: " +
-              str(msg.data['platform_name']) + " as valid platform.")
+    LOG.debug("Accepting satellite: %s as valid platform. ",
+              str(msg.data['platform_name']))
     return True
 
 
@@ -600,7 +634,7 @@ def generate_process_config(msg, config):
     # due to config.
     if 'instrument_skipped_in_processing' in config['aapp_processes'][config.process_name]:
         for platform_name in config['aapp_processes'][config.process_name]['instrument_skipped_in_processing']:
-            _platform_name = platform_name.keys()[0]
+            _platform_name = list(platform_name)[0]
             if _platform_name.upper() == msg.data['platform_name'].upper():
                 for sensor in msg.data['sensor']:
                     for skip_sensor in platform_name[_platform_name]:
@@ -985,8 +1019,8 @@ if __name__ == "__main__":
     (station_name, environment, config_filename, log_file, verbose) = read_arguments()
 
     if not os.path.isfile(config_filename):
-        print "ERROR! Can not find config file: {}".format(config_filename)
-        print "Exits!"
+        print("ERROR! Can not find config file: {}".format(config_filename))
+        print("Exits!")
         sys.exit()
 
     config = read_config_file_options(
@@ -996,7 +1030,7 @@ if __name__ == "__main__":
     try:
         LOG = setup_logging(config, log_file, verbose)
     except:
-        print "Logging setup failed. Check your config"
+        print("Logging setup failed. Check your config")
         sys.exit()
 
     try:
