@@ -29,7 +29,7 @@ import shutil
 import re
 import datetime
 
-from helper_functions import run_shell_command
+from aapp_runner.helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 

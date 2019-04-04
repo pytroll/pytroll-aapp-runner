@@ -25,7 +25,7 @@ Rename standard AAPP files to proctical ones  ...
 
 import os
 import logging
-from helper_functions import run_shell_command
+from aapp_runner.helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
