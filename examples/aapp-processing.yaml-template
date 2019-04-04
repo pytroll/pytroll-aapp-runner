@@ -102,6 +102,7 @@ aapp_processes:
     # Sift format of your TLE files
     tle_infile_format: 'tle{timestamp:%y%m%d}.txt'
     # Where to find tles if other lights goes out
+    download_tle_files: False
     tle_download:
       - {url: 'http://www.celestrak.com/NORAD/elements/weather.txt'}
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
@@ -145,6 +146,8 @@ aapp_processes:
 
     # Where to move the logs after processig.
     aapp_log_files_archive_dir: /disk2/aapp-runner-log
+    # Name of log output directory (sift format)
+    aapp_log_outdir_format: '{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:05d}'
     # How many days will log files be kept before deleting.
     aapp_log_files_archive_length: 1
 
@@ -167,7 +170,9 @@ aapp_processes:
         - hirs/3
         - amsu-a
         - amsu-b
-
+      - METOP-C:
+        - hirs/4
+ 
     # Sift format of the resulting file names of the AAPP processing
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
     # Data useing the rename_aapp_compose. This is how the aapp runner does it.
