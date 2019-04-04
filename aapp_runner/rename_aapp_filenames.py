@@ -26,7 +26,7 @@ Rename standard AAPP files to proctical ones  ...
 
 import os
 import logging
-from helper_functions import run_shell_command
+from aapp_runner.helper_functions import run_shell_command
 import shutil
 from trollsift.parser import compose
 
@@ -36,8 +36,7 @@ def rename_file(process_config, values):
     """
     Do the actual renaming and checking
     """
-    
-    sensor = values.iterkeys().next()
+    sensor = next(iter(values))
     process_file = "process_{}".format(sensor)
     try:
         process_config[process_file]

@@ -17,6 +17,7 @@ mandatory_config_variables = [
     'publish_sift_format',
     'aapp_log_files_archive_dir',
     'aapp_log_files_archive_length',
+    'aapp_log_outdir_format',
     'rename_aapp_compose',
     'rename_aapp_files',
 ]
@@ -28,6 +29,7 @@ optional_config_variables = [
     'keep_orbit_number_from_message',
     'do_ana_correction',
     'do_atovpp',
+    'do_avh2hirs',
     'instrument_skipped_in_processing',
     'passlength_threshold',
     'monitor_message',
@@ -37,6 +39,7 @@ optional_config_variables = [
     'tle_archive_dir',
     'services',
     'dir_navigation',
+    'download_tle_files',
     'tle_indir',
     'tle_infile_format',
     'tle_file_to_data_diff_limit_days',
