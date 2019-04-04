@@ -24,10 +24,8 @@
 '''Helper functions for aapp runner
 '''
 
-import numpy as np
 import os
 import logging
-from ConfigParser import ConfigParser
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +51,9 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
         Returns True/False and return code.
     """
     from subprocess import Popen, PIPE
+
+    if stdin is not None:
+        stdin=stdin.encode('utf-8')
 
     if use_shlex:
         import shlex
@@ -106,6 +107,9 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
             out, err = proc.communicate()
         else:
             out, err = proc.communicate(input=stdin)
+
+        out = out.decode('utf-8')
+        err = err.decode('utf-8')
 
         return_value = proc.returncode
         signal.alarm(0)
