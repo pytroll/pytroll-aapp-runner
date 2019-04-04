@@ -287,6 +287,8 @@ def do_tleing(config, timestamp, satellite):
 
         # Check if I can read the tle file.
         first_search = True
+
+	# FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
         for tle_search_dir in [compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict), DIR_DATA_TLE]:
             if not os.path.exists(tle_search_dir):
                 LOG.debug("tle_search_dir {} does not exists.".format(tle_search_dir))
@@ -337,7 +339,7 @@ def do_tleing(config, timestamp, satellite):
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
 
-    if not tle_file_list:
+    if not tle_file_list and config['aapp_processes'][config.process_name]['download_tle_files']:
         LOG.warning("Found no tle files. Try to download ... ")
         tle_file_list = download_tle(config, timestamp, DIR_DATA_TLE)
 
