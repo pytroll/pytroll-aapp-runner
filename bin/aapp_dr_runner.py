@@ -707,10 +707,7 @@ def generate_process_config(msg, config):
     config['start_time'] = msg.data['start_time']
 
     # Save collection_area_id if given
-    try:
-        config['collection_area_id'] = msg.data['collection_area_id']
-    except KeyError:
-        config['collection_area_id'] = None
+    config['collection_area_id'] = msg.data.get('collection_area_id', None)
 
     return True
 
