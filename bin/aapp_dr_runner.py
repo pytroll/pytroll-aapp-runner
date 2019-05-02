@@ -89,17 +89,17 @@ def get_local_ips():
     return ips
 
 
-def reset_job_registry(objdict, key, start_end_times):
+def reset_job_registry(objdict, key, start_end_times_area):
     """Remove job key from registry"""
 
     LOG.debug("Register: " + str(objdict))
-    starttime, endtime = start_end_times
+    starttime, endtime, area_id = start_end_times_area
     if key in objdict:
         if objdict[key] and len(objdict[key]) > 0:
-            objdict[key].remove(start_end_times)
+            objdict[key].remove(start_end_times_area)
             LOG.debug("Release/reset job-key " + str(key) + " " +
-                      str(starttime) + " " + str(endtime) +
-                      " from job registry")
+                      str(starttime) + " " + str(endtime) + " " +
+                      str(area_id) + " from job registry")
             LOG.debug("Register: " + str(objdict))
             return
 
@@ -285,7 +285,7 @@ def block_before_rerun(config, msg):
         config.job_register[config['platform_name']] = []
 
     config.job_register[config['platform_name']].append(
-        (config['starttime'], config['endtime']))
+        (config['starttime'], config['endtime'], config['collection_area_id']))
     LOG.debug("End: job register = " + str(config.job_register))
 
     try:
@@ -293,10 +293,10 @@ def block_before_rerun(config, msg):
         # (e.g. 10) minutes from now:
         t__ = threading.Timer(config['aapp_processes'][config.process_name]['locktime_before_rerun'],
                               reset_job_registry, args=(config.job_register,
-                                                        config[
-                                                            'platform_name'],
+                                                        config['platform_name'],
                                                         (config['starttime'],
-                                                         config['endtime'])))
+                                                         config['endtime'],
+                                                         config['collection_area_id'])))
         t__.start()
 
         LOG.debug(
@@ -451,7 +451,7 @@ def check_message(msg, server):
         return False
     elif (msg.type != 'file' and msg.type != 'dataset'):
         LOG.warning(
-            "Message type is not a file or collection %s", str(msg.type))
+            "Message type is not a file or dataset %s", str(msg.type))
         return False
     else:
         LOG.debug("Found %s", str(msg.type))
@@ -706,6 +706,9 @@ def generate_process_config(msg, config):
 
     config['start_time'] = msg.data['start_time']
 
+    # Save collection_area_id if given
+    config['collection_area_id'] = msg.data.get('collection_area_id', None)
+
     return True
 
 
@@ -713,12 +716,23 @@ def create_and_check_scene_id(msg, config):
     """
     Create a scene specific ID to identify the scene process for later
     """
-    # Use sat id, start and end time as the unique identifier of the scene!
-    if config['platform_name'] in config.job_register and len(config.job_register[config['platform_name']]) > 0:
+    # Use sat id, start and end time and area_id as the unique identifier of the scene!
+    if (config['platform_name'] in config.job_register and
+        len(config.job_register[config['platform_name']]) > 0):
+
         # Go through list of start,end time tuples and see if the current
-        # scene overlaps with any:
+        # scene overlaps with any - only if the area ids are the same
+
+        # Get registed start and end times with area id equal to current area_id
+        registed_times = []
+        for start_t, end_t, area_id in config.job_register[config['platform_name']]:
+            if area_id == config['collection_area_id']:
+                registed_times.append((start_t, end_t))
+
+        # Get overlap status
         status = overlapping_timeinterval(
-            (config['starttime'], config['endtime']), config.job_register[config['platform_name']])
+            (config['starttime'], config['endtime']), registed_times)
+
         if status:
             LOG.warning("Processing of scene " + config['platform_name'] +
                         " " + str(status[0]) + " " + str(status[1]) +
