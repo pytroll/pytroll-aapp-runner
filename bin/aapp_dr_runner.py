@@ -43,9 +43,9 @@ from glob import glob
 from logging import handlers
 from subprocess import PIPE, Popen
 from time import time as _time
-from six.moves.urllib.parse import urlparse, urlunparse
 
 import netifaces
+from six.moves.urllib.parse import urlparse, urlunparse
 
 import posttroll.subscriber
 from aapp_runner.helper_functions import overlapping_timeinterval
