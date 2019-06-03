@@ -26,15 +26,34 @@ for pytroll messages from Nimbus (NOAA/Metop file dispatch) and triggers
 processing on direct readout HRPT level 0 files (full swaths - no granules at
 the moment)
 """
-from ConfigParser import RawConfigParser
-import os
-import sys
 import logging
+import os
+import shlex
+# import os
+import shutil
+import socket
+import sys
+import tempfile
+# import aapp_stat
+import threading
+from ConfigParser import RawConfigParser
+# import subrocess
+from datetime import datetime, timedelta
+from glob import glob
 from logging import handlers
+from subprocess import PIPE, Popen
+from time import time as _time
+
+import netifaces
+from six.moves.urllib.parse import urlparse, urlunparse
+
+import posttroll.subscriber
+from aapp_runner.helper_functions import overlapping_timeinterval
 from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
-import socket
-import netifaces
+from posttroll.message import Message
+from posttroll.publisher import Publish
+
 LOG = logging.getLogger(__name__)
 
 
@@ -71,25 +90,6 @@ METOP_NUMBER = {'b': '01', 'a': '02', 'c': '03'}
 
 # FIXME! This variable should be put in the config file:
 SATS_ONLY_AVHRR = []
-
-
-from urlparse import urlparse
-import posttroll.subscriber
-from posttroll.publisher import Publish
-from posttroll.message import Message
-from aapp_runner.helper_functions import overlapping_timeinterval
-
-import tempfile
-from glob import glob
-# import os
-import shutil
-# import aapp_stat
-import threading
-from subprocess import Popen, PIPE
-import shlex
-# import subrocess
-from datetime import timedelta, datetime
-from time import time as _time
 
 
 def get_local_ips():
@@ -987,7 +987,11 @@ def publish_level1(publisher,
         LOG.debug("File: " + str(os.path.basename(resultfile)))
         filename = os.path.split(resultfile)[1]
         to_send = mda.copy()
-        to_send['uri'] = ('ssh://%s%s' % (server, resultfile))
+        if server:
+            scheme = 'ssh'
+        else:
+            scheme = 'file'
+        to_send['uri'] = urlunparse([scheme, server, resultfile, '', '', ''])
         to_send['uid'] = filename
         to_send['sensor'] = result_files[key]['sensor']
         to_send['orbit_number'] = int(orbit)
