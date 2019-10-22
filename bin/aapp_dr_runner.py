@@ -545,7 +545,6 @@ def generate_process_config(msg, config):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
             process_name = "process_{}".format(config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             config[process_name] = True
-            LOG.debug("configured process name from dataset: %s", config[process_name])
 
             # For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
             # AAPP processing handles MHS as AMSU-B
@@ -1000,6 +999,8 @@ if __name__ == "__main__":
         LOG.error("Failed to init AAPP L1 Config object: {}".format(err))
         sys.exit()
 
+    nameservers = config.get('nameservers', [])
+
     try:
         services = aapp_config.get_parameter('services')
         if not services:
@@ -1007,7 +1008,7 @@ if __name__ == "__main__":
         with posttroll.subscriber.Subscribe(services,
                                             aapp_config.get_parameter('subscribe_topics'),
                                             True) as subscr:
-            with Publish('aapp_runner', 0, nameservers=['satproc3']) as publisher:
+            with Publish('aapp_runner', 0, nameservers=nameservers) as publisher:
                 while True:
                     for msg in subscr.recv(timeout=90):
                         if msg:
