@@ -545,6 +545,13 @@ def generate_process_config(msg, config):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
             process_name = "process_{}".format(config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             config[process_name] = True
+            LOG.debug("configured process name from dataset: %s", config[process_name])
+
+            # For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
+            # AAPP processing handles MHS as AMSU-B
+            if (('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) >= 18) or
+                    ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
+                config['process_amsub'] = True
 
             # Name of the input file for given instrument
             input_file_name = "input_{}_file".format(
@@ -1000,7 +1007,7 @@ if __name__ == "__main__":
         with posttroll.subscriber.Subscribe(services,
                                             aapp_config.get_parameter('subscribe_topics'),
                                             True) as subscr:
-            with Publish('aapp_runner', 0) as publisher:
+            with Publish('aapp_runner', 0, nameservers=['satproc3']) as publisher:
                 while True:
                     for msg in subscr.recv(timeout=90):
                         if msg:
