@@ -1038,7 +1038,7 @@ if __name__ == "__main__":
 
     # Read the command line argument
     args = read_arguments()
-    station_name = args.stations
+    station_name = args.station
     environment = args.environment
     config_filename = args.config_file
     log_file = args.log
