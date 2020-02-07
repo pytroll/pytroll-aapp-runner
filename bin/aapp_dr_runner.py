@@ -337,7 +337,7 @@ def read_arguments():
                         help="Name of the environment (e.g. dev, test, oper)")
     parser.add_argument("-n", "--nameservers",
                         help=("Connect publisher to given nameservers: "
-                              "'-n localhost 123.456.789.0'. Default: localhost")
+                              "'-n localhost 123.456.789.0'. Default: localhost"),
                         nargs="+",
                         default=["localhost"])
     parser.add_argument("-p", "--publish_port", default=0, type=int,
