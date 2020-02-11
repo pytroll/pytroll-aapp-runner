@@ -335,6 +335,13 @@ def read_arguments():
                         dest="environment",
                         type=str,
                         help="Name of the environment (e.g. dev, test, oper)")
+    parser.add_argument("-n", "--nameservers",
+                        help=("Connect publisher to given nameservers: "
+                              "'-n localhost 123.456.789.0'. Default: localhost"),
+                        nargs="+",
+                        default=["localhost"])
+    parser.add_argument("-p", "--publish_port", default=0, type=int,
+                        help="Port to publish the messages on. Default: automatic")
     parser.add_argument("-v", "--verbose",
                         help="print debug messages too",
                         action="store_true")
@@ -351,19 +358,19 @@ def read_arguments():
         print("Station required! Use command-line switch -s <station>")
         sys.exit()
     else:
-        station = args.station.lower()
+        args.station = args.station.lower()
     if not args.environment:
         print ("Environment required! " +
                "Use command-line switch -e <environment> e.g. de, test")
         sys.exit()
     else:
-        env = args.environment.lower()
+        args.environment = args.environment.lower()
 
     if 'template' in args.config_file:
         print("Template file given as master config, aborting!")
         sys.exit()
 
-    return station, env, args.config_file, args.log, args.verbose
+    return args
 
 
 def remove(path):
@@ -1030,7 +1037,14 @@ if __name__ == "__main__":
     """
 
     # Read the command line argument
-    (station_name, environment, config_filename, log_file, verbose) = read_arguments()
+    args = read_arguments()
+    station_name = args.station
+    environment = args.environment
+    config_filename = args.config_file
+    log_file = args.log
+    verbose = args.verbose
+    nameservers = args.nameservers
+    publish_port = args.publish_port
 
     if not os.path.isfile(config_filename):
         print("ERROR! Can not find config file: {}".format(config_filename))
@@ -1063,7 +1077,8 @@ if __name__ == "__main__":
         with posttroll.subscriber.Subscribe(services,
                                             aapp_config.get_parameter('subscribe_topics'),
                                             True) as subscr:
-            with Publish('aapp_runner', 0) as publisher:
+            with Publish('aapp_runner', port=publish_port,
+                         nameservers=nameservers) as publisher:
                 while True:
                     for msg in subscr.recv(timeout=90):
                         if msg:
