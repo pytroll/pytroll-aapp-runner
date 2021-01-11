@@ -89,7 +89,7 @@ aapp_static_configuration:
 # This is the main section of the processing configuration
 aapp_processes:
   xl-band:
-    description: 'Text describing this processing config"
+    description: 'Text describing this processing config'
     name: xl-band
     subscribe_topics:
       - /XLBANDANTENNA/HRPT/L0
