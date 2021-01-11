@@ -174,7 +174,7 @@ aapp_processes:
  
     # Sift format of the resulting file names of the AAPP processing
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
-    # Data useing the rename_aapp_compose. This is how the aapp runner does it.
+    # Data using the rename_aapp_compose. This is how the aapp runner does it.
     rename_aapp_files:
       - avhrr: {aapp_file: hrpt.l1b, data_type: hrpt, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
