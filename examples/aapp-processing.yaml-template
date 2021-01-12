@@ -83,13 +83,12 @@ aapp_static_configuration:
     'amsu-b': 'amsub'
     'hirs/4': 'hirs'
     'hirs/3': 'hirs'
-    'mhs': 'mhs'
     'avhrr/3': 'avhrr'
 
 # This is the main section of the processing configuration
 aapp_processes:
   xl-band:
-    description: 'Text describing this processing config"
+    description: 'Text describing this processing config'
     name: xl-band
     subscribe_topics:
       - /XLBANDANTENNA/HRPT/L0
@@ -108,10 +107,10 @@ aapp_processes:
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
     
     # Search for the closest tle file from data timestamp
-    # but maximum different can not be larger than this value
+    # but maximum difference can not be larger than this value
     tle_file_to_data_diff_limit_days: 3
     
-    # Minutes to lock for simliar passes in minutes
+    # Minutes to lock for similar passes in minutes
     locktime_before_rerun: 10
 
     # Sift form to use as publish topic
@@ -119,7 +118,7 @@ aapp_processes:
     # in the publish_level1 function in aapp_dr_runner.py
     publish_sift_format: '/{format:s}/{data_processing_level:s}/polar/direct_readout'
 
-    # Take the orbit number from the posttroll message as the true orbit number:
+    # Take the orbit number from the posttroll message as the true orbit number
     keep_orbit_number_from_message: True
 
     # Base dir of your AAPP installation
@@ -144,7 +143,7 @@ aapp_processes:
     # Minimum lenght of a pass in minutes
     passlength_threshold: 5
 
-    # Where to move the logs after processig.
+    # Where to move the logs after processing.
     aapp_log_files_archive_dir: /disk2/aapp-runner-log
     # Name of log output directory (sift format)
     aapp_log_outdir_format: '{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:05d}'
@@ -175,7 +174,7 @@ aapp_processes:
  
     # Sift format of the resulting file names of the AAPP processing
     rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
-    # Data useing the rename_aapp_compose. This is how the aapp runner does it.
+    # Data using the rename_aapp_compose. This is how the aapp runner does it.
     rename_aapp_files:
       - avhrr: {aapp_file: hrpt.l1b, data_type: hrpt, data_level: l1b}
       - hirs: {aapp_file: hrsn.l1b, data_type: hirsl1b, data_level: l1b}
