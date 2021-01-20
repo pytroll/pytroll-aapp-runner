@@ -449,6 +449,7 @@ def _ingest_and_archive_tle_files(config, tle_file_list, tle_dir, tle_dict,
         if archive and ('tle_archive_dir' in config['aapp_processes'][config.process_name]):
             _archive_tles(config, tle_file_list)
 
+
 def _sort_index_file(tle_index):
     archive = False
     cmd = "sort -u +0b -3b {}".format(tle_index)
@@ -493,6 +494,7 @@ def _sort_index_file(tle_index):
 
 
 def _archive_tles(config, tle_file_list):
+    """Archive TLEs according to configuration."""
 
     archive_dict = {}
     archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
@@ -521,6 +523,12 @@ def _archive_tles(config, tle_file_list):
                     LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(
                         tle_file_name, tle_archive_dir, ioe))
                     LOG.error("CWD: {}".format(os.getcwd()))
+                else:
+                    # 2021-01-20 added by Gerrit Holl <gerrit.holl@dwd.de>
+                    # to ensure only the most greedy match is used and files
+                    # don't get copied multiple times.  I hope it doesn't
+                    # break anybody's workflow!
+                    break
 
 
 

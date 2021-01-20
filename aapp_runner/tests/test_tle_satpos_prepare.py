@@ -52,11 +52,6 @@ def test_tle(tmp_path, monkeypatch, caplog):
     monkeypatch.setenv("DIR_NAVIGATION", "nav")
     config = get_config(p)
     mk_tle_files(p)
-    # make sure we're failing by not knowing tleing.exe
-    with caplog.at_level(logging.ERROR):
-        aapp_runner.tle_satpos_prepare.do_tleing(
-                config, datetime.datetime(2021, 1, 19, 14, 8, 26), "noaa19")
-        assert "Failed running command" in caplog.text
 
     def fake_run_tleing(cmd, stdin="", stdout_logfile=None):
         if cmd == "tleing.exe":
@@ -82,7 +77,7 @@ def test_tle(tmp_path, monkeypatch, caplog):
             assert caplog.text == ""
     exp_d = (p / "archive" / "tle-20210119")
     assert exp_d.exists()
-    assert exp_d.isdir()
+    assert exp_d.is_dir()
     # confirm no other directories created
     assert len(list(exp_d.parent.iterdir())) == 1
-    assert list(exp_d.iterdir()) == ["weather202101190616.tle"]
+    assert [f.name for f in exp_d.iterdir()] == ["weather202101190616.tle"]
