@@ -260,6 +260,7 @@ def _ensure_tledir(tledir):
             LOG.error("Failed to create %s. Can not handle TLEs without this", DIR_DATA_TLE)
             raise
 
+
 def _search_tle_files(config, tle_dir, tle_index, timestamp):
     """Search for a list of TLE files.
 
@@ -326,7 +327,7 @@ def _search_tle_files(config, tle_dir, tle_index, timestamp):
         # Check if I can read the tle file.
         first_search = True
 
-	# FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
+        # FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
         for tle_search_dir in [compose(os.path.join(tle_dir,
             "{timestamp:%Y_%m}"), tle_dict), tle_dir]:
             if not os.path.exists(tle_search_dir):
@@ -379,7 +380,6 @@ def _search_tle_files(config, tle_dir, tle_index, timestamp):
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
 
     return (tle_dict, tle_file_list, tle_search_dir)
-
 
 
 def _ingest_and_archive_tle_files(config, tle_file_list, tle_dir, tle_dict,
