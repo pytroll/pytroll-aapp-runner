@@ -39,6 +39,12 @@ def mk_tle_files(pth):
 
 
 def test_tle(tmp_path, monkeypatch, caplog):
+    """Test that TLEs are correctly archived.
+
+    Test that the archival of TLEs is as expected, with no exceptions raised
+    and no spurious directories with wrong names being created.  Related to
+    GH#10.
+    """
     import aapp_runner.tle_satpos_prepare
     p = tmp_path / "tle"
     monkeypatch.setenv("AAPP_PREFIX", "invalid")
@@ -62,7 +68,7 @@ def test_tle(tmp_path, monkeypatch, caplog):
             pathlib.Path(stdout_logfile).touch()
             return (0, 0, "", "")
         else:
-            # as the test function is except:-ing everything,
+            # as the tested function is except:-ing everything,
             # I can't think of another way to get a test failure
             breakpoint()
 
@@ -74,3 +80,9 @@ def test_tle(tmp_path, monkeypatch, caplog):
                     config, datetime.datetime(2021, 1, 19, 14, 8, 26),
                     "noaa19")
             assert caplog.text == ""
+    exp_d = (p / "archive" / "tle-20210119")
+    assert exp_d.exists()
+    assert exp_d.isdir()
+    # confirm no other directories created
+    assert len(list(exp_d.parent.iterdir())) == 1
+    assert list(exp_d.iterdir()) == ["weather202101190616.tle"]
