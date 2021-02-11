@@ -40,6 +40,7 @@ from shutil import copy
 from aapp_runner.helper_functions import run_shell_command
 from trollsift.parser import compose
 import re
+import time
 
 LOG = logging.getLogger(__name__)
 
@@ -63,6 +64,11 @@ def _do_3_matches(m):
 def _do_3_matchesYY(m):
     return datetime.strptime(m.group(1) + m.group(2) + m.group(3), "%y%m%d")
 
+tle_match_tests = ((r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*', _do_6_matches),
+                   (r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*', _do_5_matches),
+                   (r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2}).*', _do_4_matches),
+                   (r'.*(\d{4})(\d{2})(\d{2}).*', _do_3_matches),
+                   (r'.*(\d{2})(\d{2})(\d{2}).*', _do_3_matchesYY))
 
 def download_tle(config, timestamp, dir_data_tle):
 
@@ -178,7 +184,7 @@ def do_tleing(config, timestamp, satellite):
 
     return_status = True
 
-    # This function relays on beeing in a working directory
+    # This function relies on beeing in a working directory
     try:
         current_dir = os.getcwd()  # Store the dir to change back to after function complete
     except OSError as ose:
@@ -187,11 +193,37 @@ def do_tleing(config, timestamp, satellite):
 
     os.chdir(config['aapp_processes'][config.process_name]['working_dir'])
 
-    tle_match_tests = (('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*', _do_6_matches),
-                       ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*', _do_5_matches),
-                       ('.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2}).*', _do_4_matches),
-                       ('.*(\d{4})(\d{2})(\d{2}).*', _do_3_matches),
-                       ('.*(\d{2})(\d{2})(\d{2}).*', _do_3_matchesYY))
+    _maybe_update_env(config)
+
+    # variables for the TLE HOME directory
+    DIR_DATA_TLE = os.getenv('DIR_DATA_TLE', os.path.join(os.getenv('DIR_NAVIGATION'), 'orb_elem'))
+
+    _ensure_tledir(DIR_DATA_TLE)
+
+    TLE_INDEX = os.path.join(DIR_DATA_TLE, "tle_{}.index".format(satellite))
+
+    (tle_dict, tle_file_list, tle_search_dir) = _search_tle_files(config, DIR_DATA_TLE, TLE_INDEX,
+            timestamp)
+
+    if not tle_file_list and config['aapp_processes'][config.process_name]['download_tle_files']:
+        LOG.warning("Found no tle files. Try to download ... ")
+        tle_file_list = download_tle(config, timestamp, DIR_DATA_TLE)
+
+    _ingest_and_archive_tle_files(config, tle_file_list, DIR_DATA_TLE, tle_dict,
+            tle_search_dir, satellite, TLE_INDEX)
+
+
+    # Change back after this is done
+    os.chdir(current_dir)
+
+    return return_status
+
+def _maybe_update_env(config):
+    """Potentially update environment based on config.
+
+    Based on the configuration for aapp-runner, potentially update some
+    environment variables as expected by AAPP.
+    """
 
     if '7' in os.getenv('AAPP_PREFIX'):
         aapp_env = 'AAPP_ENV7'
@@ -215,17 +247,25 @@ def do_tleing(config, timestamp, satellite):
             os.environ['DIR_DATA_TLE'], tle_indir))
         os.environ['DIR_DATA_TLE'] = tle_indir
 
-    # variables for the TLE HOME directory
-    DIR_DATA_TLE = os.getenv('DIR_DATA_TLE', os.path.join(os.getenv('DIR_NAVIGATION'), 'orb_elem'))
 
+def _ensure_tledir(tledir):
+    """Ensure that directory tledir exists, log a warning if it doesn't.
+    """
     # This is needed by AAPP tleing. Try other if not existing
-    if not os.path.exists(DIR_DATA_TLE):
-        LOG.warning("Dir " + DIR_DATA_TLE + " does not exist. Create ")
+    if not os.path.exists(tledir):
+        LOG.warning("Dir " + tledir + " does not exist. Create ")
         try:
-            os.makedirs(DIR_DATA_TLE)
+            os.makedirs(tledir)
         except:
             LOG.error("Failed to create %s. Can not handle TLEs without this", DIR_DATA_TLE)
             raise
+
+
+def _search_tle_files(config, tle_dir, tle_index, timestamp):
+    """Search for a list of TLE files.
+
+    Returns (tle_dict, tle_files, tle_search_dir)
+    """
 
     if 'tle_file_to_data_diff_limit_days' in config['aapp_processes'][config.process_name]:
         select_closest_tle_file_to_data = True
@@ -234,26 +274,23 @@ def do_tleing(config, timestamp, satellite):
     else:
         select_closest_tle_file_to_data = False
 
-    TLE_INDEX = os.path.join(DIR_DATA_TLE, "tle_{}.index".format(satellite))
-
-    tle_search_dir = DIR_DATA_TLE
+    tle_search_dir = tle_dir
     tle_file_list = []
     # dict to hold needed tle keys
     tle_dict = {}
     if not select_closest_tle_file_to_data:
-        if os.path.exists(TLE_INDEX):
+        if os.path.exists(tle_index):
             # Loop over all tle files, and only do tle
-            tle_files = [s for s in glob(os.path.join(DIR_DATA_TLE, 'tle*txt'))
-                         if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
-            tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE, s)))
+            tle_files = [s for s in glob(os.path.join(tle_dir, 'tle*txt'))
+                         if os.path.isfile(os.path.join(tle_dir, s))]
+            tle_files.sort(key=lambda s: os.path.getctime(os.path.join(tle_dir, s)))
 
-            tle_index_mtime = os.path.getmtime(TLE_INDEX)
+            tle_index_mtime = os.path.getmtime(tle_index)
             for s in tle_files:
-                if os.path.getmtime(os.path.join(DIR_DATA_TLE, s)) > tle_index_mtime:
+                if os.path.getmtime(os.path.join(tle_dir, s)) > tle_index_mtime:
                     tle_file_list.append(s)
 
             if len(tle_file_list) == 0:
-                import time
                 LOG.warning(("No newer tle files than last update of the index file. " +
                              "Last update of index file is {:d}s. If more than a few days you should check.".format(
                                  int(time.time() - tle_index_mtime))))
@@ -261,13 +298,15 @@ def do_tleing(config, timestamp, satellite):
                 LOG.info("Will use tle files {}".format(tle_file_list))
         else:
             LOG.warning("index file does not exist. If this is the first run of AAPP tleing.exe it is ok,"
-                        " otherwise it is a bit suspisiuos.")
+                        " otherwise it is a bit suspicious.")
             try:
-                tle_files = [s for s in os.listdir(DIR_DATA_TLE) if os.path.isfile(os.path.join(DIR_DATA_TLE, s))]
-                tle_files.sort(key=lambda s: os.path.getctime(os.path.join(DIR_DATA_TLE, s)))
+                tle_files = [s for s in os.listdir(tle_dir) if
+                        os.path.isfile(os.path.join(tle_dir, s))]
+                tle_files.sort(key=lambda s:
+                        os.path.getctime(os.path.join(tle_dir, s)))
                 tle_file_list = tle_files
             except OSError:
-                LOG.warning("Found to tle files .... ")
+                LOG.warning("Found no tle files .... ")
 
     else:
         # dict to hold needed tle keys
@@ -288,8 +327,9 @@ def do_tleing(config, timestamp, satellite):
         # Check if I can read the tle file.
         first_search = True
 
-	# FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
-        for tle_search_dir in [compose(os.path.join(DIR_DATA_TLE, "{timestamp:%Y_%m}"), tle_dict), DIR_DATA_TLE]:
+        # FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
+        for tle_search_dir in [compose(os.path.join(tle_dir,
+            "{timestamp:%Y_%m}"), tle_dict), tle_dir]:
             if not os.path.exists(tle_search_dir):
                 LOG.debug("tle_search_dir {} does not exists.".format(tle_search_dir))
                 continue
@@ -339,10 +379,11 @@ def do_tleing(config, timestamp, satellite):
         if tle_file_list:
             LOG.debug("Use this: {} offset {}s".format(tle_file_list, min_closest_tle_file))
 
-    if not tle_file_list and config['aapp_processes'][config.process_name]['download_tle_files']:
-        LOG.warning("Found no tle files. Try to download ... ")
-        tle_file_list = download_tle(config, timestamp, DIR_DATA_TLE)
+    return (tle_dict, tle_file_list, tle_search_dir)
 
+
+def _ingest_and_archive_tle_files(config, tle_file_list, tle_dir, tle_dict,
+        tle_search_dir, satellite, tle_index):
     for tle_file in tle_file_list:
         archive = False
 
@@ -351,7 +392,7 @@ def do_tleing(config, timestamp, satellite):
         os.environ['SATID_FILE'] = os.getenv('SATID_FILE', 'satid.txt')
 
         """Don't use the tle_indir because this is handeled by the tleing script"""
-        if (DIR_DATA_TLE != tle_search_dir):
+        if (tle_dir != tle_search_dir):
             tle_filename = compose(os.path.join("{timestamp:%Y_%m}", os.path.basename(tle_file)), tle_dict)
         else:
             tle_filename = os.path.basename(tle_file)
@@ -360,7 +401,8 @@ def do_tleing(config, timestamp, satellite):
         stdout = ""
         stderr = ""
         cmd = "tleing.exe"
-        stdin = "{}\n{}\n{}\n{}\n".format(DIR_DATA_TLE, tle_filename, satellite, TLE_INDEX)
+        stdin = "{}\n{}\n{}\n{}\n".format(tle_dir, tle_filename, satellite,
+                tle_index)
         LOG.debug('stdin arguments to command: ' + str(stdin))
         try:
             status, returncode, stdout, stderr = run_shell_command(cmd, stdin=stdin)
@@ -375,8 +417,8 @@ def do_tleing(config, timestamp, satellite):
                 LOG.debug("Running command: {} with return code: {}".format(cmd, returncode))
                 LOG.debug("stdout: {}".format(stdout))
                 LOG.debug("stderr: {}".format(stderr))
-            elif not os.path.exists(TLE_INDEX):
-                LOG.error("index file: {} does not exist after tleing. Something is wrong.".format(TLE_INDEX))
+            elif not os.path.exists(tle_index):
+                LOG.error("index file: {} does not exist after tleing.  Something is wrong.".format(tle_index))
                 LOG.debug("Running command: {} with return code: {}".format(cmd, returncode))
                 LOG.debug("stdout: {}".format(stdout))
                 LOG.debug("stderr: {}".format(stderr))
@@ -384,10 +426,10 @@ def do_tleing(config, timestamp, satellite):
                 LOG.debug("Running command: {} with return code: {}".format(cmd, returncode))
                 LOG.debug("stdout: {}".format(stdout))
                 LOG.debug("stderr: {}".format(stderr))
-                LOG.debug("DIR_DATA_TLE : {}".format(DIR_DATA_TLE))
+                LOG.debug("DIR_DATA_TLE : {}".format(tle_dir))
                 LOG.debug("tle_file : {}".format(os.path.basename(tle_file)))
                 LOG.debug("satellite : {}".format(satellite))
-                LOG.debug("TLE_INDEX : {}".format(TLE_INDEX))
+                LOG.debug("TLE_INDEX : {}".format(tle_index))
 
                 # When a index file is generated above one line is added for each tle file.
                 # If several tle files contains equal TLEs each of these TLEs generate one line in the index file
@@ -398,81 +440,96 @@ def do_tleing(config, timestamp, satellite):
                 # See eg. http://search.cpan.org/~sdague/ppt-0.12/bin/sort
                 # cmd="sort -u -o {} +0b -3b {}".format(os.path.join(DIR_DATA_TLE, "{}.sort".format(TLE_INDEX)),
                 # os.path.join(DIR_DATA_TLE, TLE_INDEX))
-                if os.path.exists(TLE_INDEX):
-                    cmd = "sort -u +0b -3b {}".format(TLE_INDEX)
-                    try:
-                        status, returncode, stdout, stderr = run_shell_command(
-                            cmd, stdout_logfile="{}.sort1".format(TLE_INDEX))
-                    except:
-                        LOG.error("Failed running command: {} with return code: {}".format(cmd, returncode))
-                        LOG.error("stdout: {}".format(stdout))
-                        LOG.error("stderr: {}".format(stderr))
-                        return_status = False
-                    else:
-                        if returncode == 0 and os.path.exists("{}.sort1".format(TLE_INDEX)):
-                            cmd = "grep -v NaN {}.sort1".format(TLE_INDEX)
-                            try:
-                                status, returncode, stdout, stderr = run_shell_command(
-                                    cmd, stdout_logfile="{}.sort".format(TLE_INDEX))
-                            except:
-                                LOG.error("Failed running command: {} with return code: {}".format(cmd, returncode))
-                                LOG.error("stdout: {}".format(stdout))
-                                LOG.error("stderr: {}".format(stderr))
-                                return_status = False
-                            else:
-
-                                try:
-                                    os.remove(TLE_INDEX)
-                                    os.remove("{}.sort1".format(TLE_INDEX))
-                                except OSError as e:
-                                    LOG.error("Failed to remove unsorted and duplicated index file: {} with {}"
-                                              .format(TLE_INDEX, e))
-                                else:
-                                    try:
-                                        os.rename("{}.sort".format(TLE_INDEX), TLE_INDEX)
-                                        archive = True
-                                    except:
-                                        LOG.error("Failed to rename sorted index file to original name.")
-                        else:
-                            LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(
-                                returncode, "{}.sort".format(TLE_INDEX)))
+                if os.path.exists(tle_index):
+                    archive = _sort_index_file(tle_index)
                 else:
                     LOG.error("tle index file: {} does not exists after tleing before sort. This can not happen.")
 
         # If a new tle is used and archive dir is given in config, copy TLEs to archive
         if archive and ('tle_archive_dir' in config['aapp_processes'][config.process_name]):
-            archive_dict = {}
-            archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
-            for tle_file_name in tle_file_list:
-                for regex, test in tle_match_tests:
-                    m = re.match(regex, tle_file_name)
-                    if m:
+            _archive_tles(config, tle_file_list)
+
+
+def _sort_index_file(tle_index):
+    archive = False
+    cmd = "sort -u +0b -3b {}".format(tle_index)
+    try:
+        status, returncode, stdout, stderr = run_shell_command(
+            cmd, stdout_logfile="{}.sort1".format(tle_index))
+    except:
+        LOG.error("Failed running command: {} with return code: {}".format(cmd, returncode))
+        LOG.error("stdout: {}".format(stdout))
+        LOG.error("stderr: {}".format(stderr))
+        return_status = False
+    else:
+        if returncode == 0 and os.path.exists("{}.sort1".format(tle_index)):
+            cmd = "grep -v NaN {}.sort1".format(tle_index)
+            try:
+                status, returncode, stdout, stderr = run_shell_command(
+                    cmd,
+                    stdout_logfile="{}.sort".format(tle_index))
+            except:
+                LOG.error("Failed running command: {} with return code: {}".format(cmd, returncode))
+                LOG.error("stdout: {}".format(stdout))
+                LOG.error("stderr: {}".format(stderr))
+                return_status = False
+            else:
+
+                try:
+                    os.remove(tle_index)
+                    os.remove("{}.sort1".format(tle_index))
+                except OSError as e:
+                    LOG.error("Failed to remove unsorted and duplicated index file: {} with {}"
+                              .format(tle_index, e))
+                else:
+                    try:
+                        os.rename("{}.sort".format(tle_index), tle_index)
+                        archive = True
+                    except:
+                        LOG.error("Failed to rename sorted index file to original name.")
+        else:
+            LOG.error("Returncode other than 0: {} or tle index sort file does exists.".format(
+                returncode, "{}.sort".format(tle_index)))
+    return archive
+
+
+def _archive_tles(config, tle_file_list):
+    """Archive TLEs according to configuration."""
+
+    archive_dict = {}
+    archive_dict['tle_indir'] = config['aapp_processes'][config.process_name]['tle_indir']
+    for tle_file_name in tle_file_list:
+        for regex, test in tle_match_tests:
+            m = re.match(regex, tle_file_name)
+            if m:
+                try:
+                    archive_dict['timestamp'] = test(m)
+                    tle_archive_dir = compose(
+                        config['aapp_processes'][config.process_name]['tle_archive_dir'], archive_dict)
+                    if not os.path.exists(tle_archive_dir):
                         try:
-                            archive_dict['timestamp'] = test(m)
-                            tle_archive_dir = compose(
-                                config['aapp_processes'][config.process_name]['tle_archive_dir'], archive_dict)
-                            if not os.path.exists(tle_archive_dir):
-                                try:
-                                    os.makedirs(tle_archive_dir)
-                                except:
-                                    LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
-                        except ValueError:
-                            LOG.exception('Failed in archive step...')
-                            pass
+                            os.makedirs(tle_archive_dir)
+                        except:
+                            LOG.error("Failed to make archive dir: {}".format(tle_archive_dir))
+                except ValueError:
+                    LOG.exception('Failed in archive step...')
+                    pass
 
-                        try:
-                            copy(tle_file_name, tle_archive_dir)
-                            LOG.debug("Copied {} to {}.".format(tle_file_name, tle_archive_dir))
-                            archive = False
-                        except IOError as ioe:
-                            LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(
-                                tle_file_name, tle_archive_dir, ioe))
-                            LOG.error("CWD: {}".format(os.getcwd()))
+                try:
+                    copy(tle_file_name, tle_archive_dir)
+                    LOG.debug("Copied {} to {}.".format(tle_file_name, tle_archive_dir))
+                    archive = False
+                except IOError as ioe:
+                    LOG.error("Failed to copy TLE file: {} to archive: {} because {}".format(
+                        tle_file_name, tle_archive_dir, ioe))
+                    LOG.error("CWD: {}".format(os.getcwd()))
+                else:
+                    # 2021-01-20 added by Gerrit Holl <gerrit.holl@dwd.de>
+                    # to ensure only the most greedy match is used and files
+                    # don't get copied multiple times.  I hope it doesn't
+                    # break anybody's workflow!
+                    break
 
-    # Change back after this is done
-    os.chdir(current_dir)
-
-    return return_status
 
 
 def do_tle_satpos(config, timestamp, satellite):
