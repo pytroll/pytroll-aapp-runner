@@ -5,7 +5,7 @@ dependencies:
   - xarray
   - dask
   - distributed
-  - catopy
+  - cartopy
   - matplotlib
   - toolz
   - Cython
