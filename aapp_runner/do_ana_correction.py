@@ -87,8 +87,7 @@ def do_ana_correction(process_config, msg, timestamp):
                                                              stdout_logfile="ana_lmk_loc.log",
                                                              stderr_logfile="ana_lmk_loc.err")
         except:
-            import sys
-            LOG.error("Command {} failed with {}.".format(cmd, sys.exc_info()[0]))
+            LOG.exception(f"Command {cmd:s} failed with exception:")
             if not status:
                 return_status = False
         else:
@@ -158,8 +157,7 @@ def do_ana_correction(process_config, msg, timestamp):
         try:
             status, returncode, std, err = run_shell_command(cmd)
         except:
-            import sys
-            LOG.error("Command {} failed with {}.".format(cmd, sys.exc_info()[0]))
+            LOG.exception(f"Command {cmd:s} failed with exception:")
             if not status:
                 return_status = False
         else:
@@ -178,7 +176,7 @@ def do_ana_correction(process_config, msg, timestamp):
 
     if return_status:
         # Recalculate the location in the avhhr data file with the new correction attitude coefisients.
-        from do_avhrr_calibration import do_avhrr_calibration
+        from .do_avhrr_calibration import do_avhrr_calibration
         LOG.info("Need to recalculate the avhrcl with new attitude coefisients from ANA.")
         if not do_avhrr_calibration(process_config, msg, timestamp):
             LOG.warning("The avhrr location with ana correction failed for some reason."
