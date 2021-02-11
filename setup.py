@@ -46,8 +46,6 @@ requires = ['posttroll', 'netifaces', 'trollsift', 'pytroll-schedule']
 test_requires = ['mock']
 
 
-#version = imp.load_source('aapp_runner.version', 'aapp_runner/version.py')
-
 setup(name="aapp_runner",
       description=description,
       author='The Pytroll Team',
