@@ -42,8 +42,8 @@ with open('./README.md', 'r') as fd:
 
 description = 'Pytroll runner for AAPP'
 
-requires = []
-test_requires = ['pyyaml', 'dask[array]', 'xlrd', 'pytest', 'xarray']
+requires = ['posttroll', 'netifaces', 'trollsift', 'pytroll-schedule']
+test_requires = ['mock']
 
 
 #version = imp.load_source('aapp_runner.version', 'aapp_runner/version.py')
@@ -66,12 +66,6 @@ setup(name="aapp_runner",
       install_requires=requires,
       scripts=['bin/aapp_dr_runner.py', ],
       data_files=[],
-      zip_safe=False,
-      install_requires=['posttroll',
-                        'trollsift', 'netifaces',
-                        'pytroll-schedule', ],
-
-      test_suite='pyspectral.tests.suite',
       tests_require=test_requires,
       python_requires='>=3.7',
       zip_safe=False,
