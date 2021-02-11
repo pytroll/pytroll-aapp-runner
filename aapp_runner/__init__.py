@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 Adam.Dybbroe
+# Copyright (c) 2015, 2021 Adam.Dybbroe
 
 # Author(s):
 
@@ -22,3 +22,10 @@
 
 """Initialise the aapp_runner package
 """
+
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    # package is not installed
+    pass
