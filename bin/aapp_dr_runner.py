@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014-2018 PyTroll community
+# Copyright (c) 2014-2018, 2021 PyTroll community
 
 # Author(s):
 
@@ -28,6 +28,19 @@ processing on direct readout HRPT level 0 files (full swaths - no granules at
 the moment)
 """
 #from ConfigParser import RawConfigParser
+from time import time as _time
+from datetime import timedelta, datetime
+import shlex
+from subprocess import Popen, PIPE
+import threading
+import shutil
+from glob import glob
+import tempfile
+from aapp_runner.helper_functions import overlapping_timeinterval
+from posttroll.message import Message
+from posttroll.publisher import Publish
+import posttroll.subscriber
+from urllib.parse import urlparse
 import os
 import sys
 import logging
@@ -59,23 +72,10 @@ These are the standard names used by the various AAPP decommutation scripts.
 If you change these, you will also have to change the decommutation scripts.
 """
 
-from urllib.parse import urlparse
-import posttroll.subscriber
-from posttroll.publisher import Publish
-from posttroll.message import Message
-from aapp_runner.helper_functions import overlapping_timeinterval
 
-import tempfile
-from glob import glob
 # import os
-import shutil
 # import aapp_stat
-import threading
-from subprocess import Popen, PIPE
-import shlex
 # import subrocess
-from datetime import timedelta, datetime
-from time import time as _time
 
 
 def get_local_ips():
@@ -360,8 +360,8 @@ def read_arguments():
     else:
         args.station = args.station.lower()
     if not args.environment:
-        print ("Environment required! " +
-               "Use command-line switch -e <environment> e.g. de, test")
+        print("Environment required! " +
+              "Use command-line switch -e <environment> e.g. de, test")
         sys.exit()
     else:
         args.environment = args.environment.lower()
@@ -725,7 +725,7 @@ def create_and_check_scene_id(msg, config):
     """
     # Use sat id, start and end time and area_id as the unique identifier of the scene!
     if (config['platform_name'] in config.job_register and
-        len(config.job_register[config['platform_name']]) > 0):
+            len(config.job_register[config['platform_name']]) > 0):
 
         # Go through list of start,end time tuples and see if the current
         # scene overlaps with any - only if the area ids are the same
@@ -1030,6 +1030,7 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
         LOG.debug("sending: " + str(message))
         publisher.send(message)
 
+
 if __name__ == "__main__":
 
     """
@@ -1050,6 +1051,9 @@ if __name__ == "__main__":
         print("ERROR! Can not find config file: {}".format(config_filename))
         print("Exits!")
         sys.exit()
+
+    import ipdb
+    ipdb.set_trace()
 
     config = read_config_file_options(
         config_filename, station_name, environment)

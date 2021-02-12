@@ -4,9 +4,9 @@ from socket import gethostname, gethostbyaddr, gaierror
 
 MANDATORY = 'm'
 
-supported_stations = ['kumpula', 'helsinki', 'norrkoping', 'nkp', 'oslo']
+SUPPORTED_STATIONS = ['kumpula', 'helsinki', 'norrkoping', 'nkp', 'oslo']
 
-mandatory_config_variables = [
+MANDATORY_CONFIG_VARIABLES = [
     'description',
     'name',
     'aapp_prefix',
@@ -61,12 +61,12 @@ valid_readable_files = ['aapp_run_noaa_script',
                         'alleph_script',
                         'tle_script']
 
-valid_servers = [
+VALID_SERVERS = [
     ('servername', 'host'),
     ('dataserver', 'server')
 ]
 
-static_vars = [
+STATIC_VARS = [
     'decommutation_files',
     'supported_noaa_satellites',
     'supported_metop_satellites',
@@ -79,11 +79,11 @@ static_vars = [
 
 
 VALID_CONFIGURATION = {
-    'supported_stations': supported_stations,
-    'mandatory_config_variables': mandatory_config_variables,
+    'supported_stations': SUPPORTED_STATIONS,
+    'mandatory_config_variables': MANDATORY_CONFIG_VARIABLES,
     'valid_dir_permissions': valid_dir_permissions,
     'valid_readable_files': valid_readable_files,
-    'valid_servers': valid_servers,
+    'valid_servers': VALID_SERVERS,
     'optional_config_variables': optional_config_variables
 }
 
@@ -168,21 +168,17 @@ def check_dir_permissions(config, dir_permissions):
             check = check_dir(config[dirname], perm)
         else:
             check = True
-            if config[required]:
-                check = check_dir(config[dirname], perm)
+            # This seems broken - AD
+            # if config[required]:
+            #    check = check_dir(config[dirname], perm)
 
-            # else:
-            #     print("%s %s %s %s %s" % ("ERROR: ", dirname,
-            #                               "requires", required,
-            #                               "but it's NOT defined!")
-            #     check = False
         test_results.append(check)
 
     if all(test_results):
         return True
-    else:
-        print("Number of failures: ", len(test_results) - sum(test_results))
-        return False
+
+    print("Number of failures: ", len(test_results) - sum(test_results))
+    return False
 
 
 def check_file(filename):
@@ -202,9 +198,9 @@ def check_readable_files(config, files_to_check):
 
     if all(test_results):
         return True
-    else:
-        print("Number of failures: ", len(test_results) - sum(test_results))
-        return False
+
+    print("Number of failures: ", len(test_results) - sum(test_results))
+    return False
 
 
 def check_config_file_options(config, valid_config=None):
@@ -235,7 +231,7 @@ def check_static_configuration(config):
         return False
     else:
         _static_config = {}
-        for item in static_vars:
+        for item in STATIC_VARS:
             try:
                 _static_config[item] = config['aapp_static_configuration'][item]
             except KeyError as ke:
@@ -245,31 +241,59 @@ def check_static_configuration(config):
     return True
 
 
+def load_config_from_file(filename):
+    """Load the yaml config from file, given the file-path"""
+
+    # config = SafeConfigParser()
+    import yaml
+    with open(filename, 'r') as stream:
+        try:
+            config = yaml.load(stream, Loader=yaml.FullLoader)
+            import pprint
+            # print(type(config))
+            #pp = pprint.PrettyPrinter(indent=4)
+            # pp.pprint(config)
+        except yaml.YAMLError as exc:
+            print("Failed reading yaml config file: {} with: {}".format(filename, exc))
+            raise yaml.YAMLError
+
+    return config
+
+
+class aappRunnerConfig(object):
+    """The AAPP runner configurations"""
+
+    def __init__(self, filename, station, env, valid_config=None):
+        """Initialize the aapp-runner config object"""
+        self.filename = filename
+        self.environment = env
+        if valid_config is None:
+            self.valid_config = VALID_CONFIGURATION
+        else:
+            self.valid_config = valid_config
+
+        self.config = None
+
+    def read_config(self):
+        """Load the configuration from the yaml file"""
+
+        self.config = load_config_from_file(self.filename)
+
+
 def read_config_file_options(filename, station, env, valid_config=None):
     """
     Read and checks config file
     If ok, return configuration dictionary
     """
 
-    # config = SafeConfigParser()
-    import yaml
-    with open(filename, 'r') as stream:
-        try:
-            config = yaml.load(stream)
-            import pprint
-            print(type(config))
-            pp = pprint.PrettyPrinter(indent=4)
-            pp.pprint(config)
-        except yaml.YAMLError as exc:
-            print("Failed reading yaml config file: {} with: {}".format(filename, exc))
-            raise yaml.YAMLError
+    config = load_config_from_file(filename)
+
+    if valid_config is None:
+        valid_config = VALID_CONFIGURATION
 
     if 'aapp_processes' not in config:
         print("Can not find main section 'aapp_processes' in yaml file. Please check your config.")
         return False
-
-    if valid_config is None:
-        valid_config = VALID_CONFIGURATION
 
     # Config variable will be replaced by following config
     optional_config_variables = valid_config['optional_config_variables']
@@ -286,22 +310,25 @@ def read_config_file_options(filename, station, env, valid_config=None):
             return False
     else:
         config['environment'] = env
+
     if config['environment'] not in config['aapp_processes']:
         print("Environment {} not configured in config. Please check.".format(config['environment']))
         return False
+
     if 'station' in config:
-        if not config['station'] == env:
+        if not config['station'] == station:
             print("Station from command line: {} "
-                  "does not match with configured station: {}".format(env, config['station']))
+                  "does not match with configured station: {}".format(station, config['station']))
             return False
     else:
         config['station'] = station
-        if not check_station(config, supported_stations):
+        if not check_station(config, SUPPORTED_STATIONS):
             print("Warning: given station: {} not in supported_stations list.".format(config['station']))
 
     config_opts = config['aapp_processes'][configuration['environment']]
+
     # Check for mandatory
-    for item in mandatory_config_variables:
+    for item in MANDATORY_CONFIG_VARIABLES:
         try:
             configuration[item] = config_opts[item]
         except KeyError as err:
@@ -312,7 +339,7 @@ def read_config_file_options(filename, station, env, valid_config=None):
     for item in config_opts:
         if item in optional_config_variables:
             configuration[item] = config_opts[item]
-        elif item not in mandatory_config_variables:
+        elif item not in MANDATORY_CONFIG_VARIABLES:
             print("Variable {} is not recognised as a mandatory nor optional config variable."
                   "This will not be used in the processing.".format(item))
 
@@ -328,9 +355,9 @@ def read_config_file_options(filename, station, env, valid_config=None):
 
     return config
 
+
 if __name__ == "__main__":
     station_name = ""
     environment = "xl-band"
     run_options = read_config_file_options("aapp-processing.yaml",
                                            station_name, environment)
-
