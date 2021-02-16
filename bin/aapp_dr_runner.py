@@ -47,7 +47,6 @@ import logging
 from logging import handlers
 from trollsift.parser import compose
 
-from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.tle_satpos_prepare import do_tleing
 from aapp_runner.tle_satpos_prepare import do_tle_satpos
 from aapp_runner.do_commutation import do_decommutation
@@ -1055,11 +1054,7 @@ if __name__ == "__main__":
 
     aapp_run_config = AappRunnerConfig(config_filename, station_name, environment)
     aapp_run_config.check_config()
-
     config = aapp_run_config.config
-
-    # config = read_config_file_options(
-    #    config_filename, station_name, environment)
 
     # Set up logging
     try:
