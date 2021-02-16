@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013, 2014, 2015, 2016 Martin Raspaud
+# Copyright (c) 2013 - 2021 Pytroll Community
 
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,16 +23,33 @@
 
 """Setup for aapp-runner.
 """
-from setuptools import setup
-import imp
 
-version = imp.load_source('aapp_runner.version', 'aapp_runner/version.py')
+import sys
+from setuptools import setup, find_packages
+import os.path
+
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
+
+
+with open('./README.md', 'r') as fd:
+    long_description = fd.read()
+
+description = 'Pytroll runner for AAPP'
+
+requires = ['posttroll', 'netifaces', 'trollsift', 'pytroll-schedule', 'setuptools_scm']
+test_requires = ['mock']
+
 
 setup(name="aapp_runner",
-      version=version.__version__,
-      description='Pytroll runner for AAPP',
-      author='Trygve Aspenes',
-      author_email='trygveas@met.no',
+      description=description,
+      author='The Pytroll Team',
+      author_email='pytroll@googlegroups.com',
       classifiers=["Development Status :: 3 - Alpha",
                    "Intended Audience :: Science/Research",
                    "License :: OSI Approved :: GNU General Public License v3 " +
@@ -40,13 +58,13 @@ setup(name="aapp_runner",
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/pytroll-aapp-runner",
-      packages=['aapp_runner',],
-      scripts=['bin/aapp_dr_runner.py',],
+      long_description=long_description,
+      license='GPLv3',
+      packages=find_packages(),
+      install_requires=requires,
+      scripts=['bin/aapp_dr_runner.py', ],
       data_files=[],
+      tests_require=test_requires,
+      python_requires='>=3.7',
       zip_safe=False,
-      install_requires=['posttroll',
-                        'trollsift', 'netifaces',
-                        'pytroll-schedule',],
-      #test_requires=['mock'],
-      #test_suite='trollduction.tests.suite',
       )
