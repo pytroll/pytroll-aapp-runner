@@ -23,5 +23,4 @@
 """Initialise the aapp_runner package
 """
 
-from setuptools_scm import get_version
-version = get_version(root='..', relative_to=__file__)
+from .version import version as __version__
