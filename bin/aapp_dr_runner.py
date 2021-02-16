@@ -45,6 +45,7 @@ import os
 import sys
 import yaml
 import logging
+import logging.config
 from logging import handlers
 from trollsift.parser import compose
 
