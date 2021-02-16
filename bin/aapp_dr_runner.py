@@ -52,6 +52,7 @@ from aapp_runner.tle_satpos_prepare import do_tleing
 from aapp_runner.tle_satpos_prepare import do_tle_satpos
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import TleError, SatposError, DecommutationError
+from aapp_runner.read_aapp_config import AappRunnerConfig
 
 import socket
 import netifaces
@@ -1052,11 +1053,13 @@ if __name__ == "__main__":
         print("Exits!")
         sys.exit()
 
-    import ipdb
-    ipdb.set_trace()
+    aapp_run_config = AappRunnerConfig(config_filename, station_name, environment)
+    aapp_run_config.check_config()
 
-    config = read_config_file_options(
-        config_filename, station_name, environment)
+    config = aapp_run_config.config
+
+    # config = read_config_file_options(
+    #    config_filename, station_name, environment)
 
     # Set up logging
     try:

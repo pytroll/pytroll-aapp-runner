@@ -1,6 +1,54 @@
-import os
+# -*- coding: utf-8 -*-
 
+# Copyright (c) 2021 Adam.Dybbroe
+
+# Author(s):
+
+#   Adam.Dybbroe <a000680@c21856.ad.smhi.se>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Reading and checking yaml file configurations
+"""
+
+import os
 from socket import gethostname, gethostbyaddr, gaierror
+
+
+class StationError(Exception):
+    pass
+
+
+class EnvironmentError(Exception):
+    pass
+
+
+class AappProcessKeyMissing(Exception):
+    pass
+
+
+class AappWorkDirNotSet(Exception):
+    pass
+
+
+class ConfigFileOptionsError(Exception):
+    pass
+
+
+class StaticConfigError(Exception):
+    pass
+
 
 MANDATORY = 'm'
 
@@ -22,7 +70,7 @@ MANDATORY_CONFIG_VARIABLES = [
     'rename_aapp_files',
 ]
 
-optional_config_variables = [
+OPTIONAL_CONFIG_VARIABLES = [
     'aapp_workdir',
     'working_dir',
     'use_dyn_work_dir',
@@ -84,7 +132,7 @@ VALID_CONFIGURATION = {
     'valid_dir_permissions': valid_dir_permissions,
     'valid_readable_files': valid_readable_files,
     'valid_servers': VALID_SERVERS,
-    'optional_config_variables': optional_config_variables
+    'optional_config_variables': OPTIONAL_CONFIG_VARIABLES
 }
 
 
@@ -260,104 +308,110 @@ def load_config_from_file(filename):
     return config
 
 
-class aappRunnerConfig(object):
+class AappRunnerConfig(object):
     """The AAPP runner configurations"""
 
     def __init__(self, filename, station, env, valid_config=None):
         """Initialize the aapp-runner config object"""
         self.filename = filename
+        self.station = station
         self.environment = env
+        self._configuration = {}
+        self.config_opts = None
         if valid_config is None:
             self.valid_config = VALID_CONFIGURATION
         else:
             self.valid_config = valid_config
 
-        self.config = None
+        self._load()
+        self._check_aapp_process_key_in_config()
+        self._check_station()
+        self._check_environment()
+        self._check_aapp_workdir()
 
-    def read_config(self):
+        self.config['station'] = self.station
+        self.config['environment'] = self.environment
+
+    def _load(self):
         """Load the configuration from the yaml file"""
-
         self.config = load_config_from_file(self.filename)
 
+    def _check_aapp_process_key_in_config(self):
+        """Check the yaml file config has the key aapp_process"""
+        if 'aapp_processes' not in self.config:
+            raise AappProcessKeyMissing("Can not find main section 'aapp_processes' in "
+                                        "yaml file. Please check your config.")
 
-def read_config_file_options(filename, station, env, valid_config=None):
-    """
-    Read and checks config file
-    If ok, return configuration dictionary
-    """
+    def _check_station(self):
+        """Check that station in configuration is consistent and supported"""
+        if 'station' in self.config:
+            if not self.config['station'] == self.station:
+                raise StationError("Station from command line: {} "
+                                   "does not match with configured station: {}".format(self.station,
+                                                                                       self.config['station']))
+        if self.station not in SUPPORTED_STATIONS:
+            print("Warning: given station: {} not in supported_stations list.".format(self.station))
 
-    config = load_config_from_file(filename)
+    def _check_environment(self):
+        """Check the environment provided is consistent with the configuration"""
 
-    if valid_config is None:
-        valid_config = VALID_CONFIGURATION
+        if 'environment' in self.config:
+            if self.config['environment'] != self.environment:
+                raise EnvironmentError("Environment from command line: {} "
+                                       "does not match with configured environment: {}".format(self.environment,
+                                                                                               self.config['environment']))
+        if self.environment not in self.config['aapp_processes']:
+            raise EnvironmentError("Environment {} not configured in config. "
+                                   "Please check.".format(self.environment))
 
-    if 'aapp_processes' not in config:
-        print("Can not find main section 'aapp_processes' in yaml file. Please check your config.")
-        return False
+    def _check_aapp_workdir(self):
+        """Check the aapp_process-env section has aapp_workdir defined"""
+        config_opts = self.config['aapp_processes'][self.environment]
+        if 'aapp_workdir' not in config_opts and 'working_dir' not in config_opts:
+            raise AappWorkDirNotSet("You must give either 'aapp_workdir' or 'working_dir in config.")
 
-    # Config variable will be replaced by following config
-    optional_config_variables = valid_config['optional_config_variables']
-    mandatory_config_variables = valid_config['mandatory_config_variables']
+    def _check_optional_and_mandatory_configuration(self):
+        """Check the configuration for mandatory and optional variables"""
 
-    configuration = {}
-    configuration['station'] = station
-    configuration['environment'] = env
+        optional_config_variables = self.valid_config['optional_config_variables']
+        mandatory_config_variables = self.valid_config['mandatory_config_variables']
 
-    if 'environment' in config:
-        if not config['environment'] == env:
-            print("Environment from command line: {} "
-                  "does not match with configured environment: {}".format(env, config['environment']))
-            return False
-    else:
-        config['environment'] = env
+        self._configuration['station'] = self.config['station']
+        self._configuration['environment'] = self.config['environment']
 
-    if config['environment'] not in config['aapp_processes']:
-        print("Environment {} not configured in config. Please check.".format(config['environment']))
-        return False
+        config_opts = self.config['aapp_processes'][self.config['environment']]
 
-    if 'station' in config:
-        if not config['station'] == station:
-            print("Station from command line: {} "
-                  "does not match with configured station: {}".format(station, config['station']))
-            return False
-    else:
-        config['station'] = station
-        if not check_station(config, SUPPORTED_STATIONS):
-            print("Warning: given station: {} not in supported_stations list.".format(config['station']))
+        # Check for mandatory
+        for item in mandatory_config_variables:
+            try:
+                self._configuration[item] = config_opts[item]
+            except KeyError as err:
+                print("{} is missing. Please, check your config file {}".format(err.args, self.filename))
+                raise KeyError
 
-    config_opts = config['aapp_processes'][configuration['environment']]
+        # Check if rest of variables are in optional ( and mandatory )
+        for item in config_opts:
+            if item in optional_config_variables:
+                self._configuration[item] = config_opts[item]
+            elif item not in mandatory_config_variables:
+                print("Variable {} is not recognised as a mandatory nor optional config variable."
+                      "This will not be used in the processing.".format(item))
 
-    # Check for mandatory
-    for item in MANDATORY_CONFIG_VARIABLES:
-        try:
-            configuration[item] = config_opts[item]
-        except KeyError as err:
-            print("{} is missing. Please, check your config file {}".format(err.args, filename))
-            raise KeyError
+    def check_config(self):
+        """Check everything with the configuration is consistent and okay"""
 
-    # Check if rest of variables are in optional ( and mandatory )
-    for item in config_opts:
-        if item in optional_config_variables:
-            configuration[item] = config_opts[item]
-        elif item not in MANDATORY_CONFIG_VARIABLES:
-            print("Variable {} is not recognised as a mandatory nor optional config variable."
-                  "This will not be used in the processing.".format(item))
+        self._check_optional_and_mandatory_configuration()
 
-    if 'aapp_workdir' not in config_opts and 'working_dir' not in config_opts:
-        print("You must give either 'aapp_workdir' or 'working_dir in config.")
-        return False
+        if not check_config_file_options(self._configuration, self.valid_config):
+            raise ConfigFileOptionsError('File options not okay"')
 
-    if not check_config_file_options(configuration, valid_config):
-        return None
-
-    if not check_static_configuration(config):
-        return False
-
-    return config
+        if not check_static_configuration(self.config):
+            raise StaticConfigError('Static config not okay')
 
 
 if __name__ == "__main__":
     station_name = ""
     environment = "xl-band"
-    run_options = read_config_file_options("aapp-processing.yaml",
-                                           station_name, environment)
+    aapp_run_config = AappRunnerConfig("../examples/aapp-processing.yaml-template", station_name, environment)
+    aapp_run_config.check_config()
+    run_options = aapp_run_config.config

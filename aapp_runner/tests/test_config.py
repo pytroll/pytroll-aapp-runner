@@ -31,6 +31,10 @@ from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.read_aapp_config import VALID_CONFIGURATION
 from aapp_runner.read_aapp_config import check_config_file_options
 from aapp_runner.read_aapp_config import check_dir_permissions
+from aapp_runner.read_aapp_config import AappRunnerConfig
+from aapp_runner.read_aapp_config import (EnvironmentError, StaticConfigError,
+                                          ConfigFileOptionsError, AappWorkDirNotSet,
+                                          AappProcessKeyMissing, StationError)
 
 
 TEST_YAML_CONTENT_OK = """
@@ -300,13 +304,15 @@ class TestGetConfig(unittest.TestCase):
     @patch('aapp_runner.read_aapp_config.check_static_configuration')
     @patch('aapp_runner.read_aapp_config.check_config_file_options')
     def test_read_config(self, file_options, static_config, config):
-        """Test something with the yaml config..."""
+        """Test loading and initialising the yaml config"""
         config.return_value = self.config_complete
         static_config.return_value = True
         file_options.return_value = True
 
         myfilename = "/tmp/mytestfile"
-        result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+        cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
+        cfg_obj.check_config()
+        result = cfg_obj.config
 
         log_conf = result['logging']
         log_expected = {'log_rotation_days': 1, 'log_rotation_backup': 30, 'logging_mode': 'DEBUG'}
@@ -413,45 +419,53 @@ class TestGetConfig(unittest.TestCase):
         file_options.return_value = True
 
         myfilename = "/tmp/mytestfile"
-        result = read_config_file_options(myfilename, 'norrkoping', 'unknown')
-        assert result == False
 
-    @patch('aapp_runner.read_aapp_config.check_static_configuration')
-    @patch('aapp_runner.read_aapp_config.check_config_file_options')
-    def test_config_station(self, file_options, static_config):
+        with pytest.raises(EnvironmentError) as exec_info:
+            cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'unknown')
+
+        exception_raised = exec_info.value
+        self.assertEqual(str(exception_raised), "Environment unknown not configured in config. Please check.")
+
+    def test_config_station(self):
         """Test something with the yaml config..."""
-        static_config.return_value = True
-        file_options.return_value = True
 
         myfilename = "/tmp/mytestfile"
-
         with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=self.config_complete):
-            result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+            cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
+            result = cfg_obj.config
 
         self.assertEqual(result['station'], 'norrkoping')
 
         myconfig = self.config_complete.copy()
+        with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=myconfig):
+            with pytest.raises(StationError) as exec_info:
+                cfg_obj = AappRunnerConfig(myfilename, 'dundee', 'xl-band')
+
+        exception_raised = exec_info.value
+        self.assertEqual(str(exception_raised),
+                         "Station from command line: dundee does not match with configured station: norrkoping")
+
         del myconfig['station']
         with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=myconfig):
-            result = read_config_file_options(myfilename, 'dundee', 'xl-band')
+            cfg_obj = AappRunnerConfig(myfilename, 'dundee', 'xl-band')
+            result = cfg_obj.config
 
         self.assertEqual(result['station'], 'dundee')
 
     @patch('aapp_runner.read_aapp_config.load_config_from_file')
-    @patch('aapp_runner.read_aapp_config.check_static_configuration')
-    @patch('aapp_runner.read_aapp_config.check_config_file_options')
-    def test_config_aapp_processes(self, file_options, static_config, config):
+    def test_config_aapp_processes(self, config):
         """Test something with the yaml config..."""
         myconfig = self.config_complete.copy()
         del myconfig['aapp_processes']
         config.return_value = myconfig
-        static_config.return_value = True
-        file_options.return_value = True
 
         myfilename = "/tmp/mytestfile"
-        result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+        with pytest.raises(AappProcessKeyMissing) as exec_info:
+            cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
 
-        assert result == False
+        exception_raised = exec_info.value
+        self.assertEqual(str(exception_raised),
+                         "Can not find main section 'aapp_processes' in yaml file. Please check your config.")
 
     @patch('aapp_runner.read_aapp_config.check_static_configuration')
     @patch('aapp_runner.read_aapp_config.check_config_file_options')
@@ -464,7 +478,10 @@ class TestGetConfig(unittest.TestCase):
 
         myconfig = self.config_mandatory.copy()
         with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=myconfig):
-            result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+            #result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+            cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
+            cfg_obj.check_config()
+            result = cfg_obj.config
 
         expected_dict = {'aapp_processes':
                          {'xl-band': {'description': 'Text describing this processing config',
@@ -488,8 +505,16 @@ class TestGetConfig(unittest.TestCase):
 
         self.assertDictEqual(expected_dict, result)
 
+    def test_aapp_workdir(self):
+        """Test that the aapp-process-env configuration contains an aapp_workdir setting"""
+
+        myfilename = "/tmp/mytestfile"
+        myconfig = self.config_mandatory.copy()
         del myconfig['aapp_processes']['xl-band']['aapp_workdir']
         with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=myconfig):
-            result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
+            with pytest.raises(AappWorkDirNotSet) as exec_info:
+                AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
 
-        assert result == False
+        exception_raised = exec_info.value
+        self.assertEqual(str(exception_raised),
+                         "You must give either 'aapp_workdir' or 'working_dir in config.")
