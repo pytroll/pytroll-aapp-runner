@@ -42,7 +42,7 @@ with open('./README.md', 'r') as fd:
 
 description = 'Pytroll runner for AAPP'
 
-requires = ['posttroll', 'netifaces', 'trollsift', 'pytroll-schedule']
+requires = ['posttroll', 'netifaces', 'trollsift', 'pytroll-schedule', 'setuptools_scm']
 test_requires = ['mock']
 
 
@@ -67,5 +67,4 @@ setup(name="aapp_runner",
       tests_require=test_requires,
       python_requires='>=3.7',
       zip_safe=False,
-      use_scm_version=True
       )
