@@ -398,10 +398,9 @@ def remove(path):
 def setup_logging_from_config(log_config):
     """Setup the logging as specified in a log-config file"""
 
-    with open(cmd_args.log_config) as fd:
+    with open(log_config) as fd:
         log_dict = yaml.safe_load(fd.read())
         logging.config.dictConfig(log_dict)
-        return
 
 
 def setup_logging(config, log_file, verbose):
