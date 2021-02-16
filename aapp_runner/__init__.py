@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 Adam.Dybbroe
+# Copyright (c) 2015 - 2021 Adam.Dybbroe
 
 # Author(s):
 
@@ -22,3 +22,5 @@
 
 """Initialise the aapp_runner package
 """
+
+from .version import version as __version__
