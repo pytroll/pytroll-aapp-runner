@@ -358,7 +358,7 @@ def read_arguments():
         args.station = args.station.lower()
     if not args.environment:
         print("Environment required! " +
-               "Use command-line switch -e <environment> e.g. de, test")
+              "Use command-line switch -e <environment> e.g. de, test")
         sys.exit()
     else:
         args.environment = args.environment.lower()
@@ -495,9 +495,8 @@ def check_message(msg, server):
                                 str(obj.path), str(get_local_ips()))
                     return False
             # Check msg ip in case of message_providing_server defined in cfg
-            elif (obj.netloc
-                    and server is not None
-                    and (url_ip != server or url_ip != socket.gethostbyname(server)):
+            elif (obj.netloc and server is not None
+                  and url_ip != server and url_ip != socket.gethostbyname(server)):
                 LOG.warning("Server %s is not listed as a message_server: %s (IP=%s)",
                             str(obj.netloc), str(server), str(socket.gethostbyname(server)))
                 return False
@@ -519,9 +518,9 @@ def check_satellite(msg, config):
     """
     Check if the satellite in message is a valid satellite for this processing
     """
-    metops=config['aapp_static_configuration']['supported_metop_satellites']
-    noaas=config['aapp_static_configuration']['supported_noaa_satellites']
-    supported_satellites=metops + noaas
+    metops = config['aapp_static_configuration']['supported_metop_satellites']
+    noaas = config['aapp_static_configuration']['supported_noaa_satellites']
+    supported_satellites = metops + noaas
 
     try:
         if msg.data['platform_name'] not in supported_satellites:
@@ -542,18 +541,18 @@ def check_pass_length(msg, config):
     Check if start and end time is ok
     And check if passlength is ok
     """
-    config['starttime']=msg.data['start_time']
+    config['starttime'] = msg.data['start_time']
 
     try:
-        config['endtime']=msg.data['end_time']
+        config['endtime'] = msg.data['end_time']
     except KeyError:
         # TODO Can we handle this better?
         LOG.warning(
             "No end_time in message! Guessing start_time + 14 minutes...")
-        config['endtime']=msg.data['start_time'] + timedelta(seconds=60 * 14)
+        config['endtime'] = msg.data['start_time'] + timedelta(seconds=60 * 14)
 
     # Test if the scene is longer than minimum required:
-    pass_length=config['endtime'] - config['starttime']
+    pass_length = config['endtime'] - config['starttime']
     if pass_length < timedelta(seconds=60 * config['aapp_processes'][config.process_name]['passlength_threshold']):
         LOG.info("Pass is too short: Length in minutes = %6.1f",
                  pass_length.seconds / 60.0)
@@ -571,13 +570,13 @@ def generate_process_config(msg, config):
     """
 
     # All possible instruments to process initialized to false.
-    config['process_amsua']=False
-    config['process_amsub']=False
-    config['process_hirs']=False
-    config['process_avhrr']=False
-    config['process_msu']=False
-    config['process_mhs']=False
-    config['process_dcs']=False
+    config['process_amsua'] = False
+    config['process_amsub'] = False
+    config['process_hirs'] = False
+    config['process_avhrr'] = False
+    config['process_msu'] = False
+    config['process_mhs'] = False
+    config['process_dcs'] = False
 
     # Check sensors and file as given in the incomming message
     # Note: zip iterates two list at the same time
@@ -585,44 +584,44 @@ def generate_process_config(msg, config):
         LOG.debug("Checking dataset")
         for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
             LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
-            process_name="process_{}".format(
+            process_name = "process_{}".format(
                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            config[process_name]=True
+            config[process_name] = True
 
             # Name of the input file for given instrument
-            input_file_name="input_{}_file".format(
+            input_file_name = "input_{}_file".format(
                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             # print urlparse(sensor_filename['uri']).path
-            config[input_file_name]=urlparse(sensor_filename['uri']).path
+            config[input_file_name] = urlparse(sensor_filename['uri']).path
 
     elif 'uri' in msg.data:
         LOG.debug("Checking uri")
         # Need to force list
         if type(msg.data["sensor"]) not in (tuple, list, set):
-            msg.data["sensor"]=[msg.data["sensor"]]
+            msg.data["sensor"] = [msg.data["sensor"]]
 
         LOG.debug("sensor: {}".format(msg.data["sensor"]))
 
         for sensor in msg.data['sensor']:
-            process_name="process_{}".format(
+            process_name = "process_{}".format(
                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
             LOG.debug("{} {}".format(sensor, process_name))
-            config[process_name]=True
+            config[process_name] = True
 
             # For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
             # AAPP processing handles MHS as AMSU-B
             if (('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) >= 18) or
                     ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
-                config['process_amsub']=True
+                config['process_amsub'] = True
 
             # Name of the input file for given instrument
             # Needed for METOP processing
-            input_file_name="input_{}_file".format(
+            input_file_name = "input_{}_file".format(
                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            config[input_file_name]=urlparse(msg.data['uri']).path
+            config[input_file_name] = urlparse(msg.data['uri']).path
 
         # Needed for POES processing
-        config['input_hrpt_file']=urlparse(msg.data['uri']).path
+        config['input_hrpt_file'] = urlparse(msg.data['uri']).path
 
     else:
         LOG.error(
@@ -631,37 +630,37 @@ def generate_process_config(msg, config):
 
     # Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
     if ('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) == 15) and config['process_mhs']:
-        config['process_mhs']=False
+        config['process_mhs'] = False
 
     # Check if processing for this platform should be altered
     # due to config.
     if 'instrument_skipped_in_processing' in config['aapp_processes'][config.process_name]:
         for platform_name in config['aapp_processes'][config.process_name]['instrument_skipped_in_processing']:
-            _platform_name=list(platform_name)[0]
+            _platform_name = list(platform_name)[0]
             if _platform_name.upper() == msg.data['platform_name'].upper():
                 for sensor in msg.data['sensor']:
                     for skip_sensor in platform_name[_platform_name]:
                         if skip_sensor == sensor:
-                            process_name="process_{}".format(
+                            process_name = "process_{}".format(
                                 config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
                             if config[process_name]:
                                 LOG.debug("Skipping processing of sensor: {} as of config.".format(skip_sensor))
-                                config[process_name]=False
+                                config[process_name] = False
 
-    config['calibration_location']="-c -l"
-    config['a_tovs']=list("ATOVS")
+    config['calibration_location'] = "-c -l"
+    config['a_tovs'] = list("ATOVS")
 
     if 'keep_orbit_number_from_message' in config['aapp_processes'][config.process_name] and 'orbit_number' in msg.data:
-        config['orbit_number']=int(msg.data['orbit_number'])
+        config['orbit_number'] = int(msg.data['orbit_number'])
     else:
         # Check the case of no orbit number in message, typically EARS stream
-        start_orbnum=None
+        start_orbnum = None
         try:
             import pyorbital.orbital as orb
             LOG.debug("platform_name: {}".format(msg.data['platform_name']))
-            sat=orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(
+            sat = orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(
                 msg.data['platform_name'], msg.data['platform_name']))
-            start_orbnum=sat.get_orbit_number(msg.data['start_time'])
+            start_orbnum = sat.get_orbit_number(msg.data['start_time'])
         except ImportError:
             LOG.warning("Failed importing pyorbital, " +
                         "cannot calculate orbit number")
@@ -674,19 +673,19 @@ def generate_process_config(msg, config):
         LOG.info(
             "Orbit number determined from pyorbital = " + str(start_orbnum))
         try:
-            config['orbit_number']=int(msg.data['orbit_number'])
+            config['orbit_number'] = int(msg.data['orbit_number'])
         except KeyError:
             LOG.warning("No orbit_number in message! Set to none...")
-            config['orbit_number']=None
+            config['orbit_number'] = None
 
         if start_orbnum and config['orbit_number'] != start_orbnum:
             LOG.warning("Correcting orbit number: Orbit now = " +
                         str(start_orbnum) + " Before = " + str(config['orbit_number']))
-            config['orbit_number']=start_orbnum
+            config['orbit_number'] = start_orbnum
         else:
             LOG.debug("Orbit number in message determined"
                       "to be okay and not changed...")
-            config['orbit_number']=int(msg.data['orbit_number'])
+            config['orbit_number'] = int(msg.data['orbit_number'])
 
     # How to give the platform name?
     # Which format?
@@ -696,21 +695,21 @@ def generate_process_config(msg, config):
     # metop02
     # Throughout this processing the last convention is used!
     if msg.data['platform_name'] in config['aapp_static_configuration']['platform_name_aliases']:
-        config['platform_name']=config['aapp_static_configuration'][
+        config['platform_name'] = config['aapp_static_configuration'][
             'platform_name_aliases'][msg.data['platform_name']]
         # print config['platform_name']
         # TODO Should not use satellite_name
 
-        config['satellite_name']=config['platform_name']
+        config['satellite_name'] = config['platform_name']
     else:
         LOG.error("Failed to replace platform_name: {}. Can not continue.".format(
             msg.data['platform_name']))
         return False
 
-    config['start_time']=msg.data['start_time']
+    config['start_time'] = msg.data['start_time']
 
     # Save collection_area_id if given
-    config['collection_area_id']=msg.data.get('collection_area_id', None)
+    config['collection_area_id'] = msg.data.get('collection_area_id', None)
 
     return True
 
@@ -721,19 +720,19 @@ def create_and_check_scene_id(msg, config):
     """
     # Use sat id, start and end time and area_id as the unique identifier of the scene!
     if (config['platform_name'] in config.job_register and
-        len(config.job_register[config['platform_name']]) > 0):
+            len(config.job_register[config['platform_name']]) > 0):
 
         # Go through list of start,end time tuples and see if the current
         # scene overlaps with any - only if the area ids are the same
 
         # Get registed start and end times with area id equal to current area_id
-        registed_times=[]
+        registed_times = []
         for start_t, end_t, area_id in config.job_register[config['platform_name']]:
             if area_id == config['collection_area_id']:
                 registed_times.append((start_t, end_t))
 
         # Get overlap status
-        status=overlapping_timeinterval(
+        status = overlapping_timeinterval(
             (config['starttime'], config['endtime']), registed_times)
 
         if status:
@@ -746,9 +745,9 @@ def create_and_check_scene_id(msg, config):
         else:
             LOG.debug("No overlap with any recently processed scenes...")
 
-    scene_id=(str(config['platform_name']) + '_' +
-                config['starttime'].strftime('%Y%m%d%H%M%S') +
-                '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
+    scene_id = (str(config['platform_name']) + '_' +
+              config['starttime'].strftime('%Y%m%d%H%M%S') +
+              '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
     LOG.debug("scene_id = " + str(scene_id))
     return scene_id
 
@@ -760,13 +759,13 @@ def which(program):
     def is_exe(fpath):
         return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname=os.path.split(program)
+    fpath, fname = os.path.split(program)
     if fpath:
         if is_exe(program):
             return(program)
     else:
         for path in os.environ['PATH'].split(os.pathsep):
-            exe_file=os.path.join(path, program)
+            exe_file = os.path.join(path, program)
             if is_exe(exe_file):
                 return exe_file
     return None
@@ -782,13 +781,13 @@ def setup_aapp_processing(config):
             'use_dyn_work_dir' in config['aapp_processes'][config.process_name] and
             config['aapp_processes'][config.process_name]['use_dyn_work_dir']):
         try:
-            config['aapp_processes'][config.process_name]['working_dir']=tempfile.mkdtemp(
+            config['aapp_processes'][config.process_name]['working_dir'] = tempfile.mkdtemp(
                 dir=config['aapp_processes'][config.process_name]['aapp_workdir'])
             LOG.debug("working dir set based on aapp_workdir and tmp " +
                       str(config['aapp_processes'][config.process_name]['working_dir']))
         except OSError:
             config['aapp_processes'][config.process_name][
-                'working_dir']=tempfile.mkdtemp()
+                'working_dir'] = tempfile.mkdtemp()
         except KeyError as ke:
             LOG.error(": {}".format(ke))
             raise
@@ -796,7 +795,7 @@ def setup_aapp_processing(config):
             LOG.info("Create new working dir...")
     elif not 'working_dir' in config['aapp_processes'][config.process_name]:
         try:
-            config['aapp_processes'][config.process_name]['working_dir']=config[
+            config['aapp_processes'][config.process_name]['working_dir'] = config[
                 'aapp_processes'][config.process_name]['aapp_workdir']
         except KeyError as ke:
             LOG.error("working_dir nor aapp_workdir is given in config. Dont know where to store what I do.")
@@ -805,12 +804,12 @@ def setup_aapp_processing(config):
     LOG.info("Working dir = " +
              str(config['aapp_processes'][config.process_name]['working_dir']))
 
-    os.environ["AAPP_PREFIX"]=config['aapp_processes'][
+    os.environ["AAPP_PREFIX"] = config['aapp_processes'][
         config.process_name]['aapp_prefix']
 
-    aapp_atovs_conf=os.path.join(os.environ["AAPP_PREFIX"], config[
-                                   'aapp_processes'][config.process_name]['aapp_environment_file'])
-    status, returncode, out, err=run_shell_command(
+    aapp_atovs_conf = os.path.join(os.environ["AAPP_PREFIX"], config[
+        'aapp_processes'][config.process_name]['aapp_environment_file'])
+    status, returncode, out, err = run_shell_command(
         "bash -c \"source {}\";env".format(aapp_atovs_conf))
     if not status:
         LOG.error(
@@ -819,13 +818,13 @@ def setup_aapp_processing(config):
     else:
         for line in out.splitlines():
             if line:
-                (key, _, value)=line.partition("=")
-                os.environ[key]=value
+                (key, _, value) = line.partition("=")
+                os.environ[key] = value
 
     # Default AAPP config for PAR_NAVIGATION_DEFAULT_LISTESAT Metop platform is M01, M02, M04
     # but needed names are metop01 etc. Replace this inside the processing
     # from now on.
-    aapp_satellite_list=os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
+    aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
     if config['platform_name'] not in aapp_satellite_list:
         LOG.warning(
             "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. Will try to find matches. But it can be a good idea to change this variable in the ATOVS_ENV7 file.")
@@ -833,23 +832,23 @@ def setup_aapp_processing(config):
             config['platform_name'], aapp_satellite_list))
         if 'metop' in config['platform_name'] and (('M01' or 'M02' or 'M03' or 'M04') in aapp_satellite_list):
             LOG.debug("Replace in this processing")
-            PAR_NAVIGATION_DEFAULT_LISTESAT=os.getenv(
+            PAR_NAVIGATION_DEFAULT_LISTESAT = os.getenv(
                 'PAR_NAVIGATION_DEFAULT_LISTESAT')
-            PAR_NAVIGATION_DEFAULT_LISTESAT=PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
                 'M01', 'metop01')
-            PAR_NAVIGATION_DEFAULT_LISTESAT=PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
                 'M02', 'metop02')
-            PAR_NAVIGATION_DEFAULT_LISTESAT=PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
                 'M03', 'metop03')
-            PAR_NAVIGATION_DEFAULT_LISTESAT=PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
+            PAR_NAVIGATION_DEFAULT_LISTESAT = PAR_NAVIGATION_DEFAULT_LISTESAT.replace(
                 'M04', 'metop04')
             os.environ[
-                'PAR_NAVIGATION_DEFAULT_LISTESAT']=PAR_NAVIGATION_DEFAULT_LISTESAT
+                'PAR_NAVIGATION_DEFAULT_LISTESAT'] = PAR_NAVIGATION_DEFAULT_LISTESAT
             LOG.debug("New LISTESAT: {}".format(
                 os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
 
-    list_of_needed_programs=['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop',
-                               'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
+    list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop',
+                             'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
     for program in list_of_needed_programs:
         if not which(program):
             LOG.error("Can not find needed AAPP program '{}' in environment. Please check.".format(program))
@@ -864,89 +863,89 @@ def process_aapp(msg, config):
     """
 
     try:
-        starttime=config['starttime']
-        platform_name=config['platform_name']
+        starttime = config['starttime']
+        platform_name = config['platform_name']
 
         # DO tle
-        tle_proc_ok=True
+        tle_proc_ok = True
         if not do_tleing(config, starttime, platform_name):
             LOG.warning(
                 "Tleing failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            tle_proc_ok=False
+            tle_proc_ok = False
             raise TleError("Tleing failed for some reason")
 
         # DO tle satpos
-        satpos_proc_ok=True
+        satpos_proc_ok = True
         if not do_tle_satpos(config, starttime, platform_name):
             LOG.warning(
                 "Tle satpos failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            satpos_proc_ok=False
+            satpos_proc_ok = False
             raise SatposError("Tle satpos failed for some reason")
 
         # DO decom
-        decom_proc_ok=True
+        decom_proc_ok = True
         if not do_decommutation(config, msg, starttime):
             LOG.warning(
                 "The decommutation failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            decom_proc_ok=False
+            decom_proc_ok = False
             raise DecommutationError(
                 "The decommutation failed for some reason")
 
         # DO HIRS
-        hirs_proc_ok=True
+        hirs_proc_ok = True
         from aapp_runner.do_hirs_calibration import do_hirs_calibration
         if not do_hirs_calibration(config, msg, starttime):
             LOG.warning(
                 "Tle hirs calibration and location failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            hirs_proc_ok=False
+            hirs_proc_ok = False
 
         # DO ATOVS
-        atovs_proc_ok=True
+        atovs_proc_ok = True
         from aapp_runner.do_atovs_calibration import do_atovs_calibration
         if not do_atovs_calibration(config, starttime):
             LOG.warning(
                 "The (A)TOVS calibration and location failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            atovs_proc_ok=False
+            atovs_proc_ok = False
 
         # DO AVHRR
-        avhrr_proc_ok=True
+        avhrr_proc_ok = True
         from aapp_runner.do_avhrr_calibration import do_avhrr_calibration
         if not do_avhrr_calibration(config, msg, starttime):
             LOG.warning(
                 "The avhrr calibration and location failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            avhrr_proc_ok=False
+            avhrr_proc_ok = False
 
         # Do Preprocessing
-        atovpp_proc_ok=True
+        atovpp_proc_ok = True
         from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
         if not do_atovpp_and_avh2hirs_processing(config, starttime):
             LOG.warning(
                 "The preprocessing atovin, atopp and/or avh2hirs failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            atovpp_proc_ok=False
+            atovpp_proc_ok = False
 
         # DO ANA
-        ana_proc_ok=True
+        ana_proc_ok = True
         from aapp_runner.do_ana_correction import do_ana_correction
         if not do_ana_correction(config, msg, starttime):
             LOG.warning(
                 "The ana attitude correction failed for some reason. It might be that the processing can continue")
             LOG.warning(
                 "Please check the previous log carefully to see if this is an error you can accept.")
-            ana_proc_ok=False
+            ana_proc_ok = False
     except KeyError as ke:
         LOG.exception("Process aapp failed: {}".format(ke))
         return False
@@ -975,30 +974,30 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
     for file in filelist:
         LOG.debug("Handeling file for sending: {}".format(file))
-        msg_to_send={}
+        msg_to_send = {}
         try:
-            msg_to_send=msg.data.copy()
+            msg_to_send = msg.data.copy()
             if 'dataset' in msg_to_send:
                 del msg_to_send['dataset']
 
-            msg_to_send['uri']="file://{}{}".format(config['aapp_processes'][
-                                                      config.process_name]['message_providing_server'], file['file'])
+            msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][
+                config.process_name]['message_providing_server'], file['file'])
 
-            msg_to_send['filename']=os.path.basename(file['file'])
-            msg_to_send['uid']=os.path.basename(file['file'])
-            msg_to_send['sensor']=config['aapp_static_configuration']['sensor_name_converter'].get(
+            msg_to_send['filename'] = os.path.basename(file['file'])
+            msg_to_send['uid'] = os.path.basename(file['file'])
+            msg_to_send['sensor'] = config['aapp_static_configuration']['sensor_name_converter'].get(
                 file['sensor'], file['sensor'])
-            msg_to_send['orbit_number']=config['orbit_number']
-            msg_to_send['format']="AAPP"
-            msg_to_send['type']='Binary'
-            msg_to_send['data_processing_level']=file[
+            msg_to_send['orbit_number'] = config['orbit_number']
+            msg_to_send['format'] = "AAPP"
+            msg_to_send['type'] = 'Binary'
+            msg_to_send['data_processing_level'] = file[
                 'level'].upper().replace("L", "")
             LOG.debug(
                 'level in message: ' + str(msg_to_send['data_processing_level']))
-            msg_to_send['start_time']=config['starttime']
-            msg_to_send['end_time']=config['endtime']
-            msg_to_send['station']=station_name
-            msg_to_send['env']=environment
+            msg_to_send['start_time'] = config['starttime']
+            msg_to_send['end_time'] = config['endtime']
+            msg_to_send['station'] = station_name
+            msg_to_send['env'] = environment
         except KeyError as ke:
             LOG.error("KeyError, missing key: {}".format(ke))
         except Exception as err:
@@ -1007,8 +1006,8 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
             continue
 
         try:
-            publish_to=compose(config['aapp_processes'][config.process_name][
-                                 'publish_sift_format'], msg_to_send)
+            publish_to = compose(config['aapp_processes'][config.process_name][
+                'publish_sift_format'], msg_to_send)
         except KeyError as ke:
             LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(
                 config['aapp_processes'][config.process_name]['publish_sift_format']))
@@ -1022,9 +1021,10 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
             return
 
         LOG.debug("Publish to:{}".format(publish_to))
-        message=Message(publish_to, "file", msg_to_send).encode()
+        message = Message(publish_to, "file", msg_to_send).encode()
         LOG.debug("sending: " + str(message))
         publisher.send(message)
+
 
 if __name__ == "__main__":
 
@@ -1034,66 +1034,66 @@ if __name__ == "__main__":
 
     # Read the command line argument
 << << << < Updated upstream
-    args=read_arguments()
-    station_name=args.station
-    environment=args.environment
-    config_filename=args.config_file
-    log_file=args.log
-    verbose=args.verbose
-    nameservers=args.nameservers
-    publish_port=args.publish_port
+    args = read_arguments()
+    station_name = args.station
+    environment = args.environment
+    config_filename = args.config_file
+    log_file = args.log
+    verbose = args.verbose
+    nameservers = args.nameservers
+    publish_port = args.publish_port
 == == == =
-    args=read_arguments()
-    station_name=args.station
-    environment=args.environment
-    config_filename=args.config_file
-    log_file=args.log
-    log_config=args.log_config
-    verbose=args.verbose
-    nameservers=args.nameservers
-    publish_port=args.publish_port
+    args = read_arguments()
+    station_name = args.station
+    environment = args.environment
+    config_filename = args.config_file
+    log_file = args.log
+    log_config = args.log_config
+    verbose = args.verbose
+    nameservers = args.nameservers
+    publish_port = args.publish_port
 >> >>>> > Stashed changes
 
-    if not os.path.isfile(config_filename):
+   if not os.path.isfile(config_filename):
         print("ERROR! Can not find config file: {}".format(config_filename))
         print("Exits!")
         sys.exit()
 
 << << << < Updated upstream
-    config=read_config_file_options(
+    config = read_config_file_options(
         config_filename, station_name, environment)
 
     # Set up logging
     try:
-        LOG=setup_logging(config, log_file, verbose)
+        LOG = setup_logging(config, log_file, verbose)
     except:
         print("Logging setup failed. Check your config")
         sys.exit()
 == == == =
-    aapp_run_config=AappRunnerConfig(config_filename, station_name, environment)
+    aapp_run_config = AappRunnerConfig(config_filename, station_name, environment)
     aapp_run_config.check_config()
-    config=aapp_run_config.config
+    config = aapp_run_config.config
 
     if log_config:
         setup_logging_from_config(log_config)
     else:
         try:
-            LOG=setup_logging(config, log_file, verbose, log_config=log_config)
+            LOG = setup_logging(config, log_file, verbose, log_config=log_config)
         except:
             print("Logging setup failed. Check your config")
             sys.exit()
 >> >>>> > Stashed changes
 
-    try:
-        aapp_config=AappL1Config(config, environment)
+   try:
+        aapp_config = AappL1Config(config, environment)
     except Exception as err:
         LOG.error("Failed to init AAPP L1 Config object: {}".format(err))
         sys.exit()
 
     try:
-        services=aapp_config.get_parameter('services')
+        services = aapp_config.get_parameter('services')
         if not services:
-            services=''
+            services = ''
         LOG.debug('Subscribe: {services} {topics}'.format(services=services,
                                                           topics=aapp_config.get_parameter('subscribe_topics')))
 
@@ -1121,7 +1121,7 @@ if __name__ == "__main__":
                         if not generate_process_config(msg, aapp_config):
                             continue
 
-                        scene_id=create_and_check_scene_id(msg, aapp_config)
+                        scene_id = create_and_check_scene_id(msg, aapp_config)
                         if not scene_id:
                             continue
 
@@ -1135,7 +1135,7 @@ if __name__ == "__main__":
                             # Rename standard AAPP output file names to usefull ones
                             # and move files to final location.
                             from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
-                            renamed_files=rename_aapp_filenames(aapp_config)
+                            renamed_files = rename_aapp_filenames(aapp_config)
                             if not renamed_files:
                                 LOG.warning(
                                     "The rename of standard aapp filenames to practical ones returned an empty file list")
