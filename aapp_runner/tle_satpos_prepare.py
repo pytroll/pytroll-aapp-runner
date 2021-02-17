@@ -191,7 +191,7 @@ def fetch_realtime_tles(tle_input_path, tle_output_path, tle_infile_format):
     for filepath in infiles:
         filename = os.path.basename(filepath)
         res = p__.parse(filename)
-        dobj = res['timestamp']
+        dtobj = res['timestamp']
 
         subdirname = dtobj.strftime('%Y_%m')
         subdirpath = os.path.join(tle_output_path, subdirname)
@@ -215,13 +215,6 @@ def do_tleing(config, timestamp, satellite):
 
     return_status = True
 
-    # Fetch TLE files from central real-time repo and place them under the AAPP orbelems structure:
-    if 'recent_tlefiles_ext_dir' in config['aapp_processes'][config.process_name]:
-        extdir = config['aapp_processes'][config.process_name]['recent_tlefiles_ext_dir']
-        LOG.debug("Fetch TLEs from %s to %s", extdir, DIR_DATA_TLE)
-        tle_file_format = config['aapp_processes'][config.process_name]['tle_infile_format']
-        fetch_realtime_tles(extdir, DIR_DATA_TLE, tle_file_format)
-
     # This function relies on beeing in a working directory
     try:
         current_dir = os.getcwd()  # Store the dir to change back to after function complete
@@ -237,6 +230,13 @@ def do_tleing(config, timestamp, satellite):
     DIR_DATA_TLE = os.getenv('DIR_DATA_TLE', os.path.join(os.getenv('DIR_NAVIGATION'), 'orb_elem'))
 
     _ensure_tledir(DIR_DATA_TLE)
+
+    # Fetch TLE files from central real-time repo and place them under the AAPP orbelems structure:
+    if 'recent_tlefiles_ext_dir' in config['aapp_processes'][config.process_name]:
+        extdir = config['aapp_processes'][config.process_name]['recent_tlefiles_ext_dir']
+        LOG.debug("Fetch TLEs from %s to %s", extdir, DIR_DATA_TLE)
+        tle_file_format = config['aapp_processes'][config.process_name]['tle_infile_format']
+        fetch_realtime_tles(extdir, DIR_DATA_TLE, tle_file_format)
 
     TLE_INDEX = os.path.join(DIR_DATA_TLE, "tle_{}.index".format(satellite))
 
