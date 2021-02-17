@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014-2018 PyTroll community
+# Copyright (c) 2014-2018, 2021 PyTroll community
 #
 # Author(s):
 #
@@ -26,8 +26,21 @@
 
 import os
 import logging
+import netifaces
+import socket
 
 LOGGER = logging.getLogger(__name__)
+
+
+def get_local_ips():
+    inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
+                  for iface in netifaces.interfaces()]
+    ips = []
+    for addr in inet_addrs:
+        if addr is not None:
+            for add in addr:
+                ips.append(add['addr'])
+    return ips
 
 
 def overlapping_timeinterval(start_end_times, timelist):
@@ -53,7 +66,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
     from subprocess import Popen, PIPE
 
     if stdin is not None:
-        stdin=stdin.encode('utf-8')
+        stdin = stdin.encode('utf-8')
 
     if use_shlex:
         import shlex
