@@ -58,13 +58,13 @@ def test_ana(tmp_path, monkeypatch, caplog):
     """Test running ANA while mocking actual ANA."""
     import aapp_runner.do_ana_correction
     import posttroll.message
-    p = tmp_path / "ana"
-    p.mkdir(parents=True, exist_ok=True)
+    my_parent_dir = tmp_path / "ana"
+    my_parent_dir.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("DIR_NAVIGATION", str(p / "navdir"))
     monkeypatch.chdir(tmp_path)
-    (p / "navdir" / "ana" / "reference_landmarks").mkdir(
+    (my_parent_dir / "navdir" / "ana" / "reference_landmarks").mkdir(
         parents=True, exist_ok=True)
-    config = get_config(p)
+    config = get_config(my_parent_dir)
     msg = posttroll.message.Message(
         rawstr="pytroll://file/noaa/avhrr file pytroll@oflks333.dwd.de "
         "2021-01-20T16:28:42.969489 v1.01 application/json "

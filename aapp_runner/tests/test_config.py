@@ -27,7 +27,6 @@ import pytest
 from unittest.mock import patch, Mock, MagicMock
 import unittest
 import yaml
-from aapp_runner.read_aapp_config import read_config_file_options
 from aapp_runner.read_aapp_config import VALID_CONFIGURATION
 from aapp_runner.read_aapp_config import check_config_file_options
 from aapp_runner.read_aapp_config import check_dir_permissions
@@ -478,7 +477,6 @@ class TestGetConfig(unittest.TestCase):
 
         myconfig = self.config_mandatory.copy()
         with patch('aapp_runner.read_aapp_config.load_config_from_file', return_value=myconfig):
-            #result = read_config_file_options(myfilename, 'norrkoping', 'xl-band')
             cfg_obj = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
             cfg_obj.check_config()
             result = cfg_obj.config
@@ -507,6 +505,7 @@ class TestGetConfig(unittest.TestCase):
 
     def test_aapp_workdir(self):
         """Test that the aapp-process-env configuration contains an aapp_workdir setting"""
+        from aapp_runner.read_aapp_config import load_config_from_file
 
         myfilename = "/tmp/mytestfile"
         myconfig = self.config_mandatory.copy()

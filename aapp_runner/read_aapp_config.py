@@ -216,9 +216,6 @@ def check_dir_permissions(config, dir_permissions):
             check = check_dir(config[dirname], perm)
         else:
             check = True
-            # This seems broken - AD
-            # if config[required]:
-            #    check = check_dir(config[dirname], perm)
 
         test_results.append(check)
 
@@ -333,7 +330,7 @@ class AappRunnerConfig(object):
         self.config['environment'] = self.environment
 
     def _load(self):
-        """Load the configuration from the yaml file"""
+        """Load the configuration from the yaml file."""
         self.config = load_config_from_file(self.filename)
 
     def _check_aapp_process_key_in_config(self):
