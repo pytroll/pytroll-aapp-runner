@@ -41,6 +41,7 @@ from glob import glob
 from logging import handlers
 from time import time as _time
 from urllib.parse import urlparse
+import yaml
 
 import posttroll.subscriber
 from posttroll.message import Message
