@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014-2018, 2021 PyTroll community
+# Copyright (c) 2014 - 2021 Pytroll Community
 
 # Author(s):
 
@@ -250,9 +250,10 @@ def move_aapp_log_files(config):
                 base_filename = os.path.basename(file_name)
                 dst = os.path.join(destination, base_filename)
                 shutil.move(file_name, dst)
-            except OSError
-            LOG.warning(
-                "Failed to move log file: {} to: {}".format(file_name, dst))
+            except OSError as err:
+                LOG.exception(err)
+                LOG.waring(
+                    "Failed to move log file: {} to: {}".format(file_name, dst))
             else:
                 LOG.debug("Moved {} to {}".format(file_name, dst))
 
@@ -346,9 +347,8 @@ def read_arguments():
     else:
         args.station = args.station.lower()
     if not args.environment:
-        print("Environment required! " +
-              "Use command-line switch -e <environment> e.g. de, test")
-        sys.exit()
+        sys.exit("Environment required! " +
+                 "Use command-line switch -e <environment> e.g. de, test")
     else:
         args.environment = args.environment.lower()
 
@@ -1110,7 +1110,7 @@ if __name__ == "__main__":
 
                             block_before_rerun(aapp_config, msg)
                         except Exception:
-                            LOG.error("AAPP processing failed.")
+                            LOG.exception("AAPP processing failed.")
                             raise
                         finally:
                             # Want to take care of log files to possible debug.
