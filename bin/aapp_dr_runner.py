@@ -157,8 +157,9 @@ def cleanup_aapp_logfiles_archive(config):
     try:
         directory_list = glob(
             '%s/*' % config['aapp_processes'][config.process_name]['aapp_log_files_archive_dir'])
-        _ = [delete_old_dirs(s, config['aapp_processes'][config.process_name][
-            'aapp_log_files_archive_length']) for s in directory_list if os.path.isdir(s)]
+        for s in directory_list:
+            if os.path.isdir(s):
+                delete_old_dirs(s, config['aapp_processes'][config.process_name]['aapp_log_files_archive_length'])
     except Exception as err:
         LOG.error("Failed with: {}".format(err))
         return False
