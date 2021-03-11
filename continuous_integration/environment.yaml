@@ -22,6 +22,7 @@ dependencies:
   - pytest-cov
   - fsspec
   - appdirs
+  - setuptools_scm
   - pip
   - pip:
     - trollsift
