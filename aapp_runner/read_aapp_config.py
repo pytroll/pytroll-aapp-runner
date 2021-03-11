@@ -26,27 +26,32 @@ import os
 from socket import gethostname, gethostbyaddr, gaierror
 
 
-class StationError(Exception):
+class StationError(RuntimeError):
+    """Mismatching station name on commandline compared to config or wrong station."""
     pass
 
 
-class EnvironmentError(Exception):
+class EnvironmentError(RuntimeError):
+    """Error in the specified runtime environment."""
     pass
 
 
-class AappProcessKeyMissing(Exception):
+class AappProcessKeyMissing(RuntimeError):
+    """Some AAPP processing key is missing."""
     pass
 
 
-class AappWorkDirNotSet(Exception):
+class AappWorkDirNotSet(RuntimeError):
+    """AAPP Working dir not set."""
     pass
 
 
-class ConfigFileOptionsError(Exception):
+class ConfigFileOptionsError(RuntimeError):
+    """Error on configuration file options."""
     pass
 
 
-class StaticConfigError(Exception):
+class StaticConfigError(RuntimeError):
     pass
 
 
