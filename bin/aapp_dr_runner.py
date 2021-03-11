@@ -818,8 +818,8 @@ def setup_aapp_processing(config):
     aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
     if config['platform_name'] not in aapp_satellite_list:
         LOG.warning(
-            "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. " +
-            "Will try to find matches. But it can be a good idea to change this " +
+            "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. "
+            "Will try to find matches. But it can be a good idea to change this "
             "variable in the ATOVS_ENV8 file.")
         LOG.warning("Platform {} not in list: {}".format(
             config['platform_name'], aapp_satellite_list))
