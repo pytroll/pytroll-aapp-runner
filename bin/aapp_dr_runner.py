@@ -248,9 +248,9 @@ def move_aapp_log_files(config):
                 base_filename = os.path.basename(file_name)
                 dst = os.path.join(destination, base_filename)
                 shutil.move(file_name, dst)
-            except Exception:
-                LOG.warning(
-                    "Failed to move log file: {} to: {}".format(file_name, dst))
+            except OSError
+            LOG.warning(
+                "Failed to move log file: {} to: {}".format(file_name, dst))
             else:
                 LOG.debug("Moved {} to {}".format(file_name, dst))
 
