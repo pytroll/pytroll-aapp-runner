@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2021 Adam.Dybbroe
+# Copyright (c) 2021 Pytroll Community
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c21856.ad.smhi.se>
+#   Adam.Dybbroe <adam.dybbroe@smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -259,8 +259,6 @@ def check_config_file_options(config, valid_config=None):
     """
 
     dir_permissions = valid_config['valid_dir_permissions']
-    readable_files = valid_config['valid_readable_files']
-    servers = valid_config['valid_servers']
 
     print("Checking directories...")
     if not check_dir_permissions(config, dir_permissions):
@@ -284,7 +282,7 @@ def check_static_configuration(config):
         for item in STATIC_VARS:
             try:
                 _static_config[item] = config['aapp_static_configuration'][item]
-            except KeyError as ke:
+            except KeyError:
                 print("{} Is missing in the aapp_static_configuration. Please add.".format(item))
                 raise
 
@@ -299,9 +297,9 @@ def load_config_from_file(filename):
     with open(filename, 'r') as stream:
         try:
             config = yaml.load(stream, Loader=yaml.FullLoader)
-            import pprint
+            # import pprint
             # print(type(config))
-            #pp = pprint.PrettyPrinter(indent=4)
+            # pp = pprint.PrettyPrinter(indent=4)
             # pp.pprint(config)
         except yaml.YAMLError as exc:
             print("Failed reading yaml config file: {} with: {}".format(filename, exc))
@@ -359,9 +357,10 @@ class AappRunnerConfig(object):
 
         if 'environment' in self.config:
             if self.config['environment'] != self.environment:
-                raise EnvironmentError("Environment from command line: {} "
-                                       "does not match with configured environment: {}".format(self.environment,
-                                                                                               self.config['environment']))
+                msg = "Environment from command line: {} "
+                "does not match with configured environment: {}".format(self.environment,
+                                                                        self.config['environment'])
+                raise EnvironmentError(msg)
         if self.environment not in self.config['aapp_processes']:
             raise EnvironmentError("Environment {} not configured in config. "
                                    "Please check.".format(self.environment))
