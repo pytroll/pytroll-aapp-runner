@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014-2018, 2021 PyTroll community
+# Copyright (c) 2014 - 2021 Pytroll Community
 #
 # Author(s):
 #
 #   Panu Lahtinen <panu.lahtinen@fmi.fi>
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 #
 #
 # This program is free software: you can redistribute it and/or modify
@@ -24,10 +25,8 @@
 '''Helper functions for aapp runner
 '''
 
-import os
 import logging
 import netifaces
-import socket
 
 LOGGER = logging.getLogger(__name__)
 
@@ -84,25 +83,12 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
     except OSError as e:
         LOGGER.error("Popen failed for command: {} with {}".format(myargs, e))
         return False
-    except ValueError as e:
+    except ValueError:
         LOGGER.error("Popen called with invalid arguments.")
         return False
     except:
         LOGGER.error("Popen failed for an unknown reason.")
         return False
-
-    # proc.poll
-    #LOGGER.info("Before call to communicate:")
-    #out, err = proc.communicate()
-    #return_value = proc.returncode
-
-    #lines = out.splitlines()
-    # for line in lines:
-    #    LOGGER.info(line)
-
-    #lines = err.splitlines()
-    # for line in lines:
-    #    LOGGER.info(line)
 
     import signal
 
@@ -116,7 +102,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
     signal.alarm(my_timeout)
     try:
         LOGGER.debug("Before call to communicate:")
-        if stdin == None:
+        if stdin is None:
             out, err = proc.communicate()
         else:
             out, err = proc.communicate(input=stdin)
@@ -134,7 +120,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
 
     LOGGER.debug("communicate complete")
     lines = out.splitlines()
-    if stdout_logfile == None:
+    if stdout_logfile is None:
         for line in lines:
             LOGGER.debug(line)
     else:
@@ -148,7 +134,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
             return False
 
     errlines = err.splitlines()
-    if (stderr_logfile == None):
+    if stderr_logfile is None:
         for errline in errlines:
             LOGGER.debug(errline)
     else:
