@@ -1025,7 +1025,6 @@ if __name__ == "__main__":
     environment = args.environment
     config_filename = args.config_file
     log_file = args.log
-    log_config = args.log_config
     verbose = args.verbose
     nameservers = args.nameservers
     publish_port = args.publish_port
@@ -1039,14 +1038,11 @@ if __name__ == "__main__":
     aapp_run_config.check_config()
     config = aapp_run_config.config
 
-    if log_config:
-        setup_logging_from_config(log_config)
-    else:
-        try:
-            LOG = setup_logging(config, log_file, verbose, log_config=log_config)
-        except:
-            print("Logging setup failed. Check your config")
-            sys.exit()
+    try:
+        LOG = setup_logging(config, log_file, verbose, log_config=log_config)
+    except:
+        print("Logging setup failed. Check your config")
+        sys.exit()
 
     try:
         aapp_config = AappL1Config(config, environment)
