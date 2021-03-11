@@ -209,7 +209,7 @@ def create_config_from_yaml(yaml_content_str):
 
 
 class TestCheckConfig(unittest.TestCase):
-    """Test unctions checking the validity of the conguration"""
+    """Test functions checking the validity of the conguration"""
 
     def setUp(self):
         self.configuration = {'station': 'norrkoping',
