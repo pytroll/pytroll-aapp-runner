@@ -618,8 +618,9 @@ def generate_process_config(msg, config):
         return False
 
     # Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
-    if ('NOAA' in msg.data['platform_name'].upper() and
-            int(msg.data['platform_name'][-2:]) == 15) and config['process_mhs']:
+    platform_name = msg.data['platform_name'].upper()
+    is_noaa15 = platform_name.startswith('NOAA') and platform_name.endswith('15')
+    if is_noaa15:
         config['process_mhs'] = False
 
     # Check if processing for this platform should be altered
@@ -818,8 +819,8 @@ def setup_aapp_processing(config):
     aapp_satellite_list = os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT').split()
     if config['platform_name'] not in aapp_satellite_list:
         LOG.warning(
-            "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. " +
-            "Will try to find matches. But it can be a good idea to change this " +
+            "Can not find this platform in AAPP config variable PAR_NAVIGATION_DEFAULT_LISTESAT. "
+            "Will try to find matches. But it can be a good idea to change this "
             "variable in the ATOVS_ENV8 file.")
         LOG.warning("Platform {} not in list: {}".format(
             config['platform_name'], aapp_satellite_list))
