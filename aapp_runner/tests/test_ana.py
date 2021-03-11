@@ -58,13 +58,13 @@ def test_ana(tmp_path, monkeypatch, caplog):
     """Test running ANA while mocking actual ANA."""
     import aapp_runner.do_ana_correction
     import posttroll.message
-    my_parent_dir = tmp_path / "ana"
-    my_parent_dir.mkdir(parents=True, exist_ok=True)
-    monkeypatch.setenv("DIR_NAVIGATION", str(p / "navdir"))
+    ppp = tmp_path / "ana"
+    ppp.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("DIR_NAVIGATION", str(ppp / "navdir"))
     monkeypatch.chdir(tmp_path)
-    (my_parent_dir / "navdir" / "ana" / "reference_landmarks").mkdir(
+    (ppp / "navdir" / "ana" / "reference_landmarks").mkdir(
         parents=True, exist_ok=True)
-    config = get_config(my_parent_dir)
+    config = get_config(ppp)
     msg = posttroll.message.Message(
         rawstr="pytroll://file/noaa/avhrr file pytroll@oflks333.dwd.de "
         "2021-01-20T16:28:42.969489 v1.01 application/json "
@@ -76,7 +76,7 @@ def test_ana(tmp_path, monkeypatch, caplog):
 
     def fake_run_ana(cmd, stdin="", stdout_logfile=None, stderr_logfile=None):
         if cmd == "ana_lmk_loc -D hrpt.l1b":
-            (p / "navdir" / "ana" / "lmkloc_scabb_20210119_1408}_42.txt"
+            (ppp / "navdir" / "ana" / "lmkloc_scabb_20210119_1408}_42.txt"
              ).touch()
             return (True, 0, "", "")
         elif cmd == "l1bidf.exe":

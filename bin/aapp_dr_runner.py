@@ -195,8 +195,9 @@ def cleanup_aapp_workdir(config):
     try:
         filelist = glob(
             '%s/*' % config['aapp_processes'][config.process_name]['working_dir'])
-        for s in filelist if os.path.isfile(s):
-            os.remove(s)
+        for filename in filelist:
+            if os.path.isfile(filename):
+                os.remove(filename)
         shutil.rmtree(
             config['aapp_processes'][config.process_name]['working_dir'])
     except Exception as err:
