@@ -68,11 +68,6 @@ If you change these, you will also have to change the decommutation scripts.
 """
 
 
-# import os
-# import aapp_stat
-# import subrocess
-
-
 def get_local_ips():
     inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
                   for iface in netifaces.interfaces()]
