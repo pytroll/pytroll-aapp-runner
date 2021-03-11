@@ -618,8 +618,9 @@ def generate_process_config(msg, config):
         return False
 
     # Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
-    if ('NOAA' in msg.data['platform_name'].upper() and
-            int(msg.data['platform_name'][-2:]) == 15) and config['process_mhs']:
+    platform_name = msg.data['platform_name'].upper()
+    is_noaa15 = platform_name.startswith('NOAA') and platform_name.endswith('15')
+    if is_noaa15:
         config['process_mhs'] = False
 
     # Check if processing for this platform should be altered
