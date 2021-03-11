@@ -1057,7 +1057,7 @@ if __name__ == "__main__":
         setup_logging_from_config(log_config)
     else:
         try:
-            LOG = setup_logging(config, log_file, verbose, log_config=log_config)
+            LOG = setup_logging(config, log_file, verbose)
         except:
             print("Logging setup failed. Check your config")
             sys.exit()
