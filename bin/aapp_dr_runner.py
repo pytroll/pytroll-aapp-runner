@@ -1030,7 +1030,7 @@ if __name__ == "__main__":
     nameservers = args.nameservers
     publish_port = args.publish_port
 
-   if not os.path.isfile(config_filename):
+    if not os.path.isfile(config_filename):
         print("ERROR! Can not find config file: {}".format(config_filename))
         print("Exits!")
         sys.exit()
@@ -1048,7 +1048,7 @@ if __name__ == "__main__":
             print("Logging setup failed. Check your config")
             sys.exit()
 
-   try:
+    try:
         aapp_config = AappL1Config(config, environment)
     except Exception as err:
         LOG.error("Failed to init AAPP L1 Config object: {}".format(err))
