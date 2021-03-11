@@ -27,7 +27,6 @@ for pytroll messages from Nimbus (NOAA/Metop file dispatch) and triggers
 processing on direct readout HRPT level 0 files (full swaths - no granules at
 the moment)
 """
-
 import copy
 import logging
 import os
@@ -741,8 +740,8 @@ def create_and_check_scene_id(msg, config):
             LOG.debug("No overlap with any recently processed scenes...")
 
     scene_id = (str(config['platform_name']) + '_' +
-              config['starttime'].strftime('%Y%m%d%H%M%S') +
-              '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
+                config['starttime'].strftime('%Y%m%d%H%M%S') +
+                '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
     LOG.debug("scene_id = " + str(scene_id))
     return scene_id
 
@@ -844,17 +843,11 @@ def setup_aapp_processing(config):
             LOG.debug("New LISTESAT: {}".format(
                 os.getenv('PAR_NAVIGATION_DEFAULT_LISTESAT')))
 
-
-<< << << < HEAD
-    list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe', 'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop',
-                             'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4', 'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl', 'atovin', 'atovpp', 'l1didf']
-== == == =
     list_of_needed_programs = ['tleing.exe', 'satpostle', 'decommutation.exe', 'chk1btime.exe',
                                'decom-amsua-metop', 'decom-mhs-metop', 'decom-hirs-metop',
                                'decom-avhrr-metop', 'hirs_historic_file_manage', 'hcalcb1_algoV4',
                                'msucl', 'amsuacl', 'amsubcl', 'mhscl', 'avhrcl',
                                'atovin', 'atovpp', 'l1didf']
->>>>>> > master
     for program in list_of_needed_programs:
         if not which(program):
             LOG.error("Can not find needed AAPP program '{}' in environment. Please check.".format(program))
@@ -1022,7 +1015,6 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
 
 if __name__ == "__main__":
-
     """
     Call the various functions that make up the parts of the AAPP processing
     """
