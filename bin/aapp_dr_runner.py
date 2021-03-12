@@ -27,6 +27,7 @@ for pytroll messages from Nimbus (NOAA/Metop file dispatch) and triggers
 processing on direct readout HRPT level 0 files (full swaths - no granules at
 the moment)
 """
+
 import copy
 import logging
 import os
@@ -40,6 +41,7 @@ from glob import glob
 from logging import handlers
 from time import time as _time
 from urllib.parse import urlparse
+import yaml
 
 import posttroll.subscriber
 from posttroll.message import Message
@@ -334,6 +336,8 @@ def read_arguments():
     parser.add_argument("-v", "--verbose",
                         help="print debug messages too",
                         action="store_true")
+    parser.add_argument("--log-config",
+                        help="Log config file to use instead of the standard logging.")
     parser.add_argument("-l", "--log", help="File to log to",
                         type=str,
                         default=None)
@@ -378,6 +382,14 @@ def remove(path):
                 os.remove(path)
         except OSError:
             LOG.debug("Unable to remove file: " + path)
+
+
+def setup_logging_from_config(log_config):
+    """Setup the logging as specified in a log-config file"""
+
+    with open(log_config) as fd:
+        log_dict = yaml.safe_load(fd.read())
+        logging.config.dictConfig(log_dict)
 
 
 def setup_logging(config, log_file, verbose):
@@ -1025,6 +1037,7 @@ if __name__ == "__main__":
     environment = args.environment
     config_filename = args.config_file
     log_file = args.log
+    log_config = args.log_config
     verbose = args.verbose
     nameservers = args.nameservers
     publish_port = args.publish_port
@@ -1038,11 +1051,14 @@ if __name__ == "__main__":
     aapp_run_config.check_config()
     config = aapp_run_config.config
 
-    try:
-        LOG = setup_logging(config, log_file, verbose, log_config=log_config)
-    except:
-        print("Logging setup failed. Check your config")
-        sys.exit()
+    if log_config:
+        setup_logging_from_config(log_config)
+    else:
+        try:
+            LOG = setup_logging(config, log_file, verbose)
+        except:
+            print("Logging setup failed. Check your config")
+            sys.exit()
 
     try:
         aapp_config = AappL1Config(config, environment)
