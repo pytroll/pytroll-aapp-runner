@@ -30,6 +30,7 @@ the moment)
 
 import copy
 import logging
+import logging.config
 import os
 import shutil
 import socket
