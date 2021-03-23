@@ -329,7 +329,7 @@ def read_arguments():
                         help=("Connect publisher to given nameservers: "
                               "'-n localhost 123.456.789.0'. Default: localhost"),
                         nargs="+",
-                        default=["localhost"])
+                        default=None)
     parser.add_argument("-p", "--publish_port", default=0, type=int,
                         help="Port to publish the messages on. Default: automatic")
     parser.add_argument("-v", "--verbose",
