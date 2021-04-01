@@ -6,6 +6,7 @@
 #
 #   Panu Lahtinen <panu.lahtinen@fmi.fi>
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Adam Dybbroe <adam.dybbroe@smhi.se>
 #
 #
 # This program is free software: you can redistribute it and/or modify
