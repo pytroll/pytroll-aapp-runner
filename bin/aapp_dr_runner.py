@@ -47,9 +47,9 @@ import yaml
 import posttroll.subscriber
 from posttroll.message import Message
 from posttroll.publisher import Publish
+from posttroll.address_receiver import get_local_ips
 from trollsift.parser import compose
 
-import netifaces
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
 from aapp_runner.helper_functions import (overlapping_timeinterval,
@@ -69,17 +69,6 @@ _DEFAULT_LOG_FORMAT = '[%(levelname)s: %(asctime)s : %(name)s] %(message)s'
 These are the standard names used by the various AAPP decommutation scripts.
 If you change these, you will also have to change the decommutation scripts.
 """
-
-
-def get_local_ips():
-    inet_addrs = [netifaces.ifaddresses(iface).get(netifaces.AF_INET)
-                  for iface in netifaces.interfaces()]
-    ips = []
-    for addr in inet_addrs:
-        if addr is not None:
-            for add in addr:
-                ips.append(add['addr'])
-    return ips
 
 
 def reset_job_registry(objdict, key, start_end_times_area):
