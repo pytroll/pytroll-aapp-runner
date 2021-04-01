@@ -1,3 +1,30 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2015 - 2021 Pytroll developers
+
+# Author(s):
+
+#   Adam Dybbroe <Firstname.Lastname at smhi.se>
+#   Trygve Aspenes <trygveas@met.no>
+#   Gerrit Holl
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+"""Testing the preparation of TLE and Satpos files.
+"""
+
 import inspect
 import pathlib
 import unittest.mock
@@ -23,7 +50,7 @@ def get_config(pth):
                 'download_tle_files': False,
                 'tle_file_to_data_diff_limit_days': 3000,
                 'working_dir': str(pth)}},
-            }, "test")
+    }, "test")
 
 
 def mk_tle_files(pth):
@@ -72,8 +99,8 @@ def test_tle(tmp_path, monkeypatch, caplog):
         with caplog.at_level(logging.ERROR):
             atr.side_effect = fake_run_tleing
             aapp_runner.tle_satpos_prepare.do_tleing(
-                    config, datetime.datetime(2021, 1, 19, 14, 8, 26),
-                    "noaa19")
+                config, datetime.datetime(2021, 1, 19, 14, 8, 26),
+                "noaa19")
             assert caplog.text == ""
     exp_d = (p / "archive" / "tle-20210119")
     assert exp_d.exists()
