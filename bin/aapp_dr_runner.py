@@ -714,9 +714,9 @@ def generate_process_config(msg, config):
         return False
 
     config['start_time'] = msg.data['start_time']
-
-    # Save collection_area_id if given
-    config['collection_area_id'] = msg.data.get('collection_area_id', None)
+    # Save collection_area_id if given, use static default from config otherwise:
+    default_collection_area_id = config['aapp_processes'][config.process_name]['collection_area_id']
+    config['collection_area_id'] = msg.data.get('collection_area_id', default_collection_area_id)
 
     return True
 
@@ -725,6 +725,10 @@ def create_and_check_scene_id(msg, config):
     """
     Create a scene specific ID to identify the scene process for later
     """
+    LOG.debug("config.job_register: %s", str(config.job_register))
+    LOG.debug("config platform_name: %s", str(config['platform_name']))
+    LOG.debug("config - collection_area_id: %s", str(config['collection_area_id']))
+
     # Use sat id, start and end time and area_id as the unique identifier of the scene!
     if (config['platform_name'] in config.job_register and
             len(config.job_register[config['platform_name']]) > 0):

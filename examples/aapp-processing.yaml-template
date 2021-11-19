@@ -94,6 +94,9 @@ aapp_processes:
       - /XLBANDANTENNA/HRPT/L0
       - /XLBANDANTENNA/METOP/L0
 
+    # Default collection area id:
+    collection_area_id: euron1
+
     # Base dir of your TLE files.
     tle_indir: /disk2/AAPP/orbelems
     # Sift format of your TLE file archive
