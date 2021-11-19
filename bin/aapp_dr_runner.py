@@ -55,6 +55,7 @@ from aapp_runner.helper_functions import (overlapping_timeinterval,
                                           run_shell_command)
 from aapp_runner.read_aapp_config import AappRunnerConfig
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
+from aapp_runner.aapp_runner_tools import set_collection_area_id
 
 LOG = logging.getLogger(__name__)
 
@@ -714,9 +715,8 @@ def generate_process_config(msg, config):
         return False
 
     config['start_time'] = msg.data['start_time']
-    # Save collection_area_id if given, use static default from config otherwise:
-    default_collection_area_id = config['aapp_processes'][config.process_name]['collection_area_id']
-    config['collection_area_id'] = msg.data.get('collection_area_id', default_collection_area_id)
+
+    set_collection_area_id(msg.data, config)
 
     return True
 

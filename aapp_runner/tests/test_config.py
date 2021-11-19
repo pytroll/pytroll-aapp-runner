@@ -27,6 +27,7 @@ import pytest
 from unittest.mock import patch, Mock, MagicMock
 import unittest
 import yaml
+from posttroll.message import Message
 from aapp_runner.read_aapp_config import VALID_CONFIGURATION
 from aapp_runner.read_aapp_config import check_config_file_options
 from aapp_runner.read_aapp_config import check_dir_permissions
@@ -35,6 +36,11 @@ from aapp_runner.read_aapp_config import (EnvironmentError, StaticConfigError,
                                           ConfigFileOptionsError, AappWorkDirNotSet,
                                           AappProcessKeyMissing, StationError)
 
+from aapp_runner.aapp_runner_tools import set_collection_area_id
+
+EARS_MESSAGE_INPUT = """pytroll://HRPT/0/NOAA-19/ collection safusr.t@lxserv2338.smhi.se 2021-11-19T16:52:06.089639 v1.01 application/json {"sensor": ["avhrr/3", "mhs", "amsu-a", "amsu-b", "hirs/4"], "format": "HRPT", "data_processing_level": "0", "variant": "EARS", "platform_name": "NOAA-19", "start_time": "2021-11-19T16:34:00", "origin": "172.18.0.249:9108", "end_time": "2021-11-19T16:46:00", "collection_area_id": "euron1", "collection": [{"start_time": "2021-11-19T16:34:00", "end_time": "2021-11-19T16:35:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163400_noaa19.hrp", "uid": "avhrr_20211119_163400_noaa19.hrp"}, {"start_time": "2021-11-19T16:35:00", "end_time": "2021-11-19T16:36:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163500_noaa19.hrp", "uid": "avhrr_20211119_163500_noaa19.hrp"}, {"start_time": "2021-11-19T16:36:00", "end_time": "2021-11-19T16:37:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163600_noaa19.hrp", "uid": "avhrr_20211119_163600_noaa19.hrp"}, {"start_time": "2021-11-19T16:37:00", "end_time": "2021-11-19T16:38:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163700_noaa19.hrp", "uid": "avhrr_20211119_163700_noaa19.hrp"}, {"start_time": "2021-11-19T16:38:00", "end_time": "2021-11-19T16:39:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163800_noaa19.hrp", "uid": "avhrr_20211119_163800_noaa19.hrp"}, {"start_time": "2021-11-19T16:39:00", "end_time": "2021-11-19T16:40:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_163900_noaa19.hrp", "uid": "avhrr_20211119_163900_noaa19.hrp"}, {"start_time": "2021-11-19T16:40:00", "end_time": "2021-11-19T16:41:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164000_noaa19.hrp", "uid": "avhrr_20211119_164000_noaa19.hrp"}, {"start_time": "2021-11-19T16:41:00", "end_time": "2021-11-19T16:42:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164100_noaa19.hrp", "uid": "avhrr_20211119_164100_noaa19.hrp"}, {"start_time": "2021-11-19T16:42:00", "end_time": "2021-11-19T16:43:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164200_noaa19.hrp", "uid": "avhrr_20211119_164200_noaa19.hrp"}, {"start_time": "2021-11-19T16:43:00", "end_time": "2021-11-19T16:44:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164300_noaa19.hrp", "uid": "avhrr_20211119_164300_noaa19.hrp"}, {"start_time": "2021-11-19T16:44:00", "end_time": "2021-11-19T16:45:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164400_noaa19.hrp", "uid": "avhrr_20211119_164400_noaa19.hrp"}, {"start_time": "2021-11-19T16:45:00", "end_time": "2021-11-19T16:46:00", "uri": "ssh://lxserv2338.smhi.se/san1/polar_in/regional/avhrr/lvl0/avhrr_20211119_164500_noaa19.hrp", "uid": "avhrr_20211119_164500_noaa19.hrp"}]}"""
+
+DR_MESSAGE_INPUT = """pytroll://HRPT/0/nkp/dev/polar/direct_readout file safusr.t@lxserv2338.smhi.se 2021-11-19T17:19:30.973158 v1.01 application/json {"start_time": "2021-11-19T17:06:44", "end_time": "2021-11-19T17:19:26", "orbit_number": 85045, "platform_name": "NOAA-18", "type": "binary", "format": "HRPT", "sensor": ["avhrr/3", "mhs", "amsu-a", "hirs/4"], "data_processing_level": "0", "uid": "20211119170644_NOAA_18.hmf", "uri": "ssh://172.29.4.28/san1/polar_in/direct_readout/hrpt/lvl0/20211119170644_NOAA_18.hmf", "variant": "DR"}"""
 
 TEST_YAML_CONTENT_OK = """
 logging:
@@ -110,6 +116,8 @@ aapp_processes:
     subscribe_topics:
       - /XLBANDANTENNA/HRPT/L0
       - /XLBANDANTENNA/METOP/L0
+
+    collection_area_id: euron1
 
     tle_indir: /disk2/AAPP/orbelems
     tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
@@ -203,6 +211,31 @@ aapp_processes:
 """
 
 
+class DummyAappRunnerConfig(object):
+
+    """
+    Dummy container for the run configuration for AAPP
+    """
+
+    def __init__(self, config, process_name):
+        """
+        Init the config
+        """
+        self.config = config
+        self.job_register = {}
+        self.process_name = process_name
+
+    def __getitem__(self, key):
+        try:
+            _it = self.config[key]
+        except KeyError:
+            _it = None
+        return _it
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
+
+
 def create_config_from_yaml(yaml_content_str):
     """Create aapp-runner config dict from a yaml file."""
     return yaml.load(yaml_content_str, Loader=yaml.FullLoader)
@@ -290,6 +323,43 @@ class TestCheckConfig(unittest.TestCase):
             result = check_dir_permissions(self.configuration, self.valid_dir_permissions_not_mandatory)
 
         mypatch.assert_not_called()
+
+
+class TestProcessConfig(unittest.TestCase):
+    """Test setting the processing config."""
+
+    def setUp(self):
+        self.config_complete = create_config_from_yaml(TEST_YAML_CONTENT_OK)
+        self.config_mandatory = create_config_from_yaml(TEST_YAML_CONTENT_MANDATORY)
+        self.message1 = DR_MESSAGE_INPUT
+        self.message2 = EARS_MESSAGE_INPUT
+
+    def test_set_collection_area_id_present_in_config_but_not_in_message(self):
+        """Test setting the collection area id."""
+
+        msg = Message.decode(self.message1)
+        config = self.config_complete
+        runconfig = DummyAappRunnerConfig(config, 'xl-band')
+        set_collection_area_id(msg.data, runconfig)
+        assert config['collection_area_id'] == 'euron1'
+
+    def test_set_collection_area_id_present_in_message_but_not_in_config(self):
+        """Test setting the collection area id."""
+
+        msg = Message.decode(self.message2)
+        config = self.config_mandatory
+        runconfig = DummyAappRunnerConfig(config, 'xl-band')
+        set_collection_area_id(msg.data, runconfig)
+        assert config['collection_area_id'] == 'euron1'
+
+    def test_set_collection_area_id_not_in_message_and_not_in_config(self):
+        """Test setting the collection area id."""
+
+        msg = Message.decode(self.message1)
+        config = self.config_mandatory
+        runconfig = DummyAappRunnerConfig(config, 'xl-band')
+        set_collection_area_id(msg.data, runconfig)
+        assert config['collection_area_id'] is None
 
 
 class TestGetConfig(unittest.TestCase):
