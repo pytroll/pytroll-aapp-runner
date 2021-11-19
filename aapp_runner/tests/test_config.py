@@ -438,6 +438,7 @@ class TestGetConfig(unittest.TestCase):
                                                            {'url': 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}],
                                           'tle_file_to_data_diff_limit_days': 3,
                                           'locktime_before_rerun': 10,
+                                          'collection_area_id': 'euron1',
                                           'publish_sift_format': '/{format:s}/{data_processing_level:s}/polar/direct_readout',
                                           'keep_orbit_number_from_message': True,
                                           'aapp_prefix': '/disk2/AAPP',
