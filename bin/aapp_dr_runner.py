@@ -55,6 +55,7 @@ from aapp_runner.helper_functions import (overlapping_timeinterval,
                                           run_shell_command)
 from aapp_runner.read_aapp_config import AappRunnerConfig
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
+from aapp_runner.aapp_runner_tools import set_collection_area_id
 
 LOG = logging.getLogger(__name__)
 
@@ -715,8 +716,7 @@ def generate_process_config(msg, config):
 
     config['start_time'] = msg.data['start_time']
 
-    # Save collection_area_id if given
-    config['collection_area_id'] = msg.data.get('collection_area_id', None)
+    set_collection_area_id(msg.data, config)
 
     return True
 
@@ -725,6 +725,10 @@ def create_and_check_scene_id(msg, config):
     """
     Create a scene specific ID to identify the scene process for later
     """
+    LOG.debug("config.job_register: %s", str(config.job_register))
+    LOG.debug("config platform_name: %s", str(config['platform_name']))
+    LOG.debug("config - collection_area_id: %s", str(config['collection_area_id']))
+
     # Use sat id, start and end time and area_id as the unique identifier of the scene!
     if (config['platform_name'] in config.job_register and
             len(config.job_register[config['platform_name']]) > 0):
