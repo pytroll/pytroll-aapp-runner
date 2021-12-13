@@ -31,6 +31,7 @@ granules at the moment).
 """
 
 import logging
+import logging.config
 import os
 import shutil
 import socket
@@ -50,6 +51,7 @@ from posttroll.message import Message
 from posttroll.publisher import Publish
 from trollsift.parser import compose
 
+from aapp_runner.aapp_runner_tools import set_collection_area_id
 from aapp_runner.config_helpers import generate_process_config
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
@@ -135,6 +137,7 @@ def cleanup_aapp_workdir(config):
         for filename in filelist:
             if os.path.isfile(filename):
                 os.remove(filename)
+
         shutil.rmtree(
             config['aapp_processes'][config.process_name]['working_dir'])
     except Exception as err:
@@ -423,14 +426,12 @@ def check_message(msg, server):
                                 str(obj.path), str(get_local_ips()))
                     return False
             # Check msg ip in case of message_providing_server defined in cfg
-            elif (obj.netloc
-                    and server is not None
-                    and url_ip != server):
-                LOG.warning("Server %s is not listed as a " +
-                            "message_server: %s",
-                            str(obj.netloc),
-                            str(server))
+            elif (obj.netloc and server is not None
+                  and url_ip != server and url_ip != socket.gethostbyname(server)):
+                LOG.warning("Server %s is not listed as a message_server: %s (IP=%s)",
+                            str(obj.netloc), str(server), str(socket.gethostbyname(server)))
                 return False
+
             # Check msg ip vs current server if no message_providing_server
             elif (obj.netloc
                     and server is None
@@ -576,7 +577,7 @@ def setup_aapp_processing(config):
         config.process_name]['aapp_prefix']
 
     aapp_atovs_conf = os.path.join(os.environ["AAPP_PREFIX"], config[
-                                   'aapp_processes'][config.process_name]['aapp_environment_file'])
+        'aapp_processes'][config.process_name]['aapp_environment_file'])
     status, returncode, out, err = run_shell_command(
         "bash -c \"source {}\";env".format(aapp_atovs_conf))
     if not status:
@@ -738,7 +739,7 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
                 del msg_to_send['dataset']
 
             msg_to_send['uri'] = "file://{}{}".format(config['aapp_processes'][
-                                                      config.process_name]['message_providing_server'], file['file'])
+                config.process_name]['message_providing_server'], file['file'])
 
             msg_to_send['filename'] = os.path.basename(file['file'])
             msg_to_send['uid'] = os.path.basename(file['file'])
@@ -764,7 +765,7 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
         try:
             publish_to = compose(config['aapp_processes'][config.process_name][
-                                 'publish_sift_format'], msg_to_send)
+                'publish_sift_format'], msg_to_send)
         except KeyError:
             LOG.warning("Unknown Key used in format: {}. Check spelling and/or availability.".format(
                 config['aapp_processes'][config.process_name]['publish_sift_format']))
@@ -784,7 +785,6 @@ def publish_level1(publisher, config, msg, filelist, station_name, environment):
 
 
 if __name__ == "__main__":
-
     """
     Call the various functions that make up the parts of the AAPP processing
     """
