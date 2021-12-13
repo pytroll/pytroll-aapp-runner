@@ -23,18 +23,22 @@
 """Unit tests for reading and manipulating configuration parameters
 """
 
-import pytest
-from unittest.mock import patch, Mock, MagicMock
 import unittest
-import yaml
-from aapp_runner.read_aapp_config import VALID_CONFIGURATION
-from aapp_runner.read_aapp_config import check_config_file_options
-from aapp_runner.read_aapp_config import check_dir_permissions
-from aapp_runner.read_aapp_config import AappRunnerConfig
-from aapp_runner.read_aapp_config import (EnvironmentError, StaticConfigError,
-                                          ConfigFileOptionsError, AappWorkDirNotSet,
-                                          AappProcessKeyMissing, StationError)
+from unittest.mock import MagicMock, Mock, patch
 
+import pytest
+import yaml
+from posttroll.message import Message
+
+from aapp_runner.config_helpers import generate_process_config
+from aapp_runner.read_aapp_config import (VALID_CONFIGURATION, AappL1Config,
+                                          AappProcessKeyMissing,
+                                          AappRunnerConfig, AappWorkDirNotSet,
+                                          ConfigFileOptionsError,
+                                          EnvironmentError, StaticConfigError,
+                                          StationError,
+                                          check_config_file_options,
+                                          check_dir_permissions)
 
 TEST_YAML_CONTENT_OK = """
 logging:
@@ -517,3 +521,84 @@ class TestGetConfig(unittest.TestCase):
         exception_raised = exec_info.value
         self.assertEqual(str(exception_raised),
                          "You must give either 'aapp_workdir' or 'working_dir in config.")
+
+
+TEST_INPUT_MSG_DSET = """pytroll://collection/EPS/0/metop-b dataset safusr.u@lxserv1043.smhi.se 2021-12-09T09:13:35.291601 v1.01 application/json {"start_time": "2021-12-09T08:58:01", "end_time": "2021-12-09T09:13:20", "processing_start_time": "2021-12-09T08:58:17", "orbit_number": 47873, "platform_name": "Metop-B", "format": "EPS", "type": "binary", "data_processing_level": "0", "variant": "DR", "dataset": [{"uri": "/san1/polar_in/direct_readout/metop/MHSx_HRP_00_M01_20211209085800Z_20211209091317Z_N_O_20211209085817Z", "uid": "MHSx_HRP_00_M01_20211209085800Z_20211209091317Z_N_O_20211209085817Z"}, {"uri": "/san1/polar_in/direct_readout/metop/AMSA_HRP_00_M01_20211209085800Z_20211209091312Z_N_O_20211209085817Z", "uid": "AMSA_HRP_00_M01_20211209085800Z_20211209091312Z_N_O_20211209085817Z"}, {"uri": "/san1/polar_in/direct_readout/metop/AVHR_HRP_00_M01_20211209085803Z_20211209091327Z_N_O_20211209085817Z", "uid": "AVHR_HRP_00_M01_20211209085803Z_20211209091327Z_N_O_20211209085817Z"}], "sensor": ["mhs", "amsu-a", "avhrr/3"]}"""
+
+TEST_INPUT_MSG_URI = """pytroll://HRPT/0/nkp/dev/polar/direct_readout file safusr.u@lxserv1043.smhi.se 2021-12-13T12:38:56.119263 v1.01 application/json {"start_time": "2021-12-13T12:26:08", "end_time": "2021-12-13T12:38:50", "orbit_number": 85372, "platform_name": "NOAA-18", "type": "binary", "format": "HRPT", "sensor": ["avhrr/3", "mhs", "amsu-a", "hirs/4"], "data_processing_level": "0", "uid": "20211213122608_NOAA_18.hmf", "uri": "ssh://172.29.1.52/san1/polar_in/direct_readout/hrpt/20211213122608_NOAA_18.hmf", "variant": "DR"}"""
+
+
+class TestUpdateProcessConfig(unittest.TestCase):
+    """Test various functions updating the (non-static) config during processing."""
+    
+    def setUp(self):
+        self.config_complete = create_config_from_yaml(TEST_YAML_CONTENT_OK)
+        self.input_msg_dset = Message.decode(rawstr=TEST_INPUT_MSG_DSET)
+        self.input_msg_uri = Message.decode(rawstr=TEST_INPUT_MSG_URI)
+
+    @patch('aapp_runner.read_aapp_config.load_config_from_file')
+    def test_update_process_config_sensors_and_filenames_input_dataset(self, config):
+        """Test update the process-config for sensors and filenames when input is a dataset."""
+        config.return_value = self.config_complete
+        myfilename = "/tmp/mytestfile"
+        aapp_run_config = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
+        aapp_config = AappL1Config(aapp_run_config.config, 'xl-band')
+        inmsg = self.input_msg_dset
+        config = aapp_config
+
+        assert config.config.get('process_mhs') is None
+
+        result = generate_process_config(inmsg, config)
+        assert result
+        assert config.config['process_mhs']
+        assert config.config['process_amsua']
+        assert config.config['process_avhrr']
+        assert config.config['process_amsub'] is False
+        assert config.config['process_hirs'] is False
+        assert config.config['process_msu'] is False
+
+        assert config.config.get('input_amsub_file') is None
+        assert config.config.get('input_hirs_file') is None
+        assert config.config.get('input_msu_file') is None
+
+        expected_filename = "/san1/polar_in/direct_readout/metop/AVHR_HRP_00_M01_20211209085803Z_20211209091327Z_N_O_20211209085817Z"
+        self.assertEqual(config.config['input_avhrr_file'], expected_filename)
+
+        expected_filename = "/san1/polar_in/direct_readout/metop/AMSA_HRP_00_M01_20211209085800Z_20211209091312Z_N_O_20211209085817Z"
+        self.assertEqual(config.config['input_amsua_file'], expected_filename)
+
+        expected_filename = "/san1/polar_in/direct_readout/metop/MHSx_HRP_00_M01_20211209085800Z_20211209091317Z_N_O_20211209085817Z"
+        self.assertEqual(config.config['input_mhs_file'], expected_filename)
+        
+
+    @patch('aapp_runner.read_aapp_config.load_config_from_file')
+    def test_update_process_config_sensors_and_filenames_input_uri(self, config):
+        """Test update the process-config for sensors and filenames when input is an uri (one file)."""        
+        config.return_value = self.config_complete
+
+        myfilename = "/tmp/mytestfile"
+        aapp_run_config = AappRunnerConfig(myfilename, 'norrkoping', 'xl-band')
+        aapp_config = AappL1Config(aapp_run_config.config, 'xl-band')
+        inmsg = self.input_msg_uri
+        config = aapp_config
+
+        assert config.config.get('process_mhs') is None
+
+        result = generate_process_config(inmsg, config)
+        assert result
+        assert config.config['process_mhs']
+        assert config.config['process_amsua']
+        assert config.config['process_avhrr']
+        assert config.config['process_amsub']
+        assert config.config['process_hirs']
+        assert config.config['process_msu'] is False
+        
+        assert config.config.get('input_amsub_file') is None
+        assert config.config.get('input_msu_file') is None
+
+        expected_filename = "/san1/polar_in/direct_readout/hrpt/20211213122608_NOAA_18.hmf"
+        self.assertEqual(config.config['input_avhrr_file'], expected_filename)
+        self.assertEqual(config.config['input_amsua_file'], expected_filename)
+        self.assertEqual(config.config['input_mhs_file'], expected_filename)
+        self.assertEqual(config.config['input_hirs_file'], expected_filename)
+        
