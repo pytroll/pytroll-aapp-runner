@@ -51,7 +51,6 @@ from posttroll.message import Message
 from posttroll.publisher import Publish
 from trollsift.parser import compose
 
-from aapp_runner.aapp_runner_tools import set_collection_area_id
 from aapp_runner.config_helpers import generate_process_config
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
@@ -490,6 +489,10 @@ def check_pass_length(msg, config):
 
 def create_and_check_scene_id(msg, config):
     """Create a scene specific ID to identify the scene process for later."""
+    LOG.debug("config.job_register: %s", str(config.job_register))
+    LOG.debug("config platform_name: %s", str(config['platform_name']))
+    LOG.debug("config - collection_area_id: %s", str(config['collection_area_id']))
+
     # Use sat id, start and end time and area_id as the unique identifier of the scene!
     if (config['platform_name'] in config.job_register and
             len(config.job_register[config['platform_name']]) > 0):

@@ -25,6 +25,8 @@
 import logging
 from urllib.parse import urlparse
 
+from aapp_runner.aapp_runner_tools import set_collection_area_id
+
 LOG = logging.getLogger(__name__)
 
 
@@ -182,8 +184,6 @@ def generate_process_config(msg, config):
         return False
 
     config['start_time'] = msg.data['start_time']
-
-    # Save collection_area_id if given
-    config['collection_area_id'] = msg.data.get('collection_area_id', None)
+    set_collection_area_id(msg.data, config)
 
     return True
