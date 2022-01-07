@@ -100,6 +100,9 @@ aapp_processes:
     # If not specified, the TLE files are expected to be (already) landing in tle_indir
     recent_tlefiles_ext_dir: /path/to/where/your/tle/files/are/located
 
+    # Default collection area id:
+    collection_area_id: euron1
+
     # Sift format of your TLE file archive
     tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
     # Sift format of your TLE files
