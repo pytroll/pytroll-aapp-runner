@@ -52,13 +52,12 @@ from posttroll.publisher import Publish
 from trollsift.parser import compose
 
 from aapp_runner.aapp_runner_tools import set_collection_area_id
-rom aapp_runner.config_helpers import generate_process_config
+from aapp_runner.config_helpers import generate_process_config
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
 from aapp_runner.helper_functions import (check_if_scene_is_unique,
                                           create_scene_id, run_shell_command)
 from aapp_runner.read_aapp_config import AappL1Config, AappRunnerConfig
-
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
 
 LOG = logging.getLogger(__name__)
@@ -92,7 +91,6 @@ def reset_job_registry(objdict, key, start_end_times_area):
                 "Register didn't contain any entry matching: " +
                 str(key))
     return
-
 
 
 def cleanup_aapp_logfiles_archive(config):
