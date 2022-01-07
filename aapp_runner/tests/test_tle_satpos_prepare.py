@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 - 2021 Pytroll developers
+# Copyright (c) 2015 - 2022 Pytroll developers
 
 # Author(s):
 
@@ -25,13 +25,16 @@
 """Testing the preparation of TLE and Satpos files.
 """
 
-import inspect
-import pathlib
-import unittest.mock
-import logging
-
 import datetime
+import inspect
+import logging
+import os
+import pathlib
 import sys
+import unittest.mock
+from glob import glob
+
+from aapp_runner.tle_satpos_prepare import fetch_realtime_tles
 
 
 def get_config(pth):
@@ -108,3 +111,32 @@ def test_tle(tmp_path, monkeypatch, caplog):
     # confirm no other directories created
     assert len(list(exp_d.parent.iterdir())) == 1
     assert [f.name for f in exp_d.iterdir()] == ["weather202101190616.tle"]
+
+
+def test_fetch_realtime_tles(tmp_path):
+    """Test fetching TLE files and copy them in under the data dir structure as expected by AAPP."""
+    mypath = tmp_path / "input"
+    mk_tle_files(mypath)
+
+    outpath = tmp_path / "output"
+    outpath.mkdir()
+    exp_subdir = os.path.join(outpath, "2021_01")
+
+    tle_infile_format = 'weather{timestamp:%Y%m%d%H%M}.tle'
+
+    fetch_realtime_tles(mypath, outpath, tle_infile_format)
+
+    assert os.path.exists(exp_subdir)
+    assert os.path.isdir(exp_subdir)
+    # confirm no other directories created
+    assert len(list(outpath.iterdir())) == 1
+
+    result_files = [os.path.basename(f) for f in glob(os.path.join(exp_subdir, 'weather*'))]
+    expected_file_names = ["weather202101180325.tle",
+                           "weather202101180008.tle",
+                           "weather202101190616.tle"]
+
+    for item in result_files:
+        assert item in expected_file_names
+
+    assert len(result_files) == len(expected_file_names)

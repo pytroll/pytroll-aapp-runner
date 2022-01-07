@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015 - 2021 Pytroll developers
+# Copyright (c) 2015 - 2022 Pytroll developers
 
 # Author(s):
 
@@ -33,16 +33,18 @@ timestamp if the index file should be processed.
 """
 
 import logging
-from glob import glob
 import os
-from datetime import datetime
-from shutil import copy
-from aapp_runner.helper_functions import run_shell_command
-from trollsift.parser import compose, globify, Parser
 import re
-import time
-import tempfile
 import shutil
+import tempfile
+import time
+from datetime import datetime
+from glob import glob
+from shutil import copy
+
+from trollsift.parser import Parser, compose, globify
+
+from aapp_runner.helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
@@ -183,9 +185,7 @@ def download_tle(config, timestamp, dir_data_tle):
 
 
 def fetch_realtime_tles(tle_input_path, tle_output_path, tle_infile_format):
-    """Get the recent TLEs and copy them into the AAPP data structure"""
-    # tle_infile_format
-
+    """Get the recent TLEs and copy them into the AAPP data structure."""
     infiles = glob(os.path.join(tle_input_path, globify(tle_infile_format)))
     p__ = Parser(tle_infile_format)
     for filepath in infiles:
