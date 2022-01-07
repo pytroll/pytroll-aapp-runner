@@ -22,8 +22,9 @@
 """Reading and checking yaml file configurations
 """
 
+import copy
 import os
-from socket import gethostname, gethostbyaddr, gaierror
+from socket import gaierror, gethostbyaddr, gethostname
 
 
 class StationError(RuntimeError):
@@ -306,6 +307,56 @@ def load_config_from_file(filename):
             raise yaml.YAMLError
 
     return config
+
+
+class AappL1Config(object):
+
+    """
+    Container for the configuration for AAPP
+    """
+
+    def __init__(self, config, process_name):
+        """
+        Init the config
+        """
+        self.orig_config = copy.deepcopy(config)
+        self.config = config
+        self.process_name = process_name
+        self.job_register = {}
+        self.local_env = {}
+
+    def __getitem__(self, key):
+        try:
+            _it = self.config[key]
+        except KeyError:
+            _it = None
+        return _it
+
+    def __setitem__(self, key, value):
+        self.config[key] = value
+
+    def reset(self):
+        """
+        Clear/reset dynamic configuration
+        """
+        self.config = {}
+        self.config = copy.deepcopy(self.orig_config)
+        self.local_env = {}
+        self.local_env = os.environ.copy()
+
+    def add_process_config_paramenter(self, config_key, config_value):
+        """
+        Add a config parameter to the running config
+        """
+        self.config['aapp_processes'][
+            self.process_name][config_key] = config_value
+
+    def get_parameter(self, key):
+        try:
+            _it = self.config['aapp_processes'][self.process_name][key]
+        except KeyError:
+            _it = None
+        return _it
 
 
 class AappRunnerConfig(object):

@@ -20,12 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Run the calibration script from AAPP for TOVS or ATOVS
-Relay on several other steps before this can be DONE
+"""Run the calibration script from AAPP for TOVS or ATOVS.
+
+Rely on several other steps before this can be DONE.
 """
 
-import os
 import logging
+import os
 
 from aapp_runner.helper_functions import run_shell_command
 
@@ -33,9 +34,10 @@ LOG = logging.getLogger(__name__)
 
 
 def do_atovs_calibration(process_config, timestamp):
-
+    """Do the the ATOVS calibration."""
     if(not process_config['process_amsua'] and
        not process_config['process_amsub'] and
+       not process_config['process_mhs'] and
        not process_config['process_msu']):
         LOG.debug("Skipping atovs processing")
         return True
@@ -59,7 +61,7 @@ def do_atovs_calibration(process_config, timestamp):
                                                                                  process_config['aapp_static_configuration']['decommutation_files']['msun_file'])
         try:
             status, returncode, std, err = run_shell_command(cmd)
-        except:
+        except Exception:
             LOG.error("Command {} failed.".format(cmd))
         else:
             if returncode in accepted_return_codes_msucl:
@@ -77,7 +79,7 @@ def do_atovs_calibration(process_config, timestamp):
                                                                                        process_config['aapp_static_configuration']['decommutation_files']['amsua_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)
-            except:
+            except Exception:
                 LOG.error("Command {} failed.".format(cmd))
             else:
                 if returncode in accepted_return_codes_amsuacl:
@@ -86,16 +88,16 @@ def do_atovs_calibration(process_config, timestamp):
                     LOG.error("Command {} failed with return code {}.".format(cmd, returncode))
                     return_value = False
 
-        if process_config['process_amsub'] and return_value:
+        if (process_config['process_amsub'] or process_config['process_mhs']) and return_value:
             amsub_script = "mhscl"
             try:
                 if 'noaa' in process_config['platform_name'] and int(process_config['platform_name'][-2:]) <= 17:
-                    amsu_script = "amsubcl"
+                    amsub_script = "amsubcl"
                     process_config['process_mhs'] = False
                 else:
                     process_config['process_amsub'] = False
 
-            except ValueError as ve:
+            except ValueError:
                 LOG.warning("Could not exctract satellite number from the last two characters in the platform name: "
                             "{} and convert it to a number.".format(process_config['platform_name']))
 
@@ -107,7 +109,7 @@ def do_atovs_calibration(process_config, timestamp):
                                                                                    process_config['aapp_static_configuration']['decommutation_files']['amsub_file'])
             try:
                 status, returncode, std, err = run_shell_command(cmd)
-            except:
+            except Exception:
                 LOG.error("Command {} failed.".format(cmd))
             else:
                 if returncode in accepted_return_codes_amsubcl:
