@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 - 2021 Pytroll Community
+# Copyright (c) 2014 - 2022 Pytroll Community
 
 # Author(s):
 
@@ -42,21 +42,21 @@ from glob import glob
 from logging import handlers
 from time import time as _time
 from urllib.parse import urlparse
-import yaml
 
 import posttroll.subscriber
+import yaml
+from posttroll.address_receiver import get_local_ips
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll.address_receiver import get_local_ips
 from trollsift.parser import compose
 
+from aapp_runner.aapp_runner_tools import set_collection_area_id
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
 from aapp_runner.helper_functions import (overlapping_timeinterval,
                                           run_shell_command)
 from aapp_runner.read_aapp_config import AappRunnerConfig
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
-from aapp_runner.aapp_runner_tools import set_collection_area_id
 
 LOG = logging.getLogger(__name__)
 
@@ -736,11 +736,11 @@ def create_and_check_scene_id(msg, config):
             (config['starttime'], config['endtime']), registed_times)
 
         if status:
-            LOG.warning("Processing of scene " + config['platform_name'] +
+            info_msg = ("Processing of scene " + config['platform_name'] +
                         " " + str(status[0]) + " " + str(status[1]) +
                         " with overlapping time has been"
-                        " launched previously")
-            LOG.info("Skip it...")
+                        " launched previously. Skip it!")
+            LOG.info(info_msg)
             return False
         else:
             LOG.debug("No overlap with any recently processed scenes...")
@@ -924,7 +924,8 @@ def process_aapp(msg, config):
                 "Please check the previous log carefully to see if this is an error you can accept.")
 
         # Do Preprocessing
-        from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+        from aapp_runner.do_atovpp_and_avh2hirs_processing import \
+            do_atovpp_and_avh2hirs_processing
         if not do_atovpp_and_avh2hirs_processing(config, starttime):
             LOG.warning(
                 "The preprocessing atovin, atopp and/or avh2hirs failed for some reason. " +
@@ -1104,7 +1105,8 @@ if __name__ == "__main__":
 
                             # Rename standard AAPP output file names to usefull ones
                             # and move files to final location.
-                            from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
+                            from aapp_runner.rename_aapp_filenames import \
+                                rename_aapp_filenames
                             renamed_files = rename_aapp_filenames(aapp_config)
                             if not renamed_files:
                                 LOG.warning(
