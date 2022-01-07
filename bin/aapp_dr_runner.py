@@ -22,13 +22,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""AAPP Level-1 processing on NOAA and Metop HRPT Direct Readout data. Listens
-for pytroll messages from Nimbus (NOAA/Metop file dispatch) and triggers
-processing on direct readout HRPT level 0 files (full swaths - no granules at
-the moment)
+"""AAPP Level-1 processing on NOAA and Metop HRPT Direct Readout data.
+
+Listens for pytroll messages from Nimbus (NOAA/Metop file dispatch) and
+triggers processing on direct readout HRPT level 0 files (full swaths - no
+granules at the moment).
+
 """
 
-import copy
 import logging
 import logging.config
 import os
@@ -42,21 +43,21 @@ from glob import glob
 from logging import handlers
 from time import time as _time
 from urllib.parse import urlparse
-import yaml
 
 import posttroll.subscriber
+import yaml
+from posttroll.address_receiver import get_local_ips
 from posttroll.message import Message
 from posttroll.publisher import Publish
-from posttroll.address_receiver import get_local_ips
 from trollsift.parser import compose
 
+from aapp_runner.config_helpers import generate_process_config
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
 from aapp_runner.helper_functions import (overlapping_timeinterval,
                                           run_shell_command)
-from aapp_runner.read_aapp_config import AappRunnerConfig
+from aapp_runner.read_aapp_config import AappL1Config, AappRunnerConfig
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
-from aapp_runner.aapp_runner_tools import set_collection_area_id
 
 LOG = logging.getLogger(__name__)
 
@@ -73,8 +74,7 @@ If you change these, you will also have to change the decommutation scripts.
 
 
 def reset_job_registry(objdict, key, start_end_times_area):
-    """Remove job key from registry"""
-
+    """Remove job key from registry."""
     LOG.debug("Register: " + str(objdict))
     starttime, endtime, area_id = start_end_times_area
     if key in objdict:
@@ -92,61 +92,9 @@ def reset_job_registry(objdict, key, start_end_times_area):
     return
 
 
-class AappL1Config(object):
-
-    """
-    Container for the configuration for AAPP
-    """
-
-    def __init__(self, config, process_name):
-        """
-        Init the config
-        """
-        self.orig_config = copy.deepcopy(config)
-        self.config = config
-        self.process_name = process_name
-        self.job_register = {}
-        self.local_env = {}
-
-    def __getitem__(self, key):
-        try:
-            _it = self.config[key]
-        except KeyError:
-            _it = None
-        return _it
-
-    def __setitem__(self, key, value):
-        self.config[key] = value
-
-    def reset(self):
-        """
-        Clear/reset dynamic configuration
-        """
-        self.config = {}
-        self.config = copy.deepcopy(self.orig_config)
-        self.local_env = {}
-        self.local_env = os.environ.copy()
-
-    def add_process_config_paramenter(self, config_key, config_value):
-        """
-        Add a config parameter to the running config
-        """
-        self.config['aapp_processes'][
-            self.process_name][config_key] = config_value
-
-    def get_parameter(self, key):
-        try:
-            _it = self.config['aapp_processes'][self.process_name][key]
-        except KeyError:
-            _it = None
-        return _it
-
 
 def cleanup_aapp_logfiles_archive(config):
-    """
-    Loop over the aapp log files directories and remove expired directories accordingly
-    """
-
+    """Loop over the aapp log files directories and remove expired directories accordingly."""
     try:
         directory_list = glob(
             '%s/*' % config['aapp_processes'][config.process_name]['aapp_log_files_archive_dir'])
@@ -161,9 +109,7 @@ def cleanup_aapp_logfiles_archive(config):
 
 
 def delete_old_dirs(dir_path, older_than_days):
-    """
-    Delete old directories
-    """
+    """Delete old directories."""
     try:
         older_than = int(older_than_days) * 86400  # convert days to seconds
         time_now = _time()
@@ -183,8 +129,7 @@ def delete_old_dirs(dir_path, older_than_days):
 
 
 def cleanup_aapp_workdir(config):
-    """Clean up the AAPP working dir after processing"""
-
+    """Clean up the AAPP working dir after processing."""
     try:
         filelist = glob(
             '%s/*' % config['aapp_processes'][config.process_name]['working_dir'])
@@ -202,9 +147,9 @@ def cleanup_aapp_workdir(config):
 
 
 def move_aapp_log_files(config):
-    """ Move AAPP processing log files from AAPP working directory
-    in to sub-directory.
-    The directory path is defined in config file (aapp_log_files)
+    """ Move AAPP processing log files from AAPP working directory in to a sub-directory.
+
+    The directory path is defined in config file (aapp_log_files).
     """
     try:
         filelist = glob(
@@ -261,10 +206,7 @@ def move_aapp_log_files(config):
 
 
 def block_before_rerun(config, msg):
-    """
-    Add run to registry to block this from rerun if that is configured
-    """
-
+    """Add run to registry to block this from rerun if that is configured."""
     if config['platform_name'] not in config.job_register.keys():
         config.job_register[config['platform_name']] = []
 
@@ -293,10 +235,10 @@ def block_before_rerun(config, msg):
 
 
 def read_arguments():
-    """
-    Read command line arguments
-    Return
-    name of the station, environment, config file and log file
+    """Read command line arguments.
+
+    Return:
+        name of the station, environment, config file and log file
     """
     import argparse
 
@@ -357,9 +299,7 @@ def read_arguments():
 
 
 def remove(path):
-    """
-    Remove the file or directory
-    """
+    """Remove the file or directory."""
     if os.path.isdir(path):
         try:
             os.rmdir(path)
@@ -376,18 +316,14 @@ def remove(path):
 
 
 def setup_logging_from_config(log_config):
-    """Setup the logging as specified in a log-config file"""
-
+    """Set up the logging as specified in a log-config file."""
     with open(log_config) as fd:
         log_dict = yaml.safe_load(fd.read())
         logging.config.dictConfig(log_dict)
 
 
 def setup_logging(config, log_file, verbose):
-    """
-    Init and setup logging
-    """
-
+    """Init and setup logging."""
     if log_file is not None:
         if not os.path.exists(os.path.dirname(log_file)):
             try:
@@ -439,11 +375,11 @@ def setup_logging(config, log_file, verbose):
 
 
 def check_message(msg, server):
-    """
-    Check the message for neccessary stuff:
-    message type
-    providing server
-    files if no netloc in the message
+    """Check the message for neccessary stuff.
+
+    Checking for: message type
+                  message providing server
+                  files if no netloc in the message
     """
     if msg is None:
         return False
@@ -509,9 +445,7 @@ def check_message(msg, server):
 
 
 def check_satellite(msg, config):
-    """
-    Check if the satellite in message is a valid satellite for this processing
-    """
+    """Check if the satellite in message is a valid satellite for this processing."""
     metops = config['aapp_static_configuration']['supported_metop_satellites']
     noaas = config['aapp_static_configuration']['supported_noaa_satellites']
     supported_satellites = metops + noaas
@@ -531,10 +465,7 @@ def check_satellite(msg, config):
 
 
 def check_pass_length(msg, config):
-    """
-    Check if start and end time is ok
-    And check if passlength is ok
-    """
+    """Check if start and end time is ok, and check if passlength is ok."""
     config['starttime'] = msg.data['start_time']
 
     try:
@@ -556,164 +487,8 @@ def check_pass_length(msg, config):
     return True
 
 
-def generate_process_config(msg, config):
-    """
-    Check sensors to process and setup config for this
-
-    Need to check if it is a collection or file message. Then get sensor information from this.
-    """
-
-    # All possible instruments to process initialized to false.
-    config['process_amsua'] = False
-    config['process_amsub'] = False
-    config['process_hirs'] = False
-    config['process_avhrr'] = False
-    config['process_msu'] = False
-    config['process_mhs'] = False
-    config['process_dcs'] = False
-
-    # Check sensors and file as given in the incomming message
-    # Note: zip iterates two list at the same time
-    if 'dataset' in msg.data:
-        LOG.debug("Checking dataset")
-        for sensor, sensor_filename in zip(msg.data['sensor'], msg.data['dataset']):
-            LOG.debug("{} {}".format(sensor, sensor_filename['uri']))
-            process_name = "process_{}".format(
-                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            config[process_name] = True
-
-            # Name of the input file for given instrument
-            input_file_name = "input_{}_file".format(
-                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            # print urlparse(sensor_filename['uri']).path
-            config[input_file_name] = urlparse(sensor_filename['uri']).path
-
-    elif 'uri' in msg.data:
-        LOG.debug("Checking uri")
-        # Need to force list
-        if type(msg.data["sensor"]) not in (tuple, list, set):
-            msg.data["sensor"] = [msg.data["sensor"]]
-
-        LOG.debug("sensor: {}".format(msg.data["sensor"]))
-
-        for sensor in msg.data['sensor']:
-            process_name = "process_{}".format(
-                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            LOG.debug("{} {}".format(sensor, process_name))
-            config[process_name] = True
-
-            # For POES 18 and 19 and the METOPs there are MHS. but no AMSU-B.
-            # AAPP processing handles MHS as AMSU-B
-            if (('NOAA' in msg.data['platform_name'].upper() and int(msg.data['platform_name'][-2:]) >= 18) or
-                    ('METOP' in msg.data['platform_name'].upper())) and config['process_mhs']:
-                config['process_amsub'] = True
-
-            # Name of the input file for given instrument
-            # Needed for METOP processing
-            input_file_name = "input_{}_file".format(
-                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-            config[input_file_name] = urlparse(msg.data['uri']).path
-
-        # Needed for POES processing
-        config['input_hrpt_file'] = urlparse(msg.data['uri']).path
-
-    else:
-        LOG.error(
-            "Could not find needed dataset or uri in message. Can not handle.")
-        return False
-
-    # Be sure to set MHS process to False for NOAA15 as there is no MHS, but amsu-b
-    platform_name = msg.data['platform_name'].upper()
-    is_noaa15 = platform_name.startswith('NOAA') and platform_name.endswith('15')
-    if is_noaa15:
-        config['process_mhs'] = False
-
-    # Check if processing for this platform should be altered
-    # due to config.
-    if 'instrument_skipped_in_processing' in config['aapp_processes'][config.process_name]:
-        for platform_name in config['aapp_processes'][config.process_name]['instrument_skipped_in_processing']:
-            _platform_name = list(platform_name)[0]
-            if _platform_name.upper() == msg.data['platform_name'].upper():
-                for sensor in msg.data['sensor']:
-                    for skip_sensor in platform_name[_platform_name]:
-                        if skip_sensor == sensor:
-                            process_name = "process_{}".format(
-                                config['aapp_static_configuration']['sensor_name_converter'].get(sensor, sensor))
-                            if config[process_name]:
-                                LOG.debug("Skipping processing of sensor: {} as of config.".format(skip_sensor))
-                                config[process_name] = False
-
-    config['calibration_location'] = "-c -l"
-    config['a_tovs'] = list("ATOVS")
-
-    if 'keep_orbit_number_from_message' in config['aapp_processes'][config.process_name] and 'orbit_number' in msg.data:
-        config['orbit_number'] = int(msg.data['orbit_number'])
-    else:
-        # Check the case of no orbit number in message, typically EARS stream
-        start_orbnum = None
-        try:
-            import pyorbital.orbital as orb
-            LOG.debug("platform_name: {}".format(msg.data['platform_name']))
-            sat = orb.Orbital(config['aapp_static_configuration']['tle_platform_name_aliases'].get(
-                msg.data['platform_name'], msg.data['platform_name']))
-            start_orbnum = sat.get_orbit_number(msg.data['start_time'])
-        except ImportError:
-            LOG.warning("Failed importing pyorbital, " +
-                        "cannot calculate orbit number")
-        except AttributeError:
-            LOG.warning("Failed calculating orbit number using pyorbital")
-            LOG.warning("platform name in msg and config = " +
-                        str(config['aapp_static_configuration'][
-                            'tle_platform_name_aliases'].get(msg.data['platform_name'],
-                                                             msg.data['platform_name'])) +
-                        " " + str(config['platform_name']))
-        LOG.info(
-            "Orbit number determined from pyorbital = " + str(start_orbnum))
-        try:
-            config['orbit_number'] = int(msg.data['orbit_number'])
-        except KeyError:
-            LOG.warning("No orbit_number in message! Set to none...")
-            config['orbit_number'] = None
-
-        if start_orbnum and config['orbit_number'] != start_orbnum:
-            LOG.warning("Correcting orbit number: Orbit now = " +
-                        str(start_orbnum) + " Before = " + str(config['orbit_number']))
-            config['orbit_number'] = start_orbnum
-        else:
-            LOG.debug("Orbit number in message determined"
-                      "to be okay and not changed...")
-            config['orbit_number'] = int(msg.data['orbit_number'])
-
-    # How to give the platform name?
-    # Which format?
-    # Used are for Metop:
-    # Metop-A/'Metop A'/'METOP A'
-    # M02
-    # metop02
-    # Throughout this processing the last convention is used!
-    if msg.data['platform_name'] in config['aapp_static_configuration']['platform_name_aliases']:
-        config['platform_name'] = config['aapp_static_configuration'][
-            'platform_name_aliases'][msg.data['platform_name']]
-        # print config['platform_name']
-        # TODO Should not use satellite_name
-
-        config['satellite_name'] = config['platform_name']
-    else:
-        LOG.error("Failed to replace platform_name: {}. Can not continue.".format(
-            msg.data['platform_name']))
-        return False
-
-    config['start_time'] = msg.data['start_time']
-
-    set_collection_area_id(msg.data, config)
-
-    return True
-
-
 def create_and_check_scene_id(msg, config):
-    """
-    Create a scene specific ID to identify the scene process for later
-    """
+    """Create a scene specific ID to identify the scene process for later."""
     LOG.debug("config.job_register: %s", str(config.job_register))
     LOG.debug("config platform_name: %s", str(config['platform_name']))
     LOG.debug("config - collection_area_id: %s", str(config['collection_area_id']))
@@ -753,6 +528,7 @@ def create_and_check_scene_id(msg, config):
 
 
 def which(program):
+    """Check if executable is available in the system environment path."""
     # Check if needed executable are available in the
     # environment search path.
     # Taken from https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
@@ -772,11 +548,7 @@ def which(program):
 
 
 def setup_aapp_processing(config):
-    """
-    Setup various env variables needed for the aapp processing
-    and set eg working dir
-    """
-
+    """Setting up the AAPP processing env variables, like the working dir etc."""
     if ('working_dir' not in config['aapp_processes'][config.process_name] and
             'use_dyn_work_dir' in config['aapp_processes'][config.process_name] and
             config['aapp_processes'][config.process_name]['use_dyn_work_dir']):
@@ -863,10 +635,7 @@ def setup_aapp_processing(config):
 
 
 def process_aapp(msg, config):
-    """
-    Do the various processing steps of aapp for each instruments
-    """
-
+    """Do the various processing steps of aapp for each instruments."""
     try:
         starttime = config['starttime']
         platform_name = config['platform_name']
@@ -924,7 +693,8 @@ def process_aapp(msg, config):
                 "Please check the previous log carefully to see if this is an error you can accept.")
 
         # Do Preprocessing
-        from aapp_runner.do_atovpp_and_avh2hirs_processing import do_atovpp_and_avh2hirs_processing
+        from aapp_runner.do_atovpp_and_avh2hirs_processing import \
+            do_atovpp_and_avh2hirs_processing
         if not do_atovpp_and_avh2hirs_processing(config, starttime):
             LOG.warning(
                 "The preprocessing atovin, atopp and/or avh2hirs failed for some reason. " +
@@ -962,10 +732,7 @@ def process_aapp(msg, config):
 
 
 def publish_level1(publisher, config, msg, filelist, station_name, environment):
-    """
-    Send a publish message, one message per file in the filelist
-    """
-
+    """Send a publish message, one message per file in the filelist."""
     for file in filelist:
         LOG.debug("Handeling file for sending: {}".format(file))
         msg_to_send = {}
@@ -1050,7 +817,7 @@ if __name__ == "__main__":
     else:
         try:
             LOG = setup_logging(config, log_file, verbose)
-        except:
+        except Exception:
             print("Logging setup failed. Check your config")
             sys.exit()
 
@@ -1104,7 +871,8 @@ if __name__ == "__main__":
 
                             # Rename standard AAPP output file names to usefull ones
                             # and move files to final location.
-                            from aapp_runner.rename_aapp_filenames import rename_aapp_filenames
+                            from aapp_runner.rename_aapp_filenames import \
+                                rename_aapp_filenames
                             renamed_files = rename_aapp_filenames(aapp_config)
                             if not renamed_files:
                                 LOG.warning(
