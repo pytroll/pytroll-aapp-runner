@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014 - 2021 Pytroll Community
+# Copyright (c) 2014 - 2022 Pytroll Community
 #
 # Author(s):
 #
@@ -30,6 +30,63 @@ import logging
 LOGGER = logging.getLogger(__name__)
 
 
+def check_if_scene_is_unique(config):
+    """Check if the Scene is unique.
+
+    The scene is checked against the register (holding already processed
+    scenes).  If it overlaps in time with a previously processed scene and the
+    area-id's (used to collect the data (granules) are the same, then return
+    False - the scene is then not unique and should not be processed further.
+
+    """
+    LOGGER.debug("config.job_register: %s", str(config.job_register))
+    LOGGER.debug("config platform_name: %s", str(config['platform_name']))
+    LOGGER.debug("config - collection_area_id: %s", str(config['collection_area_id']))
+
+    # Use sat id, start and end time and area_id as the unique identifier of the scene!
+    if (config['platform_name'] in config.job_register and
+            len(config.job_register[config['platform_name']]) > 0):
+
+        # Go through list of start,end time tuples and see if the current
+        # scene overlaps with any - only if the area ids are the same
+
+        # Get registered start and end times with area id equal to current area_id
+        registered_times = []
+        for start_t, end_t, area_id in config.job_register[config['platform_name']]:
+            if area_id == config['collection_area_id']:
+                registered_times.append((start_t, end_t))
+
+        # Get overlap status
+        status = overlapping_timeinterval(
+            (config['starttime'], config['endtime']), registered_times)
+
+        if status:
+            info_msg = ("Processing of scene " + config['platform_name'] +
+                        " " + str(status[0]) + " " + str(status[1]) +
+                        " with overlapping time has been"
+                        " launched previously. Skip it!")
+            LOGGER.info(info_msg)
+            return False
+
+        LOGGER.debug("No overlap with any recently processed scenes...")
+
+    return True
+
+
+def create_scene_id(config):
+    """Create a unique scene specific ID to identify the scene process for later.
+
+    The id is created from the platform name and start and end times of the
+    scene available in the process config dictionary.
+
+    """
+    scene_id = (str(config['platform_name']) + '_' +
+                config['starttime'].strftime('%Y%m%d%H%M%S') +
+                '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
+    LOGGER.debug("scene_id = " + str(scene_id))
+    return scene_id
+
+
 def overlapping_timeinterval(start_end_times, timelist):
     """From a list of start and end times check if the current time interval
     overlaps with one or more"""
@@ -39,7 +96,7 @@ def overlapping_timeinterval(start_end_times, timelist):
         if ((tstart <= starttime and tend > starttime) or
                 (tstart < endtime and tend >= endtime)):
             return tstart, tend
-        elif (tstart >= starttime and tend <= endtime):
+        if (tstart >= starttime and tend <= endtime):
             return tstart, tend
 
     return False
@@ -50,7 +107,7 @@ def run_shell_command(command, use_shell=False, use_shlex=True, my_cwd=None,
     """Run the given command as a shell and get the return code, stdout and stderr
         Returns True/False and return code.
     """
-    from subprocess import Popen, PIPE
+    from subprocess import PIPE, Popen
 
     if stdin is not None:
         stdin = stdin.encode('utf-8')
