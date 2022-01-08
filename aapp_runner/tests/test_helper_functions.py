@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2022 Adam.Dybbroe
+# Copyright (c) 2022 Pytroll developers
 
 # Author(s):
 
-#   Adam.Dybbroe <a000680@c21856.ad.smhi.se>
+#   Adam Dybbroe <Firstname.Lastname @ smhi.se>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,32 +32,6 @@ from aapp_runner.helper_functions import check_if_scene_is_unique
 from aapp_runner.read_aapp_config import AappL1Config, AappRunnerConfig
 from aapp_runner.tests.test_config import (TEST_YAML_CONTENT_OK,
                                            create_config_from_yaml)
-
-# <aapp_runner.read_aapp_config.AappL1Config object at 0x7f547c9d21c0>
-# ipdb> config.job_register
-# {}
-# ipdb> config['platform_name']
-# 'metop03'
-# ipdb> config['collection_area_id']
-# 'euron1'
-# ipdb> config['starttime'], config['endtime']
-# (datetime.datetime(2022, 1, 8, 12, 49, 50), datetime.datetime(2022, 1, 8, 13, 0, 26))
-
-# ipdb> config.job_register
-# {'metop03': [(datetime.datetime(2022, 1, 8, 12, 49, 50), datetime.datetime(2022, 1, 8, 13, 0, 26), 'euron1')]}
-# ipdb> config['platform_name']
-# 'metop03'
-# ipdb> config['collection_area_id']
-# 'euron1'
-# ipdb> config['starttime'], config['endtime']
-# (datetime.datetime(2022, 1, 8, 12, 50), datetime.datetime(2022, 1, 8, 13, 0))
-
-# ipdb> status
-# (datetime.datetime(2022, 1, 8, 12, 49, 50), datetime.datetime(2022, 1, 8, 13, 0, 26))
-# ipdb> registered_times
-# [(datetime.datetime(2022, 1, 8, 12, 49, 50), datetime.datetime(2022, 1, 8, 13, 0, 26))]
-# ipdb> c
-# [2022-01-08 14:15:59,822 INFO     aapp_runner.helper_functions] Processing of scene metop03 2022-01-08 12:49:50 2022-01-08 13:00:26 with overlapping time has been launched previously. Skip it!
 
 
 class TestProcessConfigChecking(unittest.TestCase):
