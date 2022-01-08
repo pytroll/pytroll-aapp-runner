@@ -8,7 +8,7 @@ logging:
 
 # Static configuration of various elements needed in the AAPP processing
 aapp_static_configuration:
-  # How to name the output files from 
+  # How to name the output files from
   # the decommutation processing
   decommutation_files:
     hirs_file: hrsn.l1b
@@ -17,7 +17,7 @@ aapp_static_configuration:
     mhs_file: ambn.l1b
     avhrr_file: hrpt.l1b
     msu_file: msun.l1b
-     
+
   # Valid NOAA(POES)satellite names to process
   supported_noaa_satellites:
     - NOAA-15
@@ -28,7 +28,7 @@ aapp_static_configuration:
   supported_metop_satellites:
     - Metop-B
     - Metop-A
-    
+
   # Unfortunately satellite names comes in a few combinations
   # This is how aapp names the satellite internally
   # and all other names needs to be translated.
@@ -50,7 +50,7 @@ aapp_static_configuration:
     M01: metop01
     M02: metop02
     M03: metop03
-    
+
   # Aliases of satellite sensor names
   satellite_sensor_name_aliases:
     'amsua': 'amsu-a'
@@ -71,7 +71,7 @@ aapp_static_configuration:
     'Metop-C': 'METOP-C'
 
   # Satellite sensors are named differently.
-  # Here is how to translate various names depending 
+  # Here is how to translate various names depending
   # on the processing
   sensor_name_converter:
     'amsua': 'amsu-a'
@@ -94,11 +94,15 @@ aapp_processes:
       - /XLBANDANTENNA/HRPT/L0
       - /XLBANDANTENNA/METOP/L0
 
+    # Base dir of the TLE files for AAPP. Will override the (AAPP) environment variable DIR_DATA_TLE
+    tle_indir: /base/dir/under/which/aapp/expects/the/tle/files
+    # Directory where you keep your recent (real-time) TLE files. Independent from where AAPP expects them to be.
+    # If not specified, the TLE files are expected to be (already) landing in tle_indir
+    recent_tlefiles_ext_dir: /path/to/where/your/tle/files/are/located
+
     # Default collection area id:
     collection_area_id: euron1
 
-    # Base dir of your TLE files.
-    tle_indir: /disk2/AAPP/orbelems
     # Sift format of your TLE file archive
     tle_archive_dir: '{tle_indir:s}/tle-archive/{timestamp:%Y%m}'
     # Sift format of your TLE files
@@ -108,11 +112,11 @@ aapp_processes:
     tle_download:
       - {url: 'http://www.celestrak.com/NORAD/elements/weather.txt'}
       - {url: 'http://oiswww.eumetsat.org/metopTLEs/html/data_out/latest_m01_tle.txt'}
-    
+
     # Search for the closest tle file from data timestamp
     # but maximum difference can not be larger than this value
     tle_file_to_data_diff_limit_days: 3
-    
+
     # Minutes to lock for similar passes in minutes
     locktime_before_rerun: 10
 
@@ -165,7 +169,7 @@ aapp_processes:
     # Do avhrr to hirs processing. Means running MAIA. And MAIA need NWP fields to work properly.
     # Please look in the AAPP documentation before you use this.
     do_avh2hirs: True
-    
+
     # Skip certain Platforms and/or instruments.
     instrument_skipped_in_processing:
       - NOAA-15:
@@ -174,9 +178,9 @@ aapp_processes:
         - amsu-b
       - METOP-C:
         - hirs/4
- 
+
     # Sift format of the resulting file names of the AAPP processing
-    rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}' 
+    rename_aapp_compose: '{data_type:s}_{satellite_name:s}_{start_time:%Y%m%d}_{start_time:%H%M}_{orbit_number:5d}.{data_level:s}'
     # Data using the rename_aapp_compose. This is how the aapp runner does it.
     rename_aapp_files:
       - avhrr: {aapp_file: hrpt.l1b, data_type: hrpt, data_level: l1b}
@@ -186,14 +190,14 @@ aapp_processes:
       - amsua: {aapp_file: aman.l1b, data_type: amsual1b, data_level: l1b}
       - amsua: {aapp_file: aman.l1c, data_type: amsual1c, data_level: l1c}
       - amsua: {aapp_file: aman.l1d, data_type: amsual1d, data_level: l1d}
-      - amsub: {aapp_file: ambn.l1b, data_type: amsubl1b, data_level: l1b}        
-      - amsub: {aapp_file: ambn.l1c, data_type: amsubl1c, data_level: l1c}        
+      - amsub: {aapp_file: ambn.l1b, data_type: amsubl1b, data_level: l1b}
+      - amsub: {aapp_file: ambn.l1c, data_type: amsubl1c, data_level: l1c}
       - mhs: {aapp_file: ambn.l1b, data_type: mhsl1b, data_level: l1b}
       - mhs: {aapp_file: ambn.l1c, data_type: mhsl1c, data_level: l1c}
       - msu: {aapp_file: msu.l1b, data_type: msul1b, data_level: l1b}
       - msu: {aapp_file: msu.l1c, data_type: msul1c, data_level: l1c}
       - dcs: {aapp_file: dcs.l1b, data_type: dcsl1b, data_level: l1b}
-      
+
     # The idea is to send posttroll messages during the processing for various status
     # information.
     # NOT Implemented.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015, 2018 Pytroll developers
+# Copyright (c) 2015 - 2022 Pytroll developers
 
 # Author(s):
 
@@ -33,14 +33,18 @@ timestamp if the index file should be processed.
 """
 
 import logging
-from glob import glob
 import os
-from datetime import datetime
-from shutil import copy
-from aapp_runner.helper_functions import run_shell_command
-from trollsift.parser import compose
 import re
+import shutil
+import tempfile
 import time
+from datetime import datetime
+from glob import glob
+from shutil import copy
+
+from trollsift.parser import Parser, compose, globify
+
+from aapp_runner.helper_functions import run_shell_command
 
 LOG = logging.getLogger(__name__)
 
@@ -64,11 +68,13 @@ def _do_3_matches(m):
 def _do_3_matchesYY(m):
     return datetime.strptime(m.group(1) + m.group(2) + m.group(3), "%y%m%d")
 
+
 tle_match_tests = ((r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2})(\d{2}).*', _do_6_matches),
                    (r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2})(\d{2}).*', _do_5_matches),
                    (r'.*(\d{4})(\d{2})(\d{2})_?-?T?(\d{2}).*', _do_4_matches),
                    (r'.*(\d{4})(\d{2})(\d{2}).*', _do_3_matches),
                    (r'.*(\d{2})(\d{2})(\d{2}).*', _do_3_matchesYY))
+
 
 def download_tle(config, timestamp, dir_data_tle):
 
@@ -178,6 +184,31 @@ def download_tle(config, timestamp, dir_data_tle):
     return tle_file_list
 
 
+def fetch_realtime_tles(tle_input_path, tle_output_path, tle_infile_format):
+    """Get the recent TLEs and copy them into the AAPP data structure."""
+    infiles = glob(os.path.join(tle_input_path, globify(tle_infile_format)))
+    p__ = Parser(tle_infile_format)
+    for filepath in infiles:
+        filename = os.path.basename(filepath)
+        res = p__.parse(filename)
+        dtobj = res['timestamp']
+
+        subdirname = dtobj.strftime('%Y_%m')
+        subdirpath = os.path.join(tle_output_path, subdirname)
+        outfile = os.path.join(subdirpath, filename)
+        LOG.debug("OUTPUT file = %s", str(outfile))
+
+        if not os.path.exists(subdirpath):
+            os.mkdir(subdirpath)
+        tmp_filepath = tempfile.mktemp(suffix='_' + os.path.basename(outfile),
+                                       dir=os.path.dirname(outfile))
+        LOG.debug("tmp-filepath = %s", tmp_filepath)
+        shutil.copy(filepath, tmp_filepath)
+        LOG.debug("File copied: %s -> %s", filepath, tmp_filepath)
+        os.rename(tmp_filepath, outfile)
+        LOG.debug("Rename: %s -> %s", tmp_filepath, outfile)
+
+
 def do_tleing(config, timestamp, satellite):
     """Get the tle-file and copy them to the AAPP data structure
        and run the AAPP tleing script and executable"""
@@ -200,23 +231,30 @@ def do_tleing(config, timestamp, satellite):
 
     _ensure_tledir(DIR_DATA_TLE)
 
+    # Fetch TLE files from central real-time repo and place them under the AAPP orbelems structure:
+    if 'recent_tlefiles_ext_dir' in config['aapp_processes'][config.process_name]:
+        extdir = config['aapp_processes'][config.process_name]['recent_tlefiles_ext_dir']
+        LOG.debug("Fetch TLEs from %s to %s", extdir, DIR_DATA_TLE)
+        tle_file_format = config['aapp_processes'][config.process_name]['tle_infile_format']
+        fetch_realtime_tles(extdir, DIR_DATA_TLE, tle_file_format)
+
     TLE_INDEX = os.path.join(DIR_DATA_TLE, "tle_{}.index".format(satellite))
 
     (tle_dict, tle_file_list, tle_search_dir) = _search_tle_files(config, DIR_DATA_TLE, TLE_INDEX,
-            timestamp)
+                                                                  timestamp)
 
     if not tle_file_list and config['aapp_processes'][config.process_name]['download_tle_files']:
         LOG.warning("Found no tle files. Try to download ... ")
         tle_file_list = download_tle(config, timestamp, DIR_DATA_TLE)
 
     _ingest_and_archive_tle_files(config, tle_file_list, DIR_DATA_TLE, tle_dict,
-            tle_search_dir, satellite, TLE_INDEX)
-
+                                  tle_search_dir, satellite, TLE_INDEX)
 
     # Change back after this is done
     os.chdir(current_dir)
 
     return return_status
+
 
 def _maybe_update_env(config):
     """Potentially update environment based on config.
@@ -301,9 +339,9 @@ def _search_tle_files(config, tle_dir, tle_index, timestamp):
                         " otherwise it is a bit suspicious.")
             try:
                 tle_files = [s for s in os.listdir(tle_dir) if
-                        os.path.isfile(os.path.join(tle_dir, s))]
+                             os.path.isfile(os.path.join(tle_dir, s))]
                 tle_files.sort(key=lambda s:
-                        os.path.getctime(os.path.join(tle_dir, s)))
+                               os.path.getctime(os.path.join(tle_dir, s)))
                 tle_file_list = tle_files
             except OSError:
                 LOG.warning("Found no tle files .... ")
@@ -329,7 +367,7 @@ def _search_tle_files(config, tle_dir, tle_index, timestamp):
 
         # FIXME: In AAPP default get_tle script direcory timestamp is TLE_MONTH=`date +%Y-\%m`
         for tle_search_dir in [compose(os.path.join(tle_dir,
-            "{timestamp:%Y_%m}"), tle_dict), tle_dir]:
+                                                    "{timestamp:%Y_%m}"), tle_dict), tle_dir]:
             if not os.path.exists(tle_search_dir):
                 LOG.debug("tle_search_dir {} does not exists.".format(tle_search_dir))
                 continue
@@ -383,7 +421,7 @@ def _search_tle_files(config, tle_dir, tle_index, timestamp):
 
 
 def _ingest_and_archive_tle_files(config, tle_file_list, tle_dir, tle_dict,
-        tle_search_dir, satellite, tle_index):
+                                  tle_search_dir, satellite, tle_index):
     for tle_file in tle_file_list:
         archive = False
 
@@ -402,7 +440,7 @@ def _ingest_and_archive_tle_files(config, tle_file_list, tle_dir, tle_dict,
         stderr = ""
         cmd = "tleing.exe"
         stdin = "{}\n{}\n{}\n{}\n".format(tle_dir, tle_filename, satellite,
-                tle_index)
+                                          tle_index)
         LOG.debug('stdin arguments to command: ' + str(stdin))
         try:
             status, returncode, stdout, stderr = run_shell_command(cmd, stdin=stdin)
@@ -529,7 +567,6 @@ def _archive_tles(config, tle_file_list):
                     # don't get copied multiple times.  I hope it doesn't
                     # break anybody's workflow!
                     break
-
 
 
 def do_tle_satpos(config, timestamp, satellite):
