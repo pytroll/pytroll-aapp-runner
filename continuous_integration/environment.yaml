@@ -4,6 +4,7 @@ channels:
 dependencies:
   - xarray
   - dask
+  - pykdtree
   - distributed
   - cartopy
   - matplotlib
