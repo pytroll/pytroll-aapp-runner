@@ -68,7 +68,7 @@ class TestProcessConfigChecking(unittest.TestCase):
         aapp_config['endtime'] = datetime(2022, 1, 8, 13, 0)
 
         result = check_if_scene_is_unique(aapp_config)
-        assert result is False
+        assert not result
 
     @patch('aapp_runner.read_aapp_config.load_config_from_file')
     def test_check_if_scene_is_unique_logging(self, config):
