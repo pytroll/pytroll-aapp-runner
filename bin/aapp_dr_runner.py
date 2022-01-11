@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014 - 2021 Pytroll Community
+# Copyright (c) 2014 - 2022 Pytroll Community
 
 # Author(s):
 
@@ -51,11 +51,12 @@ from posttroll.message import Message
 from posttroll.publisher import Publish
 from trollsift.parser import compose
 
+from aapp_runner.aapp_runner_tools import set_collection_area_id
 from aapp_runner.config_helpers import generate_process_config
 from aapp_runner.do_commutation import do_decommutation
 from aapp_runner.exceptions import DecommutationError, SatposError, TleError
-from aapp_runner.helper_functions import (overlapping_timeinterval,
-                                          run_shell_command)
+from aapp_runner.helper_functions import (check_if_scene_is_unique,
+                                          create_scene_id, run_shell_command)
 from aapp_runner.read_aapp_config import AappL1Config, AappRunnerConfig
 from aapp_runner.tle_satpos_prepare import do_tle_satpos, do_tleing
 
@@ -90,7 +91,6 @@ def reset_job_registry(objdict, key, start_end_times_area):
                 "Register didn't contain any entry matching: " +
                 str(key))
     return
-
 
 
 def cleanup_aapp_logfiles_archive(config):
@@ -487,46 +487,6 @@ def check_pass_length(msg, config):
     return True
 
 
-def create_and_check_scene_id(msg, config):
-    """Create a scene specific ID to identify the scene process for later."""
-    LOG.debug("config.job_register: %s", str(config.job_register))
-    LOG.debug("config platform_name: %s", str(config['platform_name']))
-    LOG.debug("config - collection_area_id: %s", str(config['collection_area_id']))
-
-    # Use sat id, start and end time and area_id as the unique identifier of the scene!
-    if (config['platform_name'] in config.job_register and
-            len(config.job_register[config['platform_name']]) > 0):
-
-        # Go through list of start,end time tuples and see if the current
-        # scene overlaps with any - only if the area ids are the same
-
-        # Get registed start and end times with area id equal to current area_id
-        registed_times = []
-        for start_t, end_t, area_id in config.job_register[config['platform_name']]:
-            if area_id == config['collection_area_id']:
-                registed_times.append((start_t, end_t))
-
-        # Get overlap status
-        status = overlapping_timeinterval(
-            (config['starttime'], config['endtime']), registed_times)
-
-        if status:
-            LOG.warning("Processing of scene " + config['platform_name'] +
-                        " " + str(status[0]) + " " + str(status[1]) +
-                        " with overlapping time has been"
-                        " launched previously")
-            LOG.info("Skip it...")
-            return False
-        else:
-            LOG.debug("No overlap with any recently processed scenes...")
-
-    scene_id = (str(config['platform_name']) + '_' +
-                config['starttime'].strftime('%Y%m%d%H%M%S') +
-                '_' + config['endtime'].strftime('%Y%m%d%H%M%S'))
-    LOG.debug("scene_id = " + str(scene_id))
-    return scene_id
-
-
 def which(program):
     """Check if executable is available in the system environment path."""
     # Check if needed executable are available in the
@@ -858,10 +818,11 @@ if __name__ == "__main__":
                         if not generate_process_config(msg, aapp_config):
                             continue
 
-                        scene_id = create_and_check_scene_id(msg, aapp_config)
-                        if not scene_id:
+                        scene_is_unique = check_if_scene_is_unique(aapp_config)
+                        if not scene_is_unique:
                             continue
 
+                        scene_id = create_scene_id(aapp_config)
                         try:
                             if not setup_aapp_processing(aapp_config):
                                 raise Exception("setup_aapp_processing returned False. See above lines for details.")
