@@ -1000,6 +1000,7 @@ if __name__ == "__main__":
         sys.exit()
 
     nameservers = config.get('nameservers', [])
+    LOG.debug("For publish nameservers using: {}".format(nameservers))
 
     try:
         services = aapp_config.get_parameter('services')
