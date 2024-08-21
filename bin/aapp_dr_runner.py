@@ -760,6 +760,8 @@ if __name__ == "__main__":
     log_config = args.log_config
     verbose = args.verbose
     nameservers = args.nameservers
+    if nameservers and 'false' in nameservers:
+        nameservers = False
     publish_port = args.publish_port
 
     if not os.path.isfile(config_filename):
@@ -793,9 +795,13 @@ if __name__ == "__main__":
         LOG.debug('Subscribe: {services} {topics}'.format(services=services,
                                                           topics=aapp_config.get_parameter('subscribe_topics')))
 
-        with posttroll.subscriber.Subscribe(services,
-                                            aapp_config.get_parameter('subscribe_topics'),
-                                            True) as subscr:
+        with posttroll.subscriber.Subscribe(
+                services,
+                topics=aapp_config.get_parameter('subscribe_topics'),
+                addr_listener=True,
+                addresses=aapp_config.get('addresses', None),
+                nameserver=aapp_config.get('subscribe_nameserver', 'localhost'),
+        ) as subscr:
             with Publish('aapp_runner', port=publish_port,
                          nameservers=nameservers) as publisher:
                 while True:

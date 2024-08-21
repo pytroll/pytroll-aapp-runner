@@ -14,6 +14,7 @@ dependencies:
   - pytest-cov
   - setuptools_scm
   - pip
+  - git
   - pip:
     - trollsift
     - posttroll
