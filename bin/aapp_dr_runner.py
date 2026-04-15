@@ -792,10 +792,17 @@ if __name__ == "__main__":
             services = ''
         LOG.debug('Subscribe: {services} {topics}'.format(services=services,
                                                           topics=aapp_config.get_parameter('subscribe_topics')))
+        subscribe_nameserver = aapp_config.get_parameter('subscribe_nameserver')
+        if subscribe_nameserver.lower() == "false":
+            subscribe_nameserver = False
 
-        with posttroll.subscriber.Subscribe(services,
-                                            aapp_config.get_parameter('subscribe_topics'),
-                                            True) as subscr:
+        with posttroll.subscriber.Subscribe(
+                services,
+                topics=aapp_config.get_parameter('subscribe_topics'),
+                addr_listener=True,
+                addresses=aapp_config.get_parameter('message_providing_server'),
+                nameserver=subscribe_nameserver,
+        ) as subscr:
             with Publish('aapp_runner', port=publish_port,
                          nameservers=nameservers) as publisher:
                 while True:
